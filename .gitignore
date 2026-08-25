@@ -1,0 +1,14 @@
+.alfred-memory.sqlite3
+.alfred-memory.sqlite3-shm
+.alfred-memory.sqlite3-wal
+.venv-whisper/
+.venv-tts/
+tts-models/
+tts-samples/
+.venv-qwen-tts/
+tts-samples-qwen/
+.venv-rvc/
+AlfredPennyworth_465e_8835s/
+rvc-model/
+rvc-output/
+__pycache__/

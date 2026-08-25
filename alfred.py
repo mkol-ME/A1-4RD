@@ -13,16 +13,20 @@ Commands:
 """
 
 import json
+import os
 import sys
 import time
 import urllib.error
 import urllib.request
 from pathlib import Path
 
+from memory import Memory
+
 SERVER = "http://localhost:11434"   # server's IP if running from the laptop
 DEFAULT_MODEL = "qwen3.5:9b"
 PERSONA = Path(__file__).with_name("alfred.md")
 EXAMPLES = Path(__file__).with_name("examples.md")
+MEMORY_DB = Path(os.environ.get("ALFRED_MEMORY_DB", Path(__file__).with_name(".alfred-memory.sqlite3")))
 
 TEMPERATURE = 0.75
 MAX_TOKENS = -1         # -1 = uncapped; set a number only as a runaway guard
@@ -61,9 +65,12 @@ def load_examples() -> list:
     return shots
 
 
-def ask(model, persona, history, echo=True, stats=True) -> str:
+def ask(model, persona, history, memory_context="", echo=True, stats=True) -> str:
     """Stream one reply. Returns the full text. echo=False keeps it off screen."""
-    messages = [{"role": "system", "content": persona}] + SHOTS + history
+    messages = [{"role": "system", "content": persona}]
+    if memory_context:
+        messages.append({"role": "system", "content": memory_context})
+    messages += SHOTS + history
     payload = {
         "model": model,
         "messages": messages,
@@ -137,9 +144,11 @@ def main() -> None:
     model = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_MODEL
     persona = load_persona()
     SHOTS = load_examples()
-    history = []
+    memory = Memory(MEMORY_DB)
+    history = memory.recent()
     print(f"{DIM}{model} @ {SERVER} · {len(SHOTS)//2} examples loaded{RESET}")
-    print(f"{DIM}/test /model /reload /reset /quit{RESET}\n")
+    print(f"{DIM}{len(memory.facts())} facts · {len(history)//2} recent exchanges loaded{RESET}")
+    print(f"{DIM}/test /model /reload /reset /remember /memory /forget /quit{RESET}\n")
 
     while True:
         try:
@@ -169,13 +178,38 @@ def main() -> None:
             history = []
             print(f"{DIM}context cleared{RESET}")
             continue
+        if line.startswith("/remember"):
+            fact = line[len("/remember"):].strip()
+            if not fact:
+                print(f"{DIM}usage: /remember FACT{RESET}")
+            else:
+                fact_id = memory.remember(fact)
+                print(f"{DIM}remembered [{fact_id}]{RESET}")
+            continue
+        if line == "/memory":
+            facts = memory.facts()
+            if not facts:
+                print(f"{DIM}no durable facts stored{RESET}")
+            for fact_id, fact in facts:
+                print(f"{DIM}[{fact_id}]{RESET} {fact}")
+            continue
+        if line.startswith("/forget"):
+            value = line[len("/forget"):].strip()
+            if not value.isdigit():
+                print(f"{DIM}usage: /forget ID{RESET}")
+            elif memory.forget(int(value)):
+                print(f"{DIM}forgotten{RESET}")
+            else:
+                print(f"{DIM}no memory with id {value}{RESET}")
+            continue
         if line == "/test":
             run_tests(model, persona)
             continue
 
+        memory_context = memory.context(line)
         history.append({"role": "user", "content": line})
         try:
-            reply = ask(model, persona, history)
+            reply = ask(model, persona, history, memory_context=memory_context)
         except urllib.error.URLError as exc:
             print(f"{RED}{exc}{RESET}")
             print(f"{DIM}Is Ollama reachable at {SERVER}?{RESET}")
@@ -186,6 +220,8 @@ def main() -> None:
             history.pop()
             continue
         history.append({"role": "assistant", "content": reply})
+        memory.record(line, reply)
+        history = history[-12:]
 
 
 if __name__ == "__main__":
