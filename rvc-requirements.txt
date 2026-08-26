@@ -2,3 +2,4 @@ numpy==1.26.4
 piper-tts==1.7.0
 rvc-python==0.1.5
 setuptools==80.10.2
+sqlite-vec==0.1.9
