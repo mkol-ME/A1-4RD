@@ -58,24 +58,50 @@ MEMORY = None
 
 
 class SentenceBuffer:
+    """Cut the stream into whole sentences and nothing smaller.
+
+    The previous version also broke at commas past ten words, and failed that
+    at a hard fourteen-word count with no punctuation involved at all. That cut
+    clauses in half ("...to give" / "it a better grip"), orphaned "sir." into an
+    utterance of its own, and — because any chunk not ending in punctuation had
+    a comma appended — made Piper sing a rising continuation and then stop dead.
+    Every one of those is audible as a seam.
+
+    A complete sentence is the smallest unit Piper can give a correct intonation
+    contour to, so it is the smallest unit worth sending.
+    """
+
+    TERMINAL = re.compile(r"[.!?][\"')\]]?(?=\s)")
+    CLAUSE = re.compile(r"[,;:—](?=\s)")
+    # Only used to break a sentence that has run away without any stop at all.
+    MAX_WORDS = 30
+    # A period after one of these is not the end of a sentence.
+    ABBREVIATIONS = {"mr", "mrs", "ms", "dr", "st", "vs", "e.g", "i.e", "approx", "fig", "no"}
+
     def __init__(self, emit):
         self.text = ""
         self.emit = emit
 
+    def _is_abbreviation(self, end: int) -> bool:
+        word = re.search(r"(\S+)\.$", self.text[:end])
+        return bool(word) and word.group(1).lower() in self.ABBREVIATIONS
+
+    def _boundary(self) -> int | None:
+        for match in self.TERMINAL.finditer(self.text):
+            if not self._is_abbreviation(match.end()):
+                return match.end()
+        if len(self.text.split()) <= self.MAX_WORDS:
+            return None
+        # Runaway sentence. Fall back to the last real clause break, so the seam
+        # at least lands where a speaker would have drawn breath. Never invent
+        # one where the text has none.
+        clauses = list(self.CLAUSE.finditer(self.text))
+        return clauses[-1].end() if clauses else None
+
     def add(self, piece: str) -> None:
         self.text += piece
         while True:
-            boundary = None
-            for match in re.finditer(r"[.!?;,:—][\"']?(?=\s)", self.text):
-                candidate = self.text[:match.end()]
-                terminal = match.group(0)[0] in ".!?"
-                if terminal or len(candidate.split()) >= 10:
-                    boundary = match.end()
-                    break
-            if boundary is None:
-                words = list(re.finditer(r"\S+\s+", self.text))
-                if len(words) >= 14:
-                    boundary = words[13].end()
+            boundary = self._boundary()
             if boundary is None:
                 return
             sentence = self.text[:boundary].strip()
@@ -147,8 +173,7 @@ class Handler(BaseHTTPRequestHandler):
                 if sentence is None:
                     return
                 try:
-                    spoken = sentence if sentence[-1] in ".!?;,:—" else sentence + ","
-                    audio, tts_time, rvc_time = PIPELINE.create(spoken)
+                    audio, tts_time, rvc_time = PIPELINE.create(sentence)
                     frame = {
                         "text": sentence,
                         "audio": base64.b64encode(audio).decode("ascii"),
