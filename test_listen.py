@@ -59,6 +59,24 @@ class WakeWord(unittest.TestCase):
                          "pokémon number 10")
 
 
+class Dismissal(unittest.TestCase):
+    """Ending a conversation, without ending one that is still going."""
+
+    def test_the_butler_dismissals(self):
+        for line in ("that will be all", "that'll be all, Alfred",
+                     "Alfred, that's all", "go to sleep", "goodnight alfred",
+                     "dismissed", "ok that will be all"):
+            self.assertTrue(listen.is_dismissal(line), line)
+
+    def test_a_question_is_not_a_dismissal(self):
+        # The words appear inside plenty of things that are not dismissals.
+        for line in ("nevermind the brim, why is it lifting",
+                     "that's all i had for lunch",
+                     "should i go to sleep or finish this print",
+                     "what did you say that will be all about"):
+            self.assertFalse(listen.is_dismissal(line), line)
+
+
 class Segmentation(unittest.TestCase):
     """Drive Microphone.next_utterance from a queue instead of a sound card."""
 

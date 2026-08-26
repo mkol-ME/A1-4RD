@@ -57,6 +57,19 @@ MAX_UTTERANCE = 15.0
 WAKE_WORDS = ("alfred", "alfie", "alford", "elfred", "alfredo", "al fred")
 WAKE_WINDOW_WORDS = 3   # his name has to be near the front, not buried mid-sentence
 
+# Saying his name before every single sentence is not a conversation, it is a
+# summons repeated. His name opens one; after that he is simply present, the way
+# a man standing in the room is, until he is dismissed or the room goes quiet.
+DISMISSALS = (
+    "that will be all", "that'll be all", "that's all", "thats all", "that is all",
+    "go to sleep", "goodnight", "good night", "nevermind", "never mind",
+    "dismissed", "stand down", "leave me", "leave me be", "you can go",
+)
+# How long he stays in the room with nothing said to him. Long enough to think
+# about the answer he was just given; short enough that a conversation from
+# lunchtime is not still open at dinner.
+ATTENTION_SECONDS = 90.0
+
 
 def rms(block: np.ndarray) -> float:
     return float(np.sqrt(np.mean(np.square(block))) if block.size else 0.0)
@@ -82,6 +95,28 @@ def transcribe(samples: np.ndarray) -> tuple[str, float]:
     return payload["text"], payload["seconds"]
 
 
+def plain_words(text: str) -> list[str]:
+    """Bare lowercase tokens, keeping digits, accents, decimals and P1S whole."""
+    return re.findall(r"[^\W_]+(?:[.'][^\W_]+)*", text.lower())
+
+
+def is_dismissal(prompt: str) -> bool:
+    """Has he just been told to stop listening?
+
+    Matched on the whole utterance rather than anywhere inside it, because
+    "nevermind the brim, why is it lifting" is a question, not a dismissal.
+    His name is allowed on either end, since that is how anyone says it.
+    """
+    words = plain_words(prompt)
+    while words and words[0] in WAKE_WORDS:
+        words = words[1:]
+    while words and words[-1] in WAKE_WORDS:
+        words = words[:-1]
+    if words and words[0] in ("ok", "okay", "alright", "right", "well"):
+        words = words[1:]
+    return " ".join(words) in DISMISSALS
+
+
 def strip_wake_word(text: str) -> str | None:
     """The prompt with his name removed, or None if he was not addressed.
 
@@ -98,7 +133,7 @@ def strip_wake_word(text: str) -> str | None:
     "pok mon". Keep anything that is a letter or a digit, and keep the joiners
     inside a token so "0.4", "p1s" and "don't" survive whole.
     """
-    words = re.findall(r"[^\W_]+(?:[.'][^\W_]+)*", text.lower())
+    words = plain_words(text)
     for position in range(min(WAKE_WINDOW_WORDS, len(words))):
         pair = " ".join(words[position:position + 2])
         if pair in WAKE_WORDS:
@@ -232,6 +267,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--open", action="store_true",
                         help="answer everything, without waiting to be addressed")
+    parser.add_argument("--attention", type=float, default=ATTENTION_SECONDS,
+                        help="seconds he keeps listening after a reply, before his name is needed again")
     parser.add_argument("--pause", type=float, default=1.0, help="scale his inter-sentence pauses")
     parser.add_argument("--device", help="input device name or index")
     args = parser.parse_args()
@@ -244,8 +281,13 @@ def main() -> None:
     player = talk.Player(pause_scale=args.pause)
     microphone = Microphone(device)
     print(f"Listening. Noise floor {microphone.floor:.4f}, speaking above {microphone.floor * SPEECH_MARGIN:.4f}.")
-    print("Say \"Alfred\" and then your question." if not args.open else "Open mic — no wake word.")
+    if args.open:
+        print("Open mic — no wake word.")
+    else:
+        print("Say \"Alfred\" to start. He then stays listening; "
+              "\"that'll be all\" sends him away.")
     print("Ctrl-C to stop.\n")
+    attentive_until = 0.0
     try:
         while True:
             audio = microphone.next_utterance()
@@ -255,11 +297,29 @@ def main() -> None:
             if not heard:
                 continue
             prompt = heard if args.open else strip_wake_word(heard)
-            if prompt is None:
-                print(f"  {talk_dim(heard)}")      # heard, but not addressed to him
+            summoned = prompt is not None
+            if not summoned and time.monotonic() < attentive_until:
+                # Already in the room. Nobody says "Alfred" to a man they are
+                # mid-conversation with.
+                prompt = " ".join(plain_words(heard))
+            if not prompt or not prompt.strip():
+                if summoned:
+                    prompt = "yes?"                # his name, and nothing after it
+                else:
+                    print(f"  {talk_dim(heard)}")  # heard, but not addressed to him
+                    continue
+            if not args.open and is_dismissal(prompt):
+                print(f"You: {prompt}")
+                microphone.deaf = True
+                try:
+                    talk.chat(prompt, player)
+                except Exception as exc:
+                    print(f"  reply failed: {exc}", file=sys.stderr)
+                finally:
+                    microphone.settle()
+                attentive_until = 0.0
+                print(talk_dim("  — say \"Alfred\" when you want him again —") + "\n")
                 continue
-            if not prompt.strip():
-                prompt = "yes?"
             print(f"You: {prompt}   [{len(audio) / RATE:.1f}s audio, {seconds:.2f}s to transcribe]")
             microphone.deaf = True                 # he does not listen while he talks
             try:
@@ -268,6 +328,8 @@ def main() -> None:
                 print(f"  reply failed: {exc}", file=sys.stderr)
             finally:
                 microphone.settle()
+            if not args.open:
+                attentive_until = time.monotonic() + args.attention
     except KeyboardInterrupt:
         print()
     finally:
