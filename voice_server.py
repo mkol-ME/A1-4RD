@@ -265,6 +265,12 @@ class Handler(BaseHTTPRequestHandler):
             print("memory " + ", ".join(
                 f"{call['tool']}{'' if call['ok'] else ' FAILED'}" for call in consulted["calls"]
             ), flush=True)
+        # "Answer at whatever total length is useful" was read as permission, and
+        # "use multiple short sentences" as encouragement to produce more of
+        # them. Over ten samples that wording ran to a mean of 36 words against
+        # 29 for no constraint at all — it was making him worse than saying
+        # nothing. This wording gives 18, against the 13.6-word mean of the
+        # examples he is meant to sound like.
         delivery = "(kept private)"
         context = f"{context}\n{delivery}" if context else delivery
         history.append({"role": "user", "content": prompt})
