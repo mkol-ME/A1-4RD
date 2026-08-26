@@ -44,6 +44,14 @@ except ImportError:
 EMBED_SERVER = os.environ.get("ALFRED_EMBED_SERVER", "http://localhost:11434")
 EMBED_MODEL = os.environ.get("ALFRED_EMBED_MODEL", "nomic-embed-text")
 EMBED_DIMS = 768
+# Only the user's own messages are embedded. Bumping this invalidates every
+# stored vector, because the text behind them changed meaning.
+EMBED_SCHEME = "owner-only"
+EMBED_KEY = f"{EMBED_MODEL}/{EMBED_SCHEME}"
+
+# How long a conversation stays a conversation. Beyond this, earlier turns
+# are memory rather than context, and go through search instead.
+SESSION_MINUTES = int(os.environ.get("ALFRED_SESSION_MINUTES", "45"))
 
 # nomic-embed-text is trained with these task prefixes and is meaningfully worse
 # without them. Stored text and query text are embedded differently on purpose.
@@ -182,6 +190,11 @@ class Memory:
         path.parent.mkdir(parents=True, exist_ok=True)
         self.db = sqlite3.connect(path)
         self.db.execute("PRAGMA journal_mode=WAL")
+        # The voice server holds a connection permanently, so anything else that
+        # opens the database — the terminal client, a maintenance script — hits
+        # its write lock. SQLite waits zero milliseconds by default and simply
+        # raises; five seconds is longer than any write here takes.
+        self.db.execute("PRAGMA busy_timeout=5000")
         self.db.execute("CREATE TABLE IF NOT EXISTS facts (id INTEGER PRIMARY KEY, text TEXT NOT NULL UNIQUE COLLATE NOCASE, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
         self.db.execute("CREATE TABLE IF NOT EXISTS exchanges (id INTEGER PRIMARY KEY, user_text TEXT NOT NULL, assistant_text TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
         self.db.execute("CREATE TABLE IF NOT EXISTS embeddings (exchange_id INTEGER PRIMARY KEY, model TEXT NOT NULL, vector BLOB NOT NULL)")
@@ -209,12 +222,20 @@ class Memory:
         return True
 
     def _sync_index(self) -> int:
-        """Copy any stored vector the index does not have yet."""
+        """Make the index agree with the stored vectors, in both directions.
+
+        Dropping rows first matters when the embedding scheme changes: the old
+        vectors stay valid SQL and would keep answering KNN queries with
+        distances computed from text that no longer means what it did.
+        """
+        self.db.execute(
+            "DELETE FROM vec_exchanges WHERE exchange_id NOT IN "
+            "(SELECT exchange_id FROM embeddings WHERE model = ?)", (EMBED_KEY,))
         missing = self.db.execute(
             "SELECT e.exchange_id, e.vector FROM embeddings e "
             "LEFT JOIN vec_exchanges v ON v.exchange_id = e.exchange_id "
             "WHERE v.exchange_id IS NULL AND e.model = ?",
-            (EMBED_MODEL,),
+            (EMBED_KEY,),
         ).fetchall()
         if missing:
             self.db.executemany(
@@ -226,7 +247,7 @@ class Memory:
         blob = vector.tobytes()
         self.db.execute(
             "INSERT OR REPLACE INTO embeddings(exchange_id, model, vector) VALUES (?, ?, ?)",
-            (exchange_id, EMBED_MODEL, blob),
+            (exchange_id, EMBED_KEY, blob),
         )
         if self.vec:
             self.db.execute("DELETE FROM vec_exchanges WHERE exchange_id = ?", (exchange_id,))
@@ -262,9 +283,9 @@ class Memory:
             (user_text, assistant_text),
         )
         self.db.commit()
-        # An exchange that cannot be embedded is still an exchange. It is stored
-        # regardless and picked up by the next backfill.
-        vectors = _embed([DOCUMENT_PREFIX + user_text + "\n" + assistant_text])
+        # Only what the user said is embedded. What Alfred answered is kept in the
+        # row and never made searchable — see the class docstring.
+        vectors = _embed([DOCUMENT_PREFIX + user_text])
         if vectors:
             self._store_vector(cursor.lastrowid, vectors[0])
 
@@ -284,8 +305,24 @@ class Memory:
         self.db.commit()
         return cursor.rowcount > 0
 
-    def recent(self, limit: int = 6) -> list[dict]:
-        rows = self.db.execute("SELECT user_text, assistant_text FROM exchanges ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+    def recent(self, limit: int = 6, within_minutes: int = SESSION_MINUTES) -> list[dict]:
+        """The current conversation, as real turns — not simply the last N ever.
+
+        This is the one path that still feeds his own replies back to him, and
+        it has to: without it he cannot follow a conversation across two turns.
+        The bound is time, because that is what separates the two cases. Asked
+        the time at nine in the morning he answered "at night", having been
+        handed the correct morning clock, because six exchanges back was eleven
+        the previous evening and he was still reading his own words from then.
+
+        Past this window it is not conversation any more, and it belongs to
+        search — where only the user's own words come back.
+        """
+        rows = self.db.execute(
+            "SELECT user_text, assistant_text FROM exchanges "
+            "WHERE created_at >= datetime('now', ?) ORDER BY id DESC LIMIT ?",
+            (f"-{int(within_minutes)} minutes", limit),
+        ).fetchall()
         messages = []
         for user_text, assistant_text in reversed(rows):
             messages.extend(({"role": "user", "content": user_text}, {"role": "assistant", "content": assistant_text}))
@@ -297,12 +334,12 @@ class Memory:
             "SELECT e.id, e.user_text, e.assistant_text FROM exchanges e "
             "LEFT JOIN embeddings m ON m.exchange_id = e.id AND m.model = ? "
             "WHERE m.exchange_id IS NULL ORDER BY e.id",
-            (EMBED_MODEL,),
+            (EMBED_KEY,),
         ).fetchall()
         done = 0
         for start in range(0, len(pending), batch):
             chunk = pending[start:start + batch]
-            vectors = _embed([DOCUMENT_PREFIX + u + "\n" + a for _, u, a in chunk])
+            vectors = _embed([DOCUMENT_PREFIX + u for _, u, _a in chunk])
             if not vectors:
                 break
             for row, vector in zip(chunk, vectors):
@@ -311,13 +348,22 @@ class Memory:
         return done
 
     def search(self, query: str, limit: int = 3, skip_recent: int = 0) -> list[dict]:
-        """Exchanges most related to `query`, each with its similarity score."""
+        """What the user has said that relates to `query`, with similarity scores.
+
+        Alfred's own replies are deliberately absent. He guessed "past midnight"
+        at five past eleven, that guess was recorded, and recall returned it at
+        0.737 — above the floor — as an earlier conversation, which he then
+        repeated word for word. His answers are inferences, not evidence; only
+        what the user actually said is treated as ground truth. The replies stay
+        in the `exchanges` table, so the record is complete; they are simply
+        never handed back to him as a source.
+        """
         skip = {row[0] for row in self.db.execute(
             "SELECT id FROM exchanges ORDER BY id DESC LIMIT ?", (skip_recent,))} if skip_recent else set()
         vectors = _embed([QUERY_PREFIX + query])
         if not vectors:
-            return [{"user": u, "assistant": a, "score": None}
-                    for u, a in self._recall_by_words(query, limit, skip_recent)]
+            return [{"user": u, "score": None}
+                    for u in self._recall_by_words(query, limit, skip_recent)]
 
         hits: list[tuple[float, int]] = []
         if self.vec:
@@ -333,7 +379,7 @@ class Memory:
             hits = [(1.0 - (distance * distance) / 2.0, rid) for rid, distance in rows]
         else:
             rows = self.db.execute(
-                "SELECT exchange_id, vector FROM embeddings WHERE model = ?", (EMBED_MODEL,)).fetchall()
+                "SELECT exchange_id, vector FROM embeddings WHERE model = ?", (EMBED_KEY,)).fetchall()
             if rows:
                 scores = _similarity(vectors[0], [row[1] for row in rows])
                 hits = sorted(zip(scores, (row[0] for row in rows)), reverse=True)
@@ -343,28 +389,29 @@ class Memory:
             if exchange_id in skip or score < SIMILARITY_FLOOR:
                 continue
             row = self.db.execute(
-                "SELECT user_text, assistant_text FROM exchanges WHERE id = ?", (exchange_id,)).fetchone()
+                "SELECT user_text FROM exchanges WHERE id = ?", (exchange_id,)).fetchone()
             if row:
-                results.append({"user": row[0], "assistant": row[1], "score": round(score, 3)})
+                results.append({"user": row[0], "score": round(score, 3)})
             if len(results) >= limit:
                 break
         return results
 
-    def recall(self, query: str, limit: int = 3, skip_recent: int = 6) -> list[tuple[str, str]]:
-        return [(hit["user"], hit["assistant"]) for hit in self.search(query, limit, skip_recent)]
+    def recall(self, query: str, limit: int = 3, skip_recent: int = 6) -> list[str]:
+        """The things the user said that relate to this message."""
+        return [hit["user"] for hit in self.search(query, limit, skip_recent)]
 
-    def _recall_by_words(self, query: str, limit: int, skip_recent: int) -> list[tuple[str, str]]:
+    def _recall_by_words(self, query: str, limit: int, skip_recent: int) -> list[str]:
         query_terms = _terms(query)
         if not query_terms:
             return []
-        rows = self.db.execute("SELECT user_text, assistant_text FROM exchanges ORDER BY id DESC LIMIT 2000 OFFSET ?", (skip_recent,)).fetchall()
+        rows = self.db.execute("SELECT user_text FROM exchanges ORDER BY id DESC LIMIT 2000 OFFSET ?", (skip_recent,)).fetchall()
         ranked = []
-        for recency, (user_text, assistant_text) in enumerate(rows):
-            overlap = query_terms & _terms(user_text + " " + assistant_text)
+        for recency, (user_text,) in enumerate(rows):
+            overlap = query_terms & _terms(user_text)
             if overlap:
-                ranked.append((len(overlap), -recency, user_text, assistant_text))
+                ranked.append((len(overlap), -recency, user_text))
         ranked.sort(reverse=True)
-        return [(user, assistant) for _, _, user, assistant in ranked[:limit]]
+        return [user for _, _, user in ranked[:limit]]
 
     def context(self, query: str) -> str:
         facts = self.facts()
@@ -376,9 +423,8 @@ class Memory:
             lines.append("Known facts the user explicitly asked me to remember:")
             lines.extend(f"- {text}" for _, text in facts)
         if recalled:
-            lines.append("Possibly relevant earlier exchanges:")
-            for user_text, assistant_text in recalled:
-                lines.extend((f"the user: {user_text}", f"Alfred: {assistant_text}"))
+            lines.append("Things the user has said before that may be relevant:")
+            lines.extend(f"- the user: {user_text}" for user_text in recalled)
         return "\n".join(lines)[:5000]
 
     def close(self) -> None:

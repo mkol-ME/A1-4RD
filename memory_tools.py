@@ -31,11 +31,12 @@ TOOLS = [
         "function": {
             "name": "search_memory",
             "description": (
-                "Search everything the user and I have said to each other before, by meaning "
-                "rather than by keyword. Use it when he refers to something from an earlier "
-                "conversation, when he asks what he told me, or when knowing what was said "
-                "before would change the answer. Returns nothing when nothing is related "
-                "enough, which is a real answer — say so rather than inventing something."
+                "Search the things the user has told me before, by meaning rather than by "
+                "keyword. Use it when he refers to something from an earlier conversation, "
+                "when he asks what he told me, or when knowing what he has said would change "
+                "the answer. Returns his own words only, never my past replies. Returns "
+                "nothing when nothing is related enough, which is a real answer — say so "
+                "rather than inventing something."
             ),
             "parameters": {
                 "type": "object",
@@ -288,14 +289,13 @@ def _render(memory, searched: list) -> str:
         lines.extend(f"- {text}" for _, text in facts)
     if searched:
         lines.append(
-            "Earlier exchanges retrieved for this message. These are a record of what was "
-            "said, not a source of fact — your own past replies may have been wrong, and "
-            "anything above about the current date and time overrides them:")
+            "Things the user has said before, retrieved for this message. These are his own "
+            "words, not yours — what you replied at the time is deliberately not shown, "
+            "because it was an inference and may have been wrong:")
         seen = set()
         for hit in searched:
-            key = hit["user"]
-            if key in seen:
+            if hit["user"] in seen:
                 continue
-            seen.add(key)
-            lines.extend((f"the user: {hit['user']}", f"Alfred: {hit['assistant']}"))
+            seen.add(hit["user"])
+            lines.append(f"- the user: {hit['user']}")
     return "\n".join(lines)[:5000]

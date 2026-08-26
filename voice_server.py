@@ -17,6 +17,7 @@ from piper import PiperVoice
 from rvc_python.infer import RVCInference
 
 import alfred
+import memory
 import memory_tools
 from memory import Memory
 
@@ -100,6 +101,11 @@ def keep_warm() -> None:
             started = time.perf_counter()
             with urllib.request.urlopen(request, timeout=30) as response:
                 detail = json.loads(response.read())
+            # Ollama juggles two models on one card and evicted the embedder
+            # overnight, so the first memory search of the day paid a 2.8s load.
+            # Same argument as everything else here: the first question after a
+            # quiet spell is the one that must not feel slow.
+            memory._embed(["keep warm"])
             PIPELINE.create("Mm.")
             print(
                 f"warm {time.perf_counter() - started:.2f}s "

@@ -26,7 +26,14 @@ SERVER = "http://localhost:11434"   # server's IP if running from the laptop
 DEFAULT_MODEL = "qwen3.5:9b"
 PERSONA = Path(__file__).with_name("alfred.md")
 EXAMPLES = Path(__file__).with_name("examples.md")
-MEMORY_DB = Path(os.environ.get("ALFRED_MEMORY_DB", Path(__file__).with_name(".alfred-memory.sqlite3")))
+# He is meant to run for years, so memory lives on the redundant array rather
+# than beside the code. Falls back to a local file wherever that array is not
+# mounted, so a checkout on the laptop still works.
+ARRAY_DB = Path("/srv/storage/alfred/memory.sqlite3")
+MEMORY_DB = Path(os.environ.get(
+    "ALFRED_MEMORY_DB",
+    ARRAY_DB if ARRAY_DB.parent.is_dir() else Path(__file__).with_name(".alfred-memory.sqlite3"),
+))
 
 TEMPERATURE = 0.75
 MAX_TOKENS = -1         # -1 = uncapped; set a number only as a runaway guard
