@@ -167,6 +167,7 @@ def start_tunnels() -> subprocess.Popen:
     talk.run(
         ["ssh", talk.REMOTE,
          f"cd {talk.REMOTE_PROJECT} && "
+         f"(pgrep -f '[s]earx.webapp' >/dev/null || setsid -f ./searx-server.sh >rvc-output/searx.log 2>&1); "
          f"(pgrep -f '[v]oice_server.py' >/dev/null || setsid -f ./voice-server.sh >rvc-output/voice-server.log 2>&1); "
          f"(pgrep -f '[w]hisper_server.py' >/dev/null || setsid -f ./whisper-server.sh >rvc-output/whisper-server.log 2>&1)"],
         capture_output=True,

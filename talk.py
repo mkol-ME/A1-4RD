@@ -164,7 +164,7 @@ def chat(prompt: str, player) -> tuple[float, float, float]:
 
 def start_voice_tunnel() -> subprocess.Popen:
     run(
-        ["ssh", REMOTE, f"cd {REMOTE_PROJECT} && (pgrep -f '[v]oice_server.py' >/dev/null || setsid -f ./voice-server.sh >rvc-output/voice-server.log 2>&1)"],
+        ["ssh", REMOTE, f"cd {REMOTE_PROJECT} && (pgrep -f '[s]earx.webapp' >/dev/null || setsid -f ./searx-server.sh >rvc-output/searx.log 2>&1); (pgrep -f '[v]oice_server.py' >/dev/null || setsid -f ./voice-server.sh >rvc-output/voice-server.log 2>&1)"],
         capture_output=True,
     )
     tunnel = subprocess.Popen(

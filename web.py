@@ -4,15 +4,16 @@ He states wrong numbers with total confidence — "set retraction to about three
 millimetres per second" when the real range is 25 to 45. Examples teach voice,
 not facts, so the only fix is a source he can check.
 
-Wikipedia needs no key and is reliable, but only answers encyclopedic questions.
-General search needs a key, which was not the original plan: scraping DuckDuckGo
-worked for about a dozen requests and then started returning a CAPTCHA page
-asking us to identify ducks. That failure is silent if you only count results,
-so it is detected and reported explicitly rather than looking like "no results".
+General search runs through SearXNG on the box itself. Scraping DuckDuckGo
+directly worked for about a dozen requests and then began serving a CAPTCHA
+page asking us to identify ducks; the hosted APIs all want an account, and the
+one advertised as free wanted a card on file. A local aggregator has no account
+to lose, no key to rotate, no free tier to be withdrawn, and rotates upstream
+engines itself — which is the part the hand-rolled scraper could not do.
 
-Set BRAVE_API_KEY for general search — free tier, no card. Without it Alfred
-still has Wikipedia, and says he does not know rather than guessing, which is
-the entire point of this module.
+Wikipedia is queried alongside it and needs nothing at all, so if SearXNG is
+down Alfred still answers encyclopedic questions and says he does not know on
+the rest, which is the entire point of this module.
 
 Snippets only, never whole pages: the less attacker-controlled text reaches the
 prompt the better, and a full page is mostly text nobody asked for.
@@ -35,6 +36,10 @@ from html.parser import HTMLParser
 import os
 
 TIMEOUT = 12
+# Local, so it can be generous with itself; the aggregator is doing several
+# upstream requests behind this one.
+SEARX_URL = os.environ.get("ALFRED_SEARX_URL", "http://127.0.0.1:8888").rstrip("/")
+SEARX_TIMEOUT = int(os.environ.get("ALFRED_SEARX_TIMEOUT", "20"))
 BRAVE_KEY = os.environ.get("BRAVE_API_KEY", "").strip()
 MAX_RESULTS = 4
 MAX_SNIPPET_CHARS = 320
@@ -189,6 +194,35 @@ def brave(query, limit=MAX_RESULTS):
     return results
 
 
+def searxng(query, limit=MAX_RESULTS):
+    """Ask the local aggregator, which asks several engines and merges them."""
+    url = f"{SEARX_URL}/search?" + urllib.parse.urlencode({
+        "q": query, "format": "json", "language": "en", "safesearch": "0"})
+    request = urllib.request.Request(url, headers={"Accept": "application/json"})
+    try:
+        with urllib.request.urlopen(request, timeout=SEARX_TIMEOUT) as response:
+            payload = json.loads(response.read())
+    except urllib.error.HTTPError as error:
+        # 403 here almost always means the JSON format is not enabled in
+        # settings.yml, which is a configuration problem worth naming.
+        raise Blocked(f"SearXNG returned {error.code}"
+                      f"{' — is json in search.formats?' if error.code == 403 else ''}") from error
+    except Exception as error:
+        raise Blocked(f"SearXNG unreachable at {SEARX_URL} ({type(error).__name__})") from error
+
+    results = []
+    for item in payload.get("results", [])[:limit * 2]:
+        snippet = _clean(item.get("content", ""))
+        title = _clean(item.get("title", ""))
+        if not snippet or not title:
+            continue
+        results.append({"title": title, "snippet": snippet,
+                        "url": item.get("url", ""), "source": "searxng"})
+        if len(results) >= limit:
+            break
+    return results
+
+
 def search(query, limit=MAX_RESULTS):
     """Wikipedia first where it has an article, then general results.
 
@@ -207,7 +241,7 @@ def search(query, limit=MAX_RESULTS):
     if article:
         results.append(article)
 
-    general = brave if BRAVE_KEY else duckduckgo
+    general = brave if BRAVE_KEY else searxng
     try:
         for item in general(query, limit):
             if len(results) >= limit:
