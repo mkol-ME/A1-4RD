@@ -65,7 +65,7 @@ def load_examples() -> list:
     return shots
 
 
-def ask(model, persona, history, memory_context="", echo=True, stats=True) -> str:
+def ask(model, persona, history, memory_context="", echo=True, stats=True, on_piece=None) -> str:
     """Stream one reply. Returns the full text. echo=False keeps it off screen."""
     messages = [{"role": "system", "content": persona}]
     if memory_context:
@@ -108,6 +108,8 @@ def ask(model, persona, history, memory_context="", echo=True, stats=True) -> st
                     sys.stdout.flush()
                 parts.append(piece)
                 count += 1
+                if on_piece:
+                    on_piece(piece)
             if chunk.get("done"):
                 break
 
@@ -141,6 +143,22 @@ def run_tests(model, persona) -> None:
 
 def main() -> None:
     global SHOTS
+    if len(sys.argv) > 1 and sys.argv[1] == "--once":
+        prompt = sys.stdin.read().strip()
+        if not prompt:
+            sys.exit("No prompt received on stdin.")
+        persona = load_persona()
+        SHOTS = load_examples()
+        memory = Memory(MEMORY_DB)
+        history = memory.recent()
+        memory_context = memory.context(prompt)
+        history.append({"role": "user", "content": prompt})
+        reply = ask(DEFAULT_MODEL, persona, history, memory_context=memory_context, echo=False, stats=False)
+        memory.record(prompt, reply)
+        print(reply)
+        memory.close()
+        return
+
     model = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_MODEL
     persona = load_persona()
     SHOTS = load_examples()
