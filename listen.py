@@ -65,10 +65,10 @@ DISMISSALS = (
     "go to sleep", "goodnight", "good night", "nevermind", "never mind",
     "dismissed", "stand down", "leave me", "leave me be", "you can go",
 )
-# How long he stays in the room with nothing said to him. Long enough to think
-# about the answer he was just given; short enough that a conversation from
-# lunchtime is not still open at dinner.
-ATTENTION_SECONDS = 90.0
+# How long he stays in the room with nothing said to him. Long enough to read
+# what he said, try it on the printer, and come back with the next question;
+# short enough that a conversation from lunchtime is not still open at dinner.
+ATTENTION_SECONDS = 180.0
 
 
 def rms(block: np.ndarray) -> float:
