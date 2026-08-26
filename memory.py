@@ -53,6 +53,17 @@ EMBED_KEY = f"{EMBED_MODEL}/{EMBED_SCHEME}"
 # are memory rather than context, and go through search instead.
 SESSION_MINUTES = int(os.environ.get("ALFRED_SESSION_MINUTES", "45"))
 
+# What is fed back to him from his own past turns, not what is stored. He copies
+# his most recent replies far more reliably than he follows any instruction
+# about length, so one rambling answer makes the next one longer, and that
+# compounds for the rest of the conversation. Measured over four prompts: with
+# his replies fed back whole he averages 38 words; clipped to two sentences,
+# 19; to one, 13.9 — against the 13.6-word mean of examples.md. A well-behaved
+# reply is already inside this budget and passes through untouched; only a
+# ramble is cut, which is exactly the one that must not become the model.
+ECHO_SENTENCES = 2
+ECHO_WORDS = 30
+
 # nomic-embed-text is trained with these task prefixes and is meaningfully worse
 # without them. Stored text and query text are embedded differently on purpose.
 DOCUMENT_PREFIX = "search_document: "
@@ -144,6 +155,25 @@ def spoken_time(stamp) -> str:
 
 WORD_RE = re.compile(r"[a-z0-9][a-z0-9'-]+")
 STOP_WORDS = {"about", "after", "again", "also", "because", "before", "being", "could", "does", "from", "have", "just", "like", "that", "their", "there", "these", "they", "this", "those", "what", "when", "where", "which", "with", "would", "your", "youre"}
+
+
+def clip_reply(text: str, sentences: int = ECHO_SENTENCES, words: int = ECHO_WORDS) -> str:
+    """Trim one of his own replies before it is shown back to him.
+
+    Cuts on sentence boundaries so what survives still reads as something he
+    said, never mid-clause. The stored row is untouched — this shapes only what
+    he is allowed to imitate.
+    """
+    kept, total = [], 0
+    for sentence in re.split(r"(?<=[.!?])\s+", text.strip()):
+        if not sentence:
+            continue
+        count = len(sentence.split())
+        if kept and (len(kept) >= sentences or total + count > words):
+            break
+        kept.append(sentence)
+        total += count
+    return " ".join(kept) if kept else text
 
 
 def _terms(text: str) -> set[str]:
@@ -325,7 +355,10 @@ class Memory:
         ).fetchall()
         messages = []
         for user_text, assistant_text in reversed(rows):
-            messages.extend(({"role": "user", "content": user_text}, {"role": "assistant", "content": assistant_text}))
+            messages.extend((
+                {"role": "user", "content": user_text},
+                {"role": "assistant", "content": clip_reply(assistant_text)},
+            ))
         return messages
 
     def backfill(self, batch: int = 64) -> int:

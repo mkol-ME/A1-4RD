@@ -1,0 +1,3 @@
+# These run on the Linux box. A CRLF shebang makes them unrunnable, with an
+# error that names bash rather than the line ending, which wastes a while.
+*.sh text eol=lf
