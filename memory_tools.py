@@ -210,6 +210,17 @@ def dispatch(memory, name: str, raw_arguments) -> dict:
 # is then handed to the pass that does have all of that, which answers as
 # Alfred and never sees a tool definition. Neither pass is asked to do both.
 
+# Wording matters more than it looks. The first version of this got 11 of 16
+# labelled probes right and every single error was the same kind — reaching for
+# a tool nothing needed, never missing one that was wanted. "thanks alfred"
+# called remember_fact, which would have filled the facts list with rubbish.
+# Stating that calling nothing is the normal outcome, and listing messages that
+# deserve nothing, took it to 15 of 16 and dropped mean pass-one time from 1.93s
+# to 1.50s, because the cost is almost entirely in the calls it makes.
+#
+# The last remaining miss is a mislabelled probe rather than a mistake: "i hate
+# my guitar lessons" does deserve a search, because examples.md answers it with
+# a reply that assumes a search — which is only true if he looked.
 DECIDER_SYSTEM = "(kept private)"
 
 MAX_TOOL_ROUNDS = 2
