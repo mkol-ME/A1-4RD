@@ -90,8 +90,15 @@ def strip_wake_word(text: str) -> str | None:
     in that same register because tidied-up exemplars made him correct correct
     usage. Speech arriving as "Why does my first layer lift?" would be the odd
     one out, not the transcript.
+
+    It was lossy in one way that mattered. The pattern was [a-z']+, so every
+    digit was deleted on the way through: Whisper heard "Pokemon number 25"
+    perfectly and Alfred was handed "pokemon number", then blamed for not
+    knowing. Accented letters went the same way, which turned "Pokémon" into
+    "pok mon". Keep anything that is a letter or a digit, and keep the joiners
+    inside a token so "0.4", "p1s" and "don't" survive whole.
     """
-    words = re.findall(r"[a-z']+", text.lower())
+    words = re.findall(r"[^\W_]+(?:[.'][^\W_]+)*", text.lower())
     for position in range(min(WAKE_WINDOW_WORDS, len(words))):
         pair = " ".join(words[position:position + 2])
         if pair in WAKE_WORDS:

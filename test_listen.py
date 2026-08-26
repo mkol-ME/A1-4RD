@@ -39,6 +39,26 @@ class WakeWord(unittest.TestCase):
         self.assertIsNone(listen.strip_wake_word("..."))
 
 
+    def test_numbers_survive(self):
+        # The old pattern was [a-z']+, so every digit was deleted on the way
+        # through. Whisper heard "Pokemon number 25" and he was handed
+        # "pokemon number", then blamed for not knowing.
+        self.assertEqual(listen.strip_wake_word("Alfred, Pokemon number 25."),
+                         "pokemon number 25")
+        self.assertEqual(listen.strip_wake_word("Alfred, what is 5280 feet"),
+                         "what is 5280 feet")
+
+    def test_decimals_and_model_numbers_stay_whole(self):
+        self.assertEqual(
+            listen.strip_wake_word("Alfred, set the nozzle to 0.4 on the Bambu P1S"),
+            "set the nozzle to 0.4 on the bambu p1s")
+
+    def test_apostrophes_and_accents_survive(self):
+        self.assertEqual(listen.strip_wake_word("alfred don't bother"), "don't bother")
+        self.assertEqual(listen.strip_wake_word("Alfred, Pokémon number 10."),
+                         "pokémon number 10")
+
+
 class Segmentation(unittest.TestCase):
     """Drive Microphone.next_utterance from a queue instead of a sound card."""
 
