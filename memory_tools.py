@@ -274,8 +274,34 @@ MAX_TOOL_ROUNDS = 2
 DECIDER_TOKENS = 48
 
 
+def may_need_tools(prompt: str) -> bool:
+    """Cheap conservative gate before paying for the tool-decider model.
+
+    Speech arrives without punctuation, so routing uses words rather than a
+    question mark.  Factual and memory-shaped requests still reach the model;
+    greetings, reactions, and ordinary conversation take the fast path.
+    """
+    text = " ".join(prompt.lower().split())
+    if not text:
+        return False
+    if any(marker in text for marker in (
+        "remember that", "remember this", "note that", "keep in mind",
+        "what did i", "what have i", "did i mention", "you told me",
+        "last week", "earlier", "forget ", "list facts", "what do you remember",
+        "my printer is a", "my printer is an",
+    )):
+        return True
+    if text.startswith((
+        "what ", "what's ", "whats ", "who ", "when ", "where ", "which ",
+        "how many ", "how much ", "is ", "are ", "does ", "do ", "did ",
+        "look up ", "search for ", "find out ", "tell me about ",
+    )):
+        return True
+    return False
+
+
 def consult(memory, prompt: str, model: str, server: str, timeout: int = 30,
-            on_search=None) -> dict:
+            on_search=None, history: list | None = None) -> dict:
     """Decide what memory this turn needs, fetch it, and phrase it for the answerer.
 
     Returns {"context": str, "calls": [...], "failed": bool}. A failure here is
@@ -288,8 +314,25 @@ def consult(memory, prompt: str, model: str, server: str, timeout: int = 30,
     the thing being broken. A man who says "one moment" and then takes a moment
     is not slow; a man who says nothing for six seconds is.
     """
+    # A fragment such as "what about 48" is meaningless without the preceding
+    # turn.  The answerer always had conversation history, but the retrieval
+    # pass did not, so it searched the literal fragment and handed the answerer
+    # unrelated evidence.  Give the decider only a small labelled tail: enough
+    # to resolve references without turning old assistant claims into facts.
+    decision_prompt = prompt
+    if history:
+        tail = history[-4:]
+        transcript = "\n".join(
+            f"{'the user' if item.get('role') == 'user' else 'Previous assistant'}: "
+            f"{item.get('content', '')}" for item in tail
+        )
+        decision_prompt = (
+            "Recent conversation is supplied only to resolve references in the current "
+            "message. Previous assistant claims may be wrong and are not evidence.\n"
+            f"{transcript}\nCurrent message from the user: {prompt}"
+        )
     messages = [{"role": "system", "content": DECIDER_SYSTEM},
-                {"role": "user", "content": prompt}]
+                {"role": "user", "content": decision_prompt}]
     calls, searched, found_online = [], [], []
     try:
         for _ in range(MAX_TOOL_ROUNDS):

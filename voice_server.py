@@ -291,6 +291,13 @@ class Handler(BaseHTTPRequestHandler):
             work.put(sentence)
 
         history = MEMORY.recent()
+        bare_prompt = " ".join(re.findall(r"[^\W_]+", prompt.lower()))
+        direct_reply = None
+        if bare_prompt in {
+            "what time is it", "what is the time", "whats the time",
+            "tell me the time", "current time", "time please",
+        }:
+            direct_reply = memory.local_time_reply()
         # Pass one decides what to look up, with no persona and no examples in
         # front of it. Pass two — the one below, which actually answers — never
         # sees a tool definition. If the decider fails for any reason we fall
@@ -301,8 +308,13 @@ class Handler(BaseHTTPRequestHandler):
         def announce() -> None:
             emit(random.choice(HOLDING_LINES))
 
-        consulted = memory_tools.consult(MEMORY, prompt, alfred.DEFAULT_MODEL,
-                                         alfred.SERVER, on_search=announce)
+        if direct_reply is not None or not memory_tools.may_need_tools(prompt):
+            consulted = {"context": memory_tools._render(MEMORY, [], []),
+                         "calls": [], "failed": False}
+        else:
+            consulted = memory_tools.consult(MEMORY, prompt, alfred.DEFAULT_MODEL,
+                                             alfred.SERVER, on_search=announce,
+                                             history=history)
         context = consulted["context"] if not consulted["failed"] else MEMORY.context(prompt)
         if consulted["calls"]:
             print("memory " + ", ".join(
@@ -319,15 +331,19 @@ class Handler(BaseHTTPRequestHandler):
         history.append({"role": "user", "content": prompt})
         sentences = SentenceBuffer(emit)
         try:
-            reply = alfred.ask(
-                alfred.DEFAULT_MODEL,
-                PERSONA,
-                history,
-                memory_context=context,
-                echo=False,
-                stats=False,
-                on_piece=sentences.add,
-            )
+            if direct_reply is not None:
+                reply = direct_reply
+                sentences.add(reply)
+            else:
+                reply = alfred.ask(
+                    alfred.DEFAULT_MODEL,
+                    PERSONA,
+                    history,
+                    memory_context=context,
+                    echo=False,
+                    stats=False,
+                    on_piece=sentences.add,
+                )
             sentences.flush()
             work.put(None)
             worker.join()

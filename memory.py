@@ -83,6 +83,15 @@ SIMILARITY_FLOOR = 0.58
 TIMEZONE = os.environ.get("ALFRED_TIMEZONE", "America/New_York")
 
 
+def local_time_reply() -> str:
+    """A short conventional clock answer for the voice server's fast path."""
+    try:
+        stamp = datetime.now(ZoneInfo(TIMEZONE))
+    except Exception:
+        stamp = datetime.now()
+    return f"{(stamp.hour % 12 or 12)}:{stamp.minute:02d} {stamp.strftime('%p')}, sir."
+
+
 def now_line() -> str:
     """What the time is where the user is, phrased for a system message.
 
@@ -104,10 +113,12 @@ def now_line() -> str:
         stamp = datetime.now(ZoneInfo(TIMEZONE))
     except Exception:
         stamp = datetime.now()
-    return (f"It is {spoken_time(stamp)}, on {stamp.strftime('%A the')} "
-            f"{_ORDINALS[stamp.day]} of {stamp.strftime('%B %Y')}. "
-            "This is current and correct. State it plainly if asked, and do not "
-            "describe how you know it.")
+    clock = f"{(stamp.hour % 12 or 12)}:{stamp.minute:02d} {stamp.strftime('%p')}"
+    return (f"Current local date and time: {stamp.strftime('%A, %B')} "
+            f"{stamp.day}, {stamp.year}, {clock}. This is current and correct. "
+            f"If the user asks only for the time, reply only: '{clock}, sir.' "
+            "Use that normal numeric format; do not translate it into phrases such as "
+            "'minutes to', and do not add commentary or describe how you know it.")
 
 
 _UNITS = ("twelve", "one", "two", "three", "four", "five", "six", "seven", "eight",

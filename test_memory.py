@@ -2,10 +2,19 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from memory import Memory
+from memory import Memory, local_time_reply, now_line
 
 
 class MemoryTests(unittest.TestCase):
+    def test_clock_instruction_uses_normal_numeric_time(self):
+        line = now_line()
+        self.assertRegex(line, r"\b(?:1[0-2]|[1-9]):[0-5][0-9] [AP]M\b")
+        self.assertIn("reply only", line)
+        self.assertIn("normal numeric format", line)
+
+    def test_fast_clock_reply_is_short_and_numeric(self):
+        self.assertRegex(local_time_reply(), r"^(?:1[0-2]|[1-9]):[0-5][0-9] [AP]M, sir\.$")
+
     def setUp(self):
         self.tempdir = tempfile.TemporaryDirectory()
         self.memory = Memory(Path(self.tempdir.name) / "memory.sqlite3")
