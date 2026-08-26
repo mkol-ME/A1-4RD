@@ -271,20 +271,38 @@ DECIDER_SYSTEM = "(kept private)"
 MAX_TOOL_ROUNDS = 2
 
 
-def consult(memory, prompt: str, model: str, server: str, timeout: int = 30) -> dict:
+DECIDER_TOKENS = 48
+
+
+def consult(memory, prompt: str, model: str, server: str, timeout: int = 30,
+            on_search=None) -> dict:
     """Decide what memory this turn needs, fetch it, and phrase it for the answerer.
 
     Returns {"context": str, "calls": [...], "failed": bool}. A failure here is
     never fatal — the caller falls back to automatic retrieval, which is what
     happened on every turn before tools existed.
+
+    on_search fires once, just before the first web request goes out. The voice
+    server uses it to say something out loud: a searched turn takes seconds
+    longer than one he answers himself, and the silence in front of it reads as
+    the thing being broken. A man who says "one moment" and then takes a moment
+    is not slow; a man who says nothing for six seconds is.
     """
     messages = [{"role": "system", "content": DECIDER_SYSTEM},
                 {"role": "user", "content": prompt}]
     calls, searched, found_online = [], [], []
     try:
         for _ in range(MAX_TOOL_ROUNDS):
+            # A tool call is a few dozen tokens. Anything longer is prose, and
+            # prose from this pass is discarded — it is forbidden from answering
+            # and nobody ever reads what it writes. Uncapped it spent 5.63s
+            # composing a reply to "why does my first layer keep lifting" and
+            # then called nothing, which was pure latency in front of the answer
+            # the user was waiting for. The cap cannot truncate a real call; it
+            # only stops it writing an essay into the bin.
             payload = {"model": model, "messages": messages, "stream": False,
-                       "think": False, "tools": TOOLS, "options": {"temperature": 0}}
+                       "think": False, "tools": TOOLS,
+                       "options": {"temperature": 0, "num_predict": DECIDER_TOKENS}}
             request = urllib.request.Request(
                 f"{server}/api/chat", data=json.dumps(payload).encode("utf-8"),
                 headers={"Content-Type": "application/json"})
@@ -297,6 +315,12 @@ def consult(memory, prompt: str, model: str, server: str, timeout: int = 30) -> 
             for call in requested:
                 function = call.get("function", {})
                 name = function.get("name", "")
+                if name == "search_web" and on_search is not None:
+                    try:
+                        on_search()
+                    except Exception:
+                        pass          # a courtesy is never worth failing a turn for
+                    on_search = None  # once per turn, however many searches it runs
                 result = dispatch(memory, name, function.get("arguments"))
                 calls.append({"tool": name, "ok": result.get("ok")})
                 if name == "search_memory":

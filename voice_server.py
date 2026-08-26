@@ -20,6 +20,7 @@ import alfred
 import memory
 import memory_tools
 from memory import Memory
+import random
 
 ROOT = Path(__file__).parent
 PIPER_MODEL = ROOT / "tts-models" / "piper" / "en_GB-alan-medium.onnx"
@@ -120,6 +121,16 @@ def keep_warm() -> None:
         finally:
             BUSY.release()
 
+
+
+# Short enough that the search is usually still running when he finishes saying
+# it, which is the point — he should not be waiting on his own courtesy.
+HOLDING_LINES = (
+    "One moment, sir.",
+    "Let me look, sir.",
+    "A moment.",
+    "Checking, sir.",
+)
 
 class SentenceBuffer:
     """Cut the stream into whole sentences and nothing smaller.
@@ -265,7 +276,14 @@ class Handler(BaseHTTPRequestHandler):
         # front of it. Pass two — the one below, which actually answers — never
         # sees a tool definition. If the decider fails for any reason we fall
         # back to blind retrieval, which is what every turn did before this.
-        consulted = memory_tools.consult(MEMORY, prompt, alfred.DEFAULT_MODEL, alfred.SERVER)
+        # Said aloud the instant a search starts, so the wait has a voice in
+        # front of it instead of six seconds of nothing. Rotated because a
+        # butler who says the identical four words every time is a doorbell.
+        def announce() -> None:
+            emit(random.choice(HOLDING_LINES))
+
+        consulted = memory_tools.consult(MEMORY, prompt, alfred.DEFAULT_MODEL,
+                                         alfred.SERVER, on_search=announce)
         context = consulted["context"] if not consulted["failed"] else MEMORY.context(prompt)
         if consulted["calls"]:
             print("memory " + ", ".join(
