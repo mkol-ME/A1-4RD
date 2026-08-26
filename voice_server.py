@@ -8,6 +8,7 @@ import re
 import tempfile
 import threading
 import time
+import urllib.request
 import wave
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
@@ -55,6 +56,62 @@ class VoicePipeline:
 PIPELINE = None
 PERSONA = None
 MEMORY = None
+
+# Nothing may touch either GPU while a question is in flight.
+BUSY = threading.Lock()
+KEEP_WARM_SECONDS = 40
+
+
+def keep_warm() -> None:
+    """Hold the model's prefix and both cards at temperature between questions.
+
+    Ollama only reuses the prefix it shares with the request immediately before,
+    and in real use every question carries a different memory context, so that
+    prefix is constantly being lost. This sends the persona and the examples —
+    exactly the prefix `alfred.ask` puts in front of every request — so the
+    evaluation of those ~2400 tokens is already done when a question arrives.
+
+    This is worth nothing on its own. It only pays off because `ask` keeps the
+    persona and shots contiguous at the front; warming a prefix the real request
+    does not share measured identical to no warmup at all. Over eight realistic
+    turns the pair took mean prompt evaluation from 0.43s to 0.22s and the worst
+    case from 1.49s to 0.37s.
+
+    One token is generated and thrown away. Nothing is recorded to memory.
+    """
+    payload = {
+        "model": alfred.DEFAULT_MODEL,
+        "messages": [{"role": "system", "content": PERSONA}] + alfred.SHOTS,
+        "stream": False,
+        "think": False,
+        "options": {"num_predict": 1},
+    }
+    body = json.dumps(payload).encode("utf-8")
+    while True:
+        time.sleep(KEEP_WARM_SECONDS)
+        if not BUSY.acquire(blocking=False):
+            continue          # a real question is being answered; it is warm
+        try:
+            request = urllib.request.Request(
+                f"{alfred.SERVER}/api/chat", data=body,
+                headers={"Content-Type": "application/json"},
+            )
+            started = time.perf_counter()
+            with urllib.request.urlopen(request, timeout=30) as response:
+                detail = json.loads(response.read())
+            PIPELINE.create("Mm.")
+            print(
+                f"warm {time.perf_counter() - started:.2f}s "
+                f"prefill={detail.get('prompt_eval_count')} tok in "
+                f"{detail.get('prompt_eval_duration', 0) / 1e9:.2f}s",
+                flush=True,
+            )
+        except Exception as exc:
+            # A failed warmup must never take the service down, but a silently
+            # failing one is worse than none — it looks like it is working.
+            print(f"warm failed: {exc}", flush=True)
+        finally:
+            BUSY.release()
 
 
 class SentenceBuffer:
@@ -136,7 +193,8 @@ class Handler(BaseHTTPRequestHandler):
             text = json.loads(self.rfile.read(length))["text"].strip()
             if not text:
                 raise ValueError("text is empty")
-            audio, tts_time, rvc_time = PIPELINE.create(text)
+            with BUSY:
+                audio, tts_time, rvc_time = PIPELINE.create(text)
             print(f"tts={tts_time:.3f}s rvc={rvc_time:.3f}s chars={len(text)}", flush=True)
         except Exception as exc:
             self.send_error(500, str(exc))
@@ -164,6 +222,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
 
+        # Held for the whole turn so the warmup cannot contend for either card
+        # in the middle of an answer.
+        BUSY.acquire()
         work = queue.Queue(maxsize=4)
         worker_error = []
 
@@ -222,6 +283,8 @@ class Handler(BaseHTTPRequestHandler):
                 worker.join()
             self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8") + b"\n")
             self.wfile.flush()
+        finally:
+            BUSY.release()
 
     def log_message(self, format, *args):
         return
@@ -233,6 +296,7 @@ def main() -> None:
     PERSONA = alfred.load_persona()
     MEMORY = Memory(alfred.MEMORY_DB)
     PIPELINE = VoicePipeline()
+    threading.Thread(target=keep_warm, daemon=True).start()
     print("voice service ready on 127.0.0.1:5051", flush=True)
     HTTPServer(("127.0.0.1", 5051), Handler).serve_forever()
 

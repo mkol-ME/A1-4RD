@@ -67,10 +67,15 @@ def load_examples() -> list:
 
 def ask(model, persona, history, memory_context="", echo=True, stats=True, on_piece=None) -> str:
     """Stream one reply. Returns the full text. echo=False keeps it off screen."""
-    messages = [{"role": "system", "content": persona}]
+    # Persona and shots are byte-identical on every request; the memory context
+    # is rebuilt per prompt. Keeping the stable pair as one unbroken prefix is
+    # what lets Ollama reuse its evaluation, and lets the voice server hold that
+    # exact prefix warm between questions. Only worth anything with the warmup —
+    # measured alone it does nothing at all, which is why it looks pointless.
+    messages = [{"role": "system", "content": persona}] + SHOTS
     if memory_context:
         messages.append({"role": "system", "content": memory_context})
-    messages += SHOTS + history
+    messages += history
     payload = {
         "model": model,
         "messages": messages,
