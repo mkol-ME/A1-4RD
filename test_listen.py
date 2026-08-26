@@ -1,5 +1,6 @@
 """Wake-word matching and utterance segmentation, without a microphone."""
 
+import collections
 import queue
 import unittest
 
@@ -44,6 +45,9 @@ class Segmentation(unittest.TestCase):
     def build(self, floor=0.01):
         microphone = listen.Microphone.__new__(listen.Microphone)
         microphone.blocks = queue.Queue()
+        microphone.preroll = collections.deque(
+            maxlen=max(1, int(listen.PREROLL_SECONDS * listen.RATE / listen.FRAME)))
+        microphone.deaf = False
         microphone.floor = floor
         return microphone
 
@@ -58,6 +62,29 @@ class Segmentation(unittest.TestCase):
         self.feed(microphone, listen.SILENCE_HANGOVER + 0.2, 0.0)
         audio = microphone.next_utterance(timeout=0.2)
         self.assertGreater(len(audio) / listen.RATE, 1.0)
+
+    def test_the_word_that_started_it_is_kept(self):
+        # Speech crosses the threshold a syllable in. Without the pre-roll the
+        # attack is thrown away, which is how "co-main event" became "Comade".
+        microphone = self.build()
+        self.feed(microphone, 0.25, 0.0)                      # quiet, but recent
+        self.feed(microphone, 1.0, 0.2)
+        self.feed(microphone, listen.SILENCE_HANGOVER + 0.2, 0.0)
+        audio = microphone.next_utterance(timeout=0.2)
+        self.assertGreater(len(audio) / listen.RATE, 1.2)
+
+    def test_he_does_not_hear_himself(self):
+        # His own voice reaches this microphone like anyone else's, and was
+        # being transcribed and answered.
+        microphone = self.build()
+        microphone.deaf = True
+        listen.Microphone._on_audio(
+            microphone, np.full((listen.FRAME, 1), 0.2, dtype=np.float32), 0, None, None)
+        self.assertTrue(microphone.blocks.empty())
+        microphone.deaf = False
+        listen.Microphone._on_audio(
+            microphone, np.full((listen.FRAME, 1), 0.2, dtype=np.float32), 0, None, None)
+        self.assertFalse(microphone.blocks.empty())
 
     def test_a_cough_is_ignored(self):
         microphone = self.build()

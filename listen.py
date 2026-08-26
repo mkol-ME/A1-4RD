@@ -14,6 +14,7 @@ else, and is transcribed on the user's own machine.
 """
 
 import argparse
+import collections
 import io
 import json
 import queue
@@ -39,7 +40,15 @@ CALIBRATION_SECONDS = 1.0
 # rather than a fixed number, because a desk fan moves the floor a long way.
 SPEECH_MARGIN = 4.0
 FLOOR_MINIMUM = 0.004
-SILENCE_HANGOVER = 0.8  # how long a pause may run before the utterance is over
+SILENCE_HANGOVER = 0.55  # how long a pause may run before the utterance is over
+# Kept rolling so the utterance can start before the microphone noticed it had.
+# Speech crosses the threshold a syllable in, not at the attack, and everything
+# before that was being thrown away: "co-main event" came back as "Comade".
+# Three hundred milliseconds of hindsight costs nothing and buys the first word.
+PREROLL_SECONDS = 0.3
+# How long the room is given to stop ringing after he finishes speaking, before
+# the microphone is trusted again.
+SETTLE_SECONDS = 0.35
 MIN_UTTERANCE = 0.35    # shorter than this is a cough or a keyboard
 MAX_UTTERANCE = 15.0
 
@@ -97,6 +106,15 @@ class Microphone:
 
     def __init__(self, device=None):
         self.blocks: queue.Queue = queue.Queue()
+        self.preroll: collections.deque = collections.deque(
+            maxlen=max(1, int(PREROLL_SECONDS * RATE / FRAME)))
+        # Set while Alfred is speaking. His voice arrives at this microphone
+        # like anyone else's, and it was being transcribed and answered: "Indeed,
+        # sir." and "Ahem." both came back as things someone had said to him.
+        # Draining the queue afterwards was not enough, because the tail of a
+        # sentence lands in it after the drain. So he simply does not listen
+        # while he talks, which is also the polite arrangement.
+        self.deaf = False
         self.stream = sd.InputStream(
             samplerate=RATE, channels=1, dtype="float32",
             blocksize=FRAME, device=device, callback=self._on_audio,
@@ -105,6 +123,8 @@ class Microphone:
         self.floor = self._calibrate()
 
     def _on_audio(self, indata, frames, timestamp, status):
+        if self.deaf:
+            return
         self.blocks.put(indata[:, 0].copy())
 
     def _calibrate(self) -> float:
@@ -125,6 +145,13 @@ class Microphone:
                 self.blocks.get_nowait()
             except queue.Empty:
                 break
+        self.preroll.clear()
+
+    def settle(self, seconds: float = SETTLE_SECONDS) -> None:
+        """Let the room stop ringing, then start listening again."""
+        time.sleep(seconds)
+        self.flush()
+        self.deaf = False
 
     def next_utterance(self, timeout: float = 2.0) -> np.ndarray | None:
         """Collect from the first loud block until the pause after it.
@@ -144,8 +171,11 @@ class Microphone:
             level = rms(block)
             if not started:
                 if level < threshold:
+                    self.preroll.append(block)
                     continue
                 started = True
+                collected.extend(self.preroll)   # the word that started it
+                self.preroll.clear()
                 collected.append(block)
                 continue
             collected.append(block)
@@ -154,6 +184,7 @@ class Microphone:
             if silence >= SILENCE_HANGOVER or length >= MAX_UTTERANCE:
                 if length - silence < MIN_UTTERANCE:
                     collected, silence, started = [], 0.0, False
+                    self.preroll.clear()
                     continue
                 return np.concatenate(collected)
 
@@ -223,11 +254,13 @@ def main() -> None:
             if not prompt.strip():
                 prompt = "yes?"
             print(f"You: {prompt}   [{len(audio) / RATE:.1f}s audio, {seconds:.2f}s to transcribe]")
+            microphone.deaf = True                 # he does not listen while he talks
             try:
                 talk.chat(prompt, player)
             except Exception as exc:
                 print(f"  reply failed: {exc}", file=sys.stderr)
-            microphone.flush()                     # drop his own voice from the speakers
+            finally:
+                microphone.settle()
     except KeyboardInterrupt:
         print()
     finally:
