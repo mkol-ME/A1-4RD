@@ -1,0 +1,243 @@
+#!/usr/bin/env python3
+"""Speak to Alfred and have him answer aloud.
+
+The wake word is not a trained model. Everything the microphone hears gets
+transcribed anyway — Whisper runs at ten times real time on the 1060 and the
+box is otherwise idle — and the transcript is checked for his name. That costs
+a few hundred milliseconds of GPU per utterance and buys an exact custom wake
+word with nothing to train, which no small off-the-shelf model offers for
+"Alfred". If it ever needs to run on a Pi with the box asleep, that trade
+changes and this is the piece to replace.
+
+Nothing leaves the LAN: the audio goes over the same SSH tunnel as everything
+else, and is transcribed on the user's own machine.
+"""
+
+import argparse
+import io
+import json
+import queue
+import re
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.request
+import wave
+
+import numpy as np
+import sounddevice as sd
+
+import talk
+
+RATE = 16000            # what Whisper wants; resampling anywhere else is wasted work
+FRAME = 480             # 30ms
+WHISPER_URL = "http://127.0.0.1:5052"
+
+CALIBRATION_SECONDS = 1.0
+# Speech has to beat the room by this much. Measured against the noise floor
+# rather than a fixed number, because a desk fan moves the floor a long way.
+SPEECH_MARGIN = 4.0
+FLOOR_MINIMUM = 0.004
+SILENCE_HANGOVER = 0.8  # how long a pause may run before the utterance is over
+MIN_UTTERANCE = 0.35    # shorter than this is a cough or a keyboard
+MAX_UTTERANCE = 15.0
+
+# What Whisper actually produces when someone says "Alfred" — it has no idea
+# the word is a name, so it reaches for words it knows.
+WAKE_WORDS = ("alfred", "alfie", "alford", "elfred", "alfredo", "al fred")
+WAKE_WINDOW_WORDS = 3   # his name has to be near the front, not buried mid-sentence
+
+
+def rms(block: np.ndarray) -> float:
+    return float(np.sqrt(np.mean(np.square(block))) if block.size else 0.0)
+
+
+def to_wav(samples: np.ndarray) -> bytes:
+    buffer = io.BytesIO()
+    with wave.open(buffer, "wb") as handle:
+        handle.setnchannels(1)
+        handle.setsampwidth(2)
+        handle.setframerate(RATE)
+        handle.writeframes((np.clip(samples, -1.0, 1.0) * 32767).astype("<i2").tobytes())
+    return buffer.getvalue()
+
+
+def transcribe(samples: np.ndarray) -> tuple[str, float]:
+    request = urllib.request.Request(
+        f"{WHISPER_URL}/transcribe", data=to_wav(samples),
+        headers={"Content-Type": "audio/wav"},
+    )
+    with urllib.request.urlopen(request, timeout=60) as response:
+        payload = json.loads(response.read())
+    return payload["text"], payload["seconds"]
+
+
+def strip_wake_word(text: str) -> str | None:
+    """The prompt with his name removed, or None if he was not addressed.
+
+    Returns bare lowercase words, which looks lossy and is not: the user types to
+    him in lowercase without punctuation, and examples.md is deliberately written
+    in that same register because tidied-up exemplars made him correct correct
+    usage. Speech arriving as "Why does my first layer lift?" would be the odd
+    one out, not the transcript.
+    """
+    words = re.findall(r"[a-z']+", text.lower())
+    for position in range(min(WAKE_WINDOW_WORDS, len(words))):
+        pair = " ".join(words[position:position + 2])
+        if pair in WAKE_WORDS:
+            return " ".join(words[position + 2:])
+        if words[position] in WAKE_WORDS:
+            return " ".join(words[position + 1:])
+    return None
+
+
+class Microphone:
+    """Blocks of audio, and a noise floor measured from this actual room."""
+
+    def __init__(self, device=None):
+        self.blocks: queue.Queue = queue.Queue()
+        self.stream = sd.InputStream(
+            samplerate=RATE, channels=1, dtype="float32",
+            blocksize=FRAME, device=device, callback=self._on_audio,
+        )
+        self.stream.start()
+        self.floor = self._calibrate()
+
+    def _on_audio(self, indata, frames, timestamp, status):
+        self.blocks.put(indata[:, 0].copy())
+
+    def _calibrate(self) -> float:
+        levels = []
+        deadline = time.perf_counter() + CALIBRATION_SECONDS
+        while time.perf_counter() < deadline:
+            try:
+                levels.append(rms(self.blocks.get(timeout=1.0)))
+            except queue.Empty:
+                break
+        floor = float(np.median(levels)) if levels else FLOOR_MINIMUM
+        return max(floor, FLOOR_MINIMUM)
+
+    def flush(self) -> None:
+        """Throw away everything captured while Alfred was talking."""
+        while not self.blocks.empty():
+            try:
+                self.blocks.get_nowait()
+            except queue.Empty:
+                break
+
+    def next_utterance(self, timeout: float = 2.0) -> np.ndarray | None:
+        """Collect from the first loud block until the pause after it.
+
+        Returns None if the microphone stops producing. A live stream never
+        stops, so this only fires if the device has gone away — but without it
+        a rejected utterance drops into a blocking read and the whole loop
+        hangs there silently, which is exactly what it did the first time.
+        """
+        threshold = self.floor * SPEECH_MARGIN
+        collected, silence, started = [], 0.0, False
+        while True:
+            try:
+                block = self.blocks.get(timeout=timeout)
+            except queue.Empty:
+                return None
+            level = rms(block)
+            if not started:
+                if level < threshold:
+                    continue
+                started = True
+                collected.append(block)
+                continue
+            collected.append(block)
+            silence = silence + FRAME / RATE if level < threshold else 0.0
+            length = len(collected) * FRAME / RATE
+            if silence >= SILENCE_HANGOVER or length >= MAX_UTTERANCE:
+                if length - silence < MIN_UTTERANCE:
+                    collected, silence, started = [], 0.0, False
+                    continue
+                return np.concatenate(collected)
+
+    def close(self) -> None:
+        self.stream.stop()
+        self.stream.close()
+
+
+def start_tunnels() -> subprocess.Popen:
+    """Both services up on the box, both ports forwarded over one connection."""
+    talk.run(
+        ["ssh", talk.REMOTE,
+         f"cd {talk.REMOTE_PROJECT} && "
+         f"(pgrep -f '[v]oice_server.py' >/dev/null || setsid -f ./voice-server.sh >rvc-output/voice-server.log 2>&1); "
+         f"(pgrep -f '[w]hisper_server.py' >/dev/null || setsid -f ./whisper-server.sh >rvc-output/whisper-server.log 2>&1)"],
+        capture_output=True,
+    )
+    tunnel = subprocess.Popen(
+        ["ssh", "-N", "-L", "5051:127.0.0.1:5051", "-L", "5052:127.0.0.1:5052", talk.REMOTE],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    for url in (talk.VOICE_URL, WHISPER_URL):
+        for _ in range(90):
+            try:
+                with urllib.request.urlopen(f"{url}/health", timeout=1) as response:
+                    if response.status == 200:
+                        break
+            except (OSError, urllib.error.URLError, TimeoutError):
+                time.sleep(0.5)
+        else:
+            tunnel.terminate()
+            raise RuntimeError(f"{url} did not become ready")
+    return tunnel
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--open", action="store_true",
+                        help="answer everything, without waiting to be addressed")
+    parser.add_argument("--pause", type=float, default=1.0, help="scale his inter-sentence pauses")
+    parser.add_argument("--device", help="input device name or index")
+    args = parser.parse_args()
+
+    device = args.device
+    if device is not None and device.isdigit():
+        device = int(device)
+
+    tunnel = start_tunnels()
+    player = talk.Player(pause_scale=args.pause)
+    microphone = Microphone(device)
+    print(f"Listening. Noise floor {microphone.floor:.4f}, speaking above {microphone.floor * SPEECH_MARGIN:.4f}.")
+    print("Say \"Alfred\" and then your question." if not args.open else "Open mic — no wake word.")
+    print("Ctrl-C to stop.\n")
+    try:
+        while True:
+            audio = microphone.next_utterance()
+            if audio is None:
+                continue
+            heard, seconds = transcribe(audio)
+            if not heard:
+                continue
+            prompt = heard if args.open else strip_wake_word(heard)
+            if prompt is None:
+                print(f"  {talk_dim(heard)}")      # heard, but not addressed to him
+                continue
+            if not prompt.strip():
+                prompt = "yes?"
+            print(f"You: {prompt}   [{len(audio) / RATE:.1f}s audio, {seconds:.2f}s to transcribe]")
+            try:
+                talk.chat(prompt, player)
+            except Exception as exc:
+                print(f"  reply failed: {exc}", file=sys.stderr)
+            microphone.flush()                     # drop his own voice from the speakers
+    except KeyboardInterrupt:
+        print()
+    finally:
+        microphone.close()
+        player.close()
+        tunnel.terminate()
+
+
+def talk_dim(text: str) -> str:
+    return f"\033[2m({text})\033[0m"
+
+
+if __name__ == "__main__":
+    main()
