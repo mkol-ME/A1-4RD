@@ -80,9 +80,20 @@ def ask(model, persona, history, memory_context="", echo=True, stats=True, on_pi
     # exact prefix warm between questions. Only worth anything with the warmup —
     # measured alone it does nothing at all, which is why it looks pointless.
     messages = [{"role": "system", "content": persona}] + SHOTS
-    if memory_context:
+    # The context goes as late as it can — after the conversation, immediately
+    # before the question being answered. It used to sit ahead of the history,
+    # which put his own earlier replies nearer the question than the facts were.
+    # He answered the wrong time correctly with no history and wrongly with it,
+    # staying loyal to what he had said half an hour ago. Whatever is nearest
+    # wins, so the true thing has to be nearest.
+    if memory_context and history and history[-1].get("role") == "user":
+        messages += history[:-1]
         messages.append({"role": "system", "content": memory_context})
-    messages += history
+        messages.append(history[-1])
+    else:
+        if memory_context:
+            messages.append({"role": "system", "content": memory_context})
+        messages += history
     payload = {
         "model": model,
         "messages": messages,

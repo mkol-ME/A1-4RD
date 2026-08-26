@@ -90,9 +90,15 @@ def now_line() -> str:
     invent details about his day, which he read as covering the hour: given
     this same line without it he would answer "what day is it" correctly and
     still say "I have no clock face, sir" to "what time is it". The rule is
-    right and worth keeping — it is what stops him fabricating — so the clock
+    right and worth keeping — it is what stops him fabricating — so the time
     has to arrive marked as something he was handed rather than something he
     would be making up.
+
+    The first wording, "you have a clock and this is read from it", bought the
+    permission and cost something worse: he started narrating the clock. "I am
+    bolted to your desk watching the clock tick down" is a sense he does not
+    have, which is the exact fault the battery checks for. Grant the fact, not
+    the instrument, and forbid the explanation.
     """
     try:
         stamp = datetime.now(ZoneInfo(TIMEZONE))
@@ -100,7 +106,8 @@ def now_line() -> str:
         stamp = datetime.now()
     return (f"It is {spoken_time(stamp)}, on {stamp.strftime('%A the')} "
             f"{_ORDINALS[stamp.day]} of {stamp.strftime('%B %Y')}. "
-            "You have a clock and this is read from it. State it plainly if asked.")
+            "This is current and correct. State it plainly if asked, and do not "
+            "describe how you know it.")
 
 
 _UNITS = ("twelve", "one", "two", "three", "four", "five", "six", "seven", "eight",
