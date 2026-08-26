@@ -17,6 +17,7 @@ from piper import PiperVoice
 from rvc_python.infer import RVCInference
 
 import alfred
+import memory_tools
 from memory import Memory
 
 ROOT = Path(__file__).parent
@@ -254,7 +255,16 @@ class Handler(BaseHTTPRequestHandler):
             work.put(sentence)
 
         history = MEMORY.recent()
-        context = MEMORY.context(prompt)
+        # Pass one decides what to look up, with no persona and no examples in
+        # front of it. Pass two — the one below, which actually answers — never
+        # sees a tool definition. If the decider fails for any reason we fall
+        # back to blind retrieval, which is what every turn did before this.
+        consulted = memory_tools.consult(MEMORY, prompt, alfred.DEFAULT_MODEL, alfred.SERVER)
+        context = consulted["context"] if not consulted["failed"] else MEMORY.context(prompt)
+        if consulted["calls"]:
+            print("memory " + ", ".join(
+                f"{call['tool']}{'' if call['ok'] else ' FAILED'}" for call in consulted["calls"]
+            ), flush=True)
         delivery = "(kept private)"
         context = f"{context}\n{delivery}" if context else delivery
         history.append({"role": "user", "content": prompt})
