@@ -13,3 +13,5 @@ rvc-model/
 rvc-output/
 __pycache__/
 rvc-audition/
+voice-distill/
+piper-training/

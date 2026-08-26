@@ -300,7 +300,8 @@ def consult(memory, prompt: str, model: str, server: str, timeout: int = 30,
             # then called nothing, which was pure latency in front of the answer
             # the user was waiting for. The cap cannot truncate a real call; it
             # only stops it writing an essay into the bin.
-            payload = {"model": model, "messages": messages, "stream": False,
+            payload = {"model": model, "keep_alive": -1,
+                       "messages": messages, "stream": False,
                        "think": False, "tools": TOOLS,
                        "options": {"temperature": 0, "num_predict": DECIDER_TOKENS}}
             request = urllib.request.Request(

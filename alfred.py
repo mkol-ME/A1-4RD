@@ -35,7 +35,10 @@ MEMORY_DB = Path(os.environ.get(
     ARRAY_DB if ARRAY_DB.parent.is_dir() else Path(__file__).with_name(".alfred-memory.sqlite3"),
 ))
 
-TEMPERATURE = 0.75
+# Preserve some character variation without rewarding plausible invention.
+# 0.75 was useful during character work, but factual spoken answers benefit
+# from a narrower distribution.
+TEMPERATURE = 0.65
 MAX_TOKENS = -1         # -1 = uncapped; set a number only as a runaway guard
 
 SHOTS = []
@@ -96,6 +99,7 @@ def ask(model, persona, history, memory_context="", echo=True, stats=True, on_pi
         messages += history
     payload = {
         "model": model,
+        "keep_alive": -1,
         "messages": messages,
         "stream": True,
         "think": False,

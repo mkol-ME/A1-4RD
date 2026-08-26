@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Persistent Piper-to-RVC voice service with concurrent text generation."""
+"""Persistent streaming voice service with RVC and direct-Piper modes."""
 
 import base64
 import json
+import os
 import queue
 import re
 import tempfile
@@ -13,8 +14,11 @@ import wave
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
+import numpy as np
 from piper import PiperVoice
 from rvc_python.infer import RVCInference
+import soundfile as sf
+from scipy.signal import resample_poly
 
 import alfred
 import memory
@@ -23,8 +27,12 @@ from memory import Memory
 import random
 
 ROOT = Path(__file__).parent
-PIPER_MODEL = ROOT / "tts-models" / "piper" / "en_GB-alan-medium.onnx"
+PIPER_MODEL = Path(os.environ.get(
+    "ALFRED_PIPER_MODEL", ROOT / "tts-models" / "piper" / "en_GB-alan-medium.onnx"
+))
+DIRECT_PIPER = "ALFRED_PIPER_MODEL" in os.environ
 RVC_DIR = ROOT / "rvc-model"
+OUTPUT_RATE = 32000
 
 
 class VoicePipeline:
@@ -32,13 +40,15 @@ class VoicePipeline:
         # Piper is only the fast British carrier performance. RVC supplies the
         # final voice, and remains on the GTX 1060.
         self.piper = PiperVoice.load(PIPER_MODEL, use_cuda=False)
-        self.rvc = RVCInference(
-            device="cuda:0",
-            model_path=str(RVC_DIR / "AlfredPennyworth_465e_8835s.pth"),
-            index_path=str(RVC_DIR / "AlfredPennyworth.index"),
-            version="v2",
-        )
-        self.rvc.set_params(f0method="rmvpe", index_rate=0.7, protect=0.33)
+        self.rvc = None
+        if not DIRECT_PIPER:
+            self.rvc = RVCInference(
+                device="cuda:0",
+                model_path=str(RVC_DIR / "AlfredPennyworth_465e_8835s.pth"),
+                index_path=str(RVC_DIR / "AlfredPennyworth.index"),
+                version="v2",
+            )
+            self.rvc.set_params(f0method="rmvpe", index_rate=0.7, protect=0.33)
         self.temp = tempfile.TemporaryDirectory(prefix="alfred-voice-")
         # Force lazy CUDA kernels and RVC feature models to load before the
         # first real request.
@@ -51,7 +61,14 @@ class VoicePipeline:
         with wave.open(str(source), "wb") as wav_file:
             self.piper.synthesize_wav(text, wav_file)
         tts_finished = time.perf_counter()
-        self.rvc.infer_file(str(source), str(converted))
+        if self.rvc is None:
+            samples, rate = sf.read(source, dtype="float32")
+            if rate != OUTPUT_RATE:
+                divisor = np.gcd(rate, OUTPUT_RATE)
+                samples = resample_poly(samples, OUTPUT_RATE // divisor, rate // divisor)
+            sf.write(converted, samples, OUTPUT_RATE, subtype="PCM_16")
+        else:
+            self.rvc.infer_file(str(source), str(converted))
         finished = time.perf_counter()
         return converted.read_bytes(), tts_finished - started, finished - tts_finished
 
@@ -84,6 +101,7 @@ def keep_warm() -> None:
     """
     payload = {
         "model": alfred.DEFAULT_MODEL,
+        "keep_alive": -1,
         "messages": [{"role": "system", "content": PERSONA}] + alfred.SHOTS,
         "stream": False,
         "think": False,
@@ -91,8 +109,8 @@ def keep_warm() -> None:
     }
     body = json.dumps(payload).encode("utf-8")
     while True:
-        time.sleep(KEEP_WARM_SECONDS)
         if not BUSY.acquire(blocking=False):
+            time.sleep(1.0)
             continue          # a real question is being answered; it is warm
         try:
             request = urllib.request.Request(
@@ -120,6 +138,7 @@ def keep_warm() -> None:
             print(f"warm failed: {exc}", flush=True)
         finally:
             BUSY.release()
+        time.sleep(KEEP_WARM_SECONDS)
 
 
 

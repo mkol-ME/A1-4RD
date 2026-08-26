@@ -40,15 +40,19 @@ CALIBRATION_SECONDS = 1.0
 # rather than a fixed number, because a desk fan moves the floor a long way.
 SPEECH_MARGIN = 4.0
 FLOOR_MINIMUM = 0.004
-SILENCE_HANGOVER = 0.55  # how long a pause may run before the utterance is over
+# Long enough not to split an ordinary hesitation, but short enough that the
+# handoff feels immediate.  At 0.55s every turn had a conspicuous half-second
+# pause before transcription could even begin.
+SILENCE_HANGOVER = 0.40
 # Kept rolling so the utterance can start before the microphone noticed it had.
 # Speech crosses the threshold a syllable in, not at the attack, and everything
 # before that was being thrown away: "co-main event" came back as "Comade".
 # Three hundred milliseconds of hindsight costs nothing and buys the first word.
 PREROLL_SECONDS = 0.3
-# How long the room is given to stop ringing after he finishes speaking, before
-# the microphone is trusted again.
-SETTLE_SECONDS = 0.35
+# Player.drain() already waits through the punctuation pause appended after the
+# final clip (normally 0.26-0.30s).  This is only a small extra guard for device
+# latency and room echo; the old 0.35s stacked another full pause on top.
+SETTLE_SECONDS = 0.08
 MIN_UTTERANCE = 0.35    # shorter than this is a cough or a keyboard
 MAX_UTTERANCE = 15.0
 
