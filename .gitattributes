@@ -1,3 +1,11 @@
 # These run on the Linux box. A CRLF shebang makes them unrunnable, with an
 # error that names bash rather than the line ending, which wastes a while.
 *.sh text eol=lf
+# The same goes for everything deployed there: systemd units choke on CRLF, and a
+# stray \r once turned a model name into "gemma4:26b\r" in the boot preload.
+brain/** text eol=lf
+ops/** text eol=lf
+persona/** text eol=lf
+scripts/** text eol=lf
+tests/** text eol=lf
+voice-training/** text eol=lf

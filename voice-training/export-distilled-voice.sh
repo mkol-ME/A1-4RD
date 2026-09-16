@@ -2,7 +2,7 @@
 # Export one checkpoint for audition. This does not change the live service.
 set -euo pipefail
 
-project_dir="$(cd "$(dirname "$0")" && pwd)"
+project_dir="$(cd "$(dirname "$0")/.." && pwd)"
 training_dir="$project_dir/piper-training"
 checkpoint="${1:?usage: $0 CHECKPOINT.ckpt}"
 destination="$project_dir/tts-models/piper/en_GB-alfred-medium.onnx"

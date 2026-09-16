@@ -16,7 +16,7 @@ from pathlib import Path
 from piper import PiperVoice
 from rvc_python.infer import RVCInference
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).resolve().parent.parent   # project root, where the models live
 PIPER_MODEL = ROOT / "tts-models" / "piper" / "en_GB-alan-medium.onnx"
 RVC_DIR = ROOT / "rvc-model"
 OUT = ROOT / "rvc-audition"

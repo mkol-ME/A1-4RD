@@ -23,7 +23,7 @@ from rvc_python.infer import RVCInference
 from scipy.signal import resample_poly
 
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).resolve().parent.parent   # project root, where the models live
 PIPER_MODEL = ROOT / "tts-models" / "piper" / "en_GB-alan-medium.onnx"
 RVC_DIR = ROOT / "rvc-model"
 OUTPUT_DIR = ROOT / "voice-distill"

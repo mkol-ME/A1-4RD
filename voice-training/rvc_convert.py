@@ -8,7 +8,7 @@ from pathlib import Path
 import torch
 from rvc_python.infer import RVCInference
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).resolve().parent.parent   # project root, where the models live
 MODEL = ROOT / "rvc-model" / "AlfredPennyworth_465e_8835s.pth"
 INDEX = ROOT / "rvc-model" / "AlfredPennyworth.index"
 

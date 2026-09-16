@@ -1,0 +1,18 @@
+{
+  "chip": "nct6797",
+  "pwm": 7,
+  "min_pwm": 110,
+  "max_pwm": 255,
+  "restore_enable": 5,
+  "gpu_pci": "0000:03:00.0",
+  "junction_lo": 60,
+  "junction_hi": 85,
+  "mem_lo": 60,
+  "mem_hi": 85,
+  "interval": 2,
+  "step_down": 6,
+  "hysteresis_pwm": 6,
+  "log_every": 300,
+  "smooth_samples": 8,
+  "panic_junction": 80
+}

@@ -8,7 +8,7 @@ import soundfile as sf
 import torch
 from qwen_tts import Qwen3TTSModel
 
-OUTPUT_DIR = Path(__file__).parent / "tts-samples-qwen"
+OUTPUT_DIR = Path(__file__).resolve().parent.parent / "tts-samples-qwen"
 TEXT = (
     "The first layer is lifting because the bed is losing heat at the corners, sir. "
     "An enclosure would help. Apparently the laws of thermodynamics remain unmoved by confidence."

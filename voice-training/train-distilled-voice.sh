@@ -2,7 +2,7 @@
 # Prepare and fine-tune the one-stage Alfred Piper voice on the inference box.
 set -euo pipefail
 
-project_dir="$(cd "$(dirname "$0")" && pwd)"
+project_dir="$(cd "$(dirname "$0")/.." && pwd)"
 training_dir="$project_dir/piper-training"
 dataset_dir="$project_dir/voice-distill"
 checkpoint="$training_dir/en_GB-alan-medium.ckpt"

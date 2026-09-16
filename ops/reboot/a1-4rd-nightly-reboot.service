@@ -1,0 +1,7 @@
+[Unit]
+Description=A1-4RD reboot if due and idle
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/a1-4rd-nightly-reboot.sh
+TimeoutStartSec=3h

@@ -26,7 +26,7 @@ import memory_tools
 from memory import Memory
 import random
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).resolve().parent.parent   # project root: the models live beside brain/
 PIPER_MODEL = Path(os.environ.get(
     "ALFRED_PIPER_MODEL", ROOT / "tts-models" / "piper" / "en_GB-alan-medium.onnx"
 ))

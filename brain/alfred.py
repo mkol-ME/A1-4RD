@@ -33,15 +33,17 @@ SERVER = "http://localhost:11434"   # server's IP if running from the laptop
 # the MI50 no slower (0.43s first sentence, 41 tok/s, 75/78). Memory bandwidth is
 # not what limits an MoE with 4B active parameters, so the extra precision is free.
 DEFAULT_MODEL = "gemma4:26b-a4b-it-q8_0"
-PERSONA = Path(__file__).with_name("alfred.md")
-EXAMPLES = Path(__file__).with_name("examples.md")
+# brain/ sits one level below the project root, which holds persona/, the models and the venvs.
+ROOT = Path(__file__).resolve().parent.parent
+PERSONA = ROOT / "persona" / "alfred.md"
+EXAMPLES = ROOT / "persona" / "examples.md"
 # He is meant to run for years, so memory lives on the redundant array rather
 # than beside the code. Falls back to a local file wherever that array is not
 # mounted, so a checkout on the laptop still works.
 ARRAY_DB = Path("/srv/storage/alfred/memory.sqlite3")
 MEMORY_DB = Path(os.environ.get(
     "ALFRED_MEMORY_DB",
-    ARRAY_DB if ARRAY_DB.parent.is_dir() else Path(__file__).with_name(".alfred-memory.sqlite3"),
+    ARRAY_DB if ARRAY_DB.parent.is_dir() else ROOT / ".alfred-memory.sqlite3",
 ))
 
 # Preserve some character variation without rewarding plausible invention.
@@ -64,7 +66,7 @@ TESTS = []
 
 def load_persona() -> str:
     if not PERSONA.exists():
-        sys.exit(f"{RED}Can't find {PERSONA.name} next to this script.{RESET}")
+        sys.exit(f"{RED}Can't find {PERSONA}.{RESET}")
     return PERSONA.read_text(encoding="utf-8").strip()
 
 

@@ -6,7 +6,7 @@ from pathlib import Path
 import soundfile as sf
 from kokoro_onnx import Kokoro
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).resolve().parent.parent   # project root, where the models live
 MODEL_DIR = ROOT / "tts-models"
 OUTPUT_DIR = ROOT / "tts-samples"
 VOICES = ("bm_daniel", "bm_fable", "bm_george", "bm_lewis")

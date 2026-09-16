@@ -1,0 +1,9 @@
+[Unit]
+Description=Nightly 3am Eastern check for a due, idle reboot
+
+[Timer]
+OnCalendar=*-*-* 03:00:00 America/New_York
+Persistent=false
+
+[Install]
+WantedBy=timers.target
