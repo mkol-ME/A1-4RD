@@ -41,6 +41,7 @@ the language model and his voice. Nothing is sent to a hosted service.
                                                   → tool gate: does this need a lookup?
                                                   → decider: search memory / search web
                                                     (SearXNG :8888, Wikipedia) / remember
+                                                    weather goes to Open-Meteo instead
                                                   → gemma4 26B on the MI50 via Ollama   (:11434)
                                                   → cut the stream into whole sentences
                                                   → Alfred's distilled Piper voice (CPU)
@@ -52,7 +53,7 @@ The pieces are deliberately separable:
 | Layer | Files | Decides |
 |---|---|---|
 | **Character** | `persona/alfred.md`, `persona/examples.md` | how he behaves |
-| **Knowledge** | `brain/memory.py`, `brain/memory_tools.py`, `brain/web.py` | what evidence he sees |
+| **Knowledge** | `brain/memory.py`, `brain/memory_tools.py`, `brain/web.py`, `brain/weather.py` | what evidence he sees |
 | **Transport** | `brain/voice_server.py`, `brain/whisper_server.py`, SSH | how text and audio move |
 | **Embodiment** | `client/listen.py`, `client/talk.py`, later the servos | how he is present in the room |
 
@@ -91,6 +92,7 @@ A1-4RD/
 │   ├── memory.py             SQLite memory: recent conversation, facts, semantic search
 │   ├── memory_tools.py       the tool decider and its tools (memory, web, facts)
 │   ├── web.py                Wikipedia + SearXNG lookup, run concurrently
+│   ├── weather.py            live forecast from Open-Meteo, not search snippets
 │   ├── voice_server.py       one spoken turn end to end, streamed sentence by sentence
 │   ├── whisper_server.py     resident Whisper, so no model load per utterance
 │   ├── whisper_transcribe.py one-off file transcription
@@ -107,7 +109,9 @@ A1-4RD/
 ├── ops/                      server setup, version-controlled
 │   ├── fan/                  MI50 fan curve service + interactive installer
 │   ├── reboot/               idle-only 3 a.m. reboot every third night
-│   └── ollama/               Ollama settings and boot-time model preload
+│   ├── ollama/               Ollama settings and boot-time model preload
+│   ├── services/             start SearXNG, Whisper and the voice server at boot
+│   └── remote-access/        key-only SSH and Tailscale
 ├── requirements/             pinned environments (client TTS, Whisper, RVC, Qwen-TTS)
 ├── hardware/                 CAD spec and PCB notes for the body
 ├── docs/                     SSH access, design notes and project history
@@ -153,11 +157,13 @@ ssh a1-4rd "cd ~/a1-4rd && .venv-rvc/bin/python brain/alfred.py"
 | Port | Service | Started by |
 |---|---|---|
 | 11434 | Ollama — `gemma4:26b-a4b-it-q8_0` on the MI50 | systemd (`ollama`) |
-| 5051 | voice server (`brain/voice_server.py`) | `client/listen.py` or `scripts/voice-server.sh` |
-| 5052 | Whisper (`brain/whisper_server.py`) | `client/listen.py` or `scripts/whisper-server.sh` |
-| 8888 | SearXNG metasearch, localhost only | `scripts/searx-server.sh` |
+| 5051 | voice server (`brain/voice_server.py`) | systemd (`alfred-voice`) |
+| 5052 | Whisper (`brain/whisper_server.py`) | systemd (`alfred-whisper`) |
+| 8888 | SearXNG metasearch, localhost only | systemd (`alfred-searx`) |
 
-All bind to `127.0.0.1`; the laptop reaches them through SSH port forwarding.
+All bind to `127.0.0.1`; the laptop reaches them through SSH port forwarding, over the LAN or Tailscale.
+`client/listen.py` still starts any that are not running. Install the units with
+`sudo bash ops/services/install.sh`.
 
 ### Installed system pieces ([`ops/`](ops))
 
@@ -165,6 +171,8 @@ All bind to `127.0.0.1`; the laptop reaches them through SSH port forwarding.
 |---|---|
 | `mi50-fan.service` | fan speed from MI50 junction/memory temperature; full speed if the sensor is lost |
 | `a1-4rd-nightly-reboot.timer` | 3 a.m. Eastern: reboots only if up ≥ 60 h and idle (no RAID check, downloads, updates, SSH activity or GPU load). Opt out: `sudo touch /etc/a1-4rd-no-auto-reboot` |
+| `alfred-voice`, `alfred-whisper`, `alfred-searx` | Alfred's services, up at boot and restarted if they crash ([`ops/services`](ops/services)) |
+| `01-keys-only.conf`, `tailscaled` | SSH by key only; reachable from any network through Tailscale, no open router port ([`ops/remote-access`](ops/remote-access)) |
 | `alfred-ollama-warm.service` | loads Alfred's model at boot so the first reply is not a 20 s load |
 | `ollama.service.d/override.conf` | see below |
 

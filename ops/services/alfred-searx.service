@@ -1,0 +1,16 @@
+[Unit]
+Description=SearXNG metasearch for Alfred's web lookups (localhost only)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# The account that owns ~/a1-4rd; install.sh fills it in.
+User=CHANGE_ME
+ExecStart=CHANGE_PROJECT/scripts/searx-server.sh
+# on-failure, not always: the benchmark helpers stop these with pkill and start
+# their own copy, and a clean stop must stay stopped.
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -20,3 +20,30 @@ Copy files back and forth:
 scp persona/examples.md a1-4rd:~/a1-4rd/persona/
 scp a1-4rd:~/a1-4rd/brain/alfred.py brain/
 ```
+
+## From another network (Tailscale)
+
+The server only accepts keys, and is on Tailscale as `a1-4rd`
+([`ops/remote-access/install.sh`](../ops/remote-access/install.sh)). No router port is open: only devices signed
+in to the same Tailscale account can reach it.
+
+On the laptop, install Tailscale (`winget install --id Tailscale.Tailscale -e`), sign in with the same account,
+and point the alias at the Tailscale name, keeping the LAN address as a fallback:
+
+```
+Host a1-4rd
+    HostName a1-4rd
+    User <user>
+    IdentityFile ~/.ssh/a1-4rd
+    IdentitiesOnly yes
+
+Host a1-4rd-lan
+    HostName xxx.xxx.xxx.xxx
+    User <user>
+    IdentityFile ~/.ssh/a1-4rd
+    IdentitiesOnly yes
+```
+
+`listen.py` and `talk.py` use the `a1-4rd` alias, so they then work from any Wi-Fi unchanged. The Tailscale
+name also survives the DHCP address changing. In the Tailscale admin page, disable key expiry for `a1-4rd`, or it
+drops off the network after 180 days.

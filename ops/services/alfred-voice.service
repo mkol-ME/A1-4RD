@@ -1,0 +1,15 @@
+[Unit]
+Description=Alfred's voice server: one spoken turn end to end (127.0.0.1:5051)
+After=network-online.target ollama.service alfred-searx.service
+Wants=network-online.target ollama.service alfred-searx.service
+# His memory lives on the RAID array; never start against an unmounted path.
+RequiresMountsFor=/srv/storage/alfred
+
+[Service]
+User=CHANGE_ME
+ExecStart=CHANGE_PROJECT/scripts/voice-server.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
