@@ -5,6 +5,7 @@ Wants=ollama.service
 
 [Service]
 Type=oneshot
+# The account that owns ~/a1-4rd.
 User=CHANGE_ME
 ExecStart=/usr/local/sbin/alfred-ollama-warm.sh
 TimeoutStartSec=5min

@@ -9,7 +9,7 @@ Key-based; no password is needed to log in. `sudo` still asks for one.
 
 The address comes from the router's DHCP and is not reserved. If `ssh a1-4rd` stops connecting, find the
 server by scanning the LAN for port 22, check that its ed25519 host key matches the known one, and update
-`HostName` in `~/.ssh/config`. (xxx.xxx.xxx.xxx also answers on port 22 — it is an unrelated device.)
+`HostName` in `~/.ssh/config`. (Another device on the LAN also answers on port 22 — check the host key.)
 
 The project lives in `~/a1-4rd/` with the same layout as this repo, plus the git-ignored assets (venvs,
 voice models, training data) at the top level.

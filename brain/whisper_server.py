@@ -17,6 +17,7 @@ import json
 import time
 import wave
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
 
 from faster_whisper import WhisperModel
 
@@ -31,18 +32,21 @@ MAX_AUDIO_BYTES = 32 * 1024 * 1024
 # "Bambu P1S" came back as "Bamboo P1's". Priming it with the vocabulary this
 # desk actually uses costs nothing per utterance and fixes the proper nouns that
 # matter most, since they are exactly the words a command depends on.
-# Place names earn their spot the same way: the home city came back as three
-# different near-misses and the school's name as another, 3 of 12
-# times; with them listed, 12 of 12 (2026-09-16, 88 synthetic clips, error rate
-# 7.0% -> 6.4%, no cost in time). Skipping timestamps (-26ms) and the VAD (-5ms)
+# Local place names earn their spot the same way: the home city and school came
+# back as three different near-misses in 3 of 12 clips, and with them listed, 12
+# of 12 (2026-09-16, 88 synthetic clips, error rate 7.0% -> 6.4%, no cost in
+# time). They are personal, so they live in persona/vocabulary.local.txt, which
+# git ignores, rather than here. Skipping timestamps (-26ms) and the VAD (-5ms)
 # were measured too and not taken: both added errors, and the VAD is what keeps
 # a keyboard click from being transcribed as a sentence.
 VOCABULARY = (
     "Alfred. the user. Bambu P1S, PETG, ABS, PLA, TPU, filament, nozzle, extruder, "
     "retraction, brim, raft, first layer, bed adhesion, warping, gcode, slicer, "
-    "Klipper, Marlin, infill, elephant foot, Ollama, Qwen, git, commit, repository. "
-    "[local place names]."
+    "Klipper, Marlin, infill, elephant foot, Ollama, Qwen, git, commit, repository."
 )
+LOCAL_VOCABULARY = Path(__file__).resolve().parent.parent / "persona" / "vocabulary.local.txt"
+if LOCAL_VOCABULARY.exists():
+    VOCABULARY += " " + " ".join(LOCAL_VOCABULARY.read_text(encoding="utf-8").split())
 
 
 class Ears:

@@ -20,3 +20,6 @@ voice-distill-smoke/
 rvc-f0/
 *.log
 *.bak-*
+
+# Personal, machine-local settings (e.g. Whisper place-name vocabulary)
+*.local.txt
