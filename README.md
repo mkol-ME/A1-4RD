@@ -55,7 +55,8 @@ the database query itself.
    → text ────────────────────────────────────→ voice server                            (:5051)
                                                   → tool gate: does this need a lookup?
                                                   → decider: search memory / search web /
-                                                    sports scores (ESPN) / news (Google News)
+                                                    sports scores (ESPN) / news (Google News) /
+                                                    odds (Polymarket)
                                                     (SearXNG :8888, Wikipedia) / remember
                                                     weather goes to Open-Meteo instead
                                                   → gemma4 26B on the MI50 via Ollama   (:11434)
@@ -69,7 +70,7 @@ The pieces are deliberately separable:
 | Layer | Files | Decides |
 |---|---|---|
 | **Character** | `persona/alfred.md`, `persona/examples.md` | how he behaves |
-| **Knowledge** | `brain/memory.py`, `brain/memory_tools.py`, `brain/web.py`, `brain/weather.py`, `brain/sports.py`, `brain/news.py` | what evidence he sees |
+| **Knowledge** | `brain/memory.py`, `brain/memory_tools.py`, `brain/web.py`, `brain/weather.py`, `brain/sports.py`, `brain/news.py`, `brain/markets.py` | what evidence he sees |
 | **Transport** | `brain/voice_server.py`, `brain/whisper_server.py`, SSH | how text and audio move |
 | **Embodiment** | `client/listen.py`, `client/talk.py`, later the servos | how he is present in the room |
 
@@ -110,6 +111,7 @@ A1-4RD/
 │   ├── web.py                Wikipedia + SearXNG lookup, run concurrently
 │   ├── sports.py             live scores, results and fixtures from ESPN
 │   ├── news.py               headlines from Google News
+│   ├── markets.py            live prediction-market odds from Polymarket
 │   ├── weather.py            live forecast from Open-Meteo, not search snippets
 │   ├── media.py              "play…" / "find videos of…" requests and spoken titles
 │   ├── media_server.py       YouTube search and audio stream (own venv: yt-dlp, PyAV)

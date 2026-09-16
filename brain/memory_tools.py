@@ -19,6 +19,7 @@ import json
 import re
 import urllib.request
 
+import markets
 import memory as memory_module
 import news
 import sports
@@ -136,6 +137,28 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "get_odds",
+            "description": (
+                "Live betting odds from Polymarket's prediction markets: who is favoured in a "
+                "game or fight, the chances of an election result, a Fed decision, a champion, "
+                "or any other event people trade on. Use it for 'odds', 'who's favoured', "
+                "'chances of', 'what does the market say'. Results and schedules are get_sports."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The shortest distinctive names: 'bears', 'pantoja van', 'fed october', '2028 republican nominee'.",
+                    },
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "get_news",
             "description": (
                 "Current news headlines, from Google News. Use it for 'any news on…', 'what's "
@@ -237,7 +260,7 @@ def _settles(name: str, result: dict) -> bool:
     """Did this call produce what the turn needed, so no follow-up round is worth paying for?"""
     if not result.get("ok"):
         return False
-    if name in ("search_memory", "search_web", "get_sports", "get_news"):
+    if name in ("search_memory", "search_web", "get_sports", "get_news", "get_odds"):
         return bool(result.get("found"))
     return name in ("remember_fact", "forget_fact")
 
@@ -279,6 +302,10 @@ def dispatch(memory, name: str, raw_arguments) -> dict:
         if name == "get_sports":
             query = _as_text(arguments, "query", "team", "league", "text", "q", limit=MAX_QUERY_CHARS)
             return sports.lookup(query)
+
+        if name == "get_odds":
+            query = _as_text(arguments, "query", "topic", "text", "q", limit=MAX_QUERY_CHARS)
+            return markets.lookup(query)
 
         if name == "get_news":
             topic = arguments.get("topic") or arguments.get("query") or arguments.get("q")
@@ -478,7 +505,7 @@ def consult(memory, prompt: str, model: str, server: str, timeout: int = 30,
                     searched.extend(result.get("results", []))
                 if name == "search_web":
                     found_online.extend(result.get("results", []))
-                if name in ("get_sports", "get_news") and result.get("report"):
+                if name in ("get_sports", "get_news", "get_odds") and result.get("report"):
                     reports.append(result["report"])
                 messages.append({"role": "tool", "tool_name": name,
                                  "content": json.dumps(result)})
