@@ -42,9 +42,14 @@ CALIBRATION_SECONDS = 1.0
 SPEECH_MARGIN = 4.0
 FLOOR_MINIMUM = 0.004
 # Long enough not to split an ordinary hesitation, but short enough that the
-# handoff feels immediate.  At 0.55s every turn had a conspicuous half-second
-# pause before transcription could even begin.
-SILENCE_HANGOVER = 0.40
+# handoff feels immediate. At 0.55s every turn had a conspicuous half-second
+# pause before transcription could even begin — but that was before early
+# transcription, which now overlaps most of the wait. At 0.40s, in the second
+# real session (2026-09-16), he kept answering before the user had finished:
+# a pause after a complete-sounding phrase ended the turn, and since he does not
+# listen while he talks, the rest of the sentence was simply lost. Being cut off
+# is worse than 0.2s more wait. Tune with --hangover rather than editing this.
+SILENCE_HANGOVER = 0.60
 # Whisper does not have to wait for the hangover to be sure. At this much
 # silence the utterance so far goes off to be transcribed; if the pause runs on
 # to SILENCE_HANGOVER that transcript is the one used, and if he was only
@@ -58,7 +63,7 @@ EARLY_TRANSCRIBE_SILENCE = 0.20
 # the early transcript is read, and if it stops somewhere no sentence stops, he
 # is given up to this long to carry on. A finished sentence ends exactly as fast
 # as before, because the transcript was already being waited for.
-UNFINISHED_HANGOVER = 1.0
+UNFINISHED_HANGOVER = 1.2
 # Words an English sentence does not end on. A question can technically end on
 # "have" or "in" ("what do you have", "who's in"), and the cost of that is only
 # the longer wait, never a cut.
@@ -387,6 +392,7 @@ def start_tunnels() -> subprocess.Popen:
 
 
 def main() -> None:
+    global SILENCE_HANGOVER, UNFINISHED_HANGOVER
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--open", action="store_true",
                         help="answer everything, without waiting to be addressed")
@@ -394,7 +400,14 @@ def main() -> None:
                         help="seconds he keeps listening after a reply, before his name is needed again")
     parser.add_argument("--pause", type=float, default=1.0, help="scale his inter-sentence pauses")
     parser.add_argument("--device", help="input device name or index")
+    parser.add_argument("--hangover", type=float, default=SILENCE_HANGOVER,
+                        help="seconds of silence that end your turn; raise it if he cuts you off, "
+                             "lower it if he feels slow to answer")
     args = parser.parse_args()
+
+    # The unfinished-sentence allowance keeps its margin over the normal one.
+    UNFINISHED_HANGOVER = max(UNFINISHED_HANGOVER, args.hangover + 0.6)
+    SILENCE_HANGOVER = args.hangover
 
     device = args.device
     if device is not None and device.isdigit():
