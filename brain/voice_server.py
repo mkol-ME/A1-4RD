@@ -21,6 +21,7 @@ import soundfile as sf
 from scipy.signal import resample_poly
 
 import alfred
+import guru
 import memory
 import media
 import memory_tools
@@ -82,6 +83,8 @@ MEMORY = None
 # and "next" mean something. One household, one list.
 MEDIA_RESULTS: list = []
 MEDIA_POSITION = [-1]
+# The last commentator section talked about, so "play that part" can follow it.
+GURU_LAST: list = []
 
 # Nothing may touch either GPU while a question is in flight.
 BUSY = threading.Lock()
@@ -372,7 +375,38 @@ class Handler(BaseHTTPRequestHandler):
         forecast = None
         videos = None
         play = None
-        media_request = None if direct_reply is not None else media.parse(prompt, bool(MEDIA_RESULTS))
+        commentary = None
+        # A commentator's take, from his own videos: summarised for "what does
+        # the guru think", or the section itself played for "play the guru's
+        # breakdown of…". Checked before media.parse, which would otherwise read
+        # "play the guru's breakdown of x" as a YouTube search for those words.
+        guru_request = None if direct_reply is not None else guru.parse(prompt, bool(GURU_LAST))
+        if guru_request is not None:
+            try:
+                if guru_request["action"] == "play_last":
+                    play = GURU_LAST[0]
+                    direct_reply = "Here it is, sir."
+                else:
+                    if guru_request["action"] == "ask":
+                        announce()
+                    found = guru.find_section(guru_request)
+                    if found is None:
+                        direct_reply = "I can't find him talking about that."
+                    else:
+                        GURU_LAST[:] = [guru.clip(found)]
+                        if guru_request["action"] == "play":
+                            play = GURU_LAST[0]
+                            section = found["section"]
+                            direct_reply = (f"{found['commentator']} on {section['title']}, sir." if section
+                                            else f"{found['commentator']}'s latest, sir.")
+                        else:
+                            commentary = guru.context(found, guru_request.get("subject") or "")
+            except Exception as exc:
+                print(f"guru failed: {exc}", flush=True)
+                direct_reply = "I can't reach his videos just now."
+            print(f"memory guru {guru_request['action']}", flush=True)
+        media_request = (None if direct_reply is not None or commentary is not None
+                         else media.parse(prompt, bool(MEDIA_RESULTS)))
         if media_request is not None:
             kind, value = media_request
             try:
@@ -402,13 +436,14 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as exc:
                 print(f"media failed: {exc}", flush=True)
                 direct_reply = "I can't reach YouTube just now."
-            if play is not None:
+            if play is not None and guru_request is None:
                 MEDIA_POSITION[0] = MEDIA_RESULTS.index(play) if play in MEDIA_RESULTS else 0
                 direct_reply = media.announce(play)
             print(f"memory media {kind}{'' if direct_reply or videos else ' FAILED'}", flush=True)
-        if direct_reply is None and videos is None and weather.asks_about_weather(prompt, history):
+        if (direct_reply is None and videos is None and commentary is None
+                and weather.asks_about_weather(prompt, history)):
             forecast = weather.lookup(prompt, history)
-        if videos is not None:
+        if videos is not None or commentary is not None:
             consulted = {"context": memory_tools._render(MEMORY, [], []),
                          "calls": [], "failed": False}
         elif forecast is not None:
@@ -436,6 +471,8 @@ class Handler(BaseHTTPRequestHandler):
             context = f"{context}\n{forecast}" if context else forecast
         if videos:
             context = f"{context}\n{videos}" if context else videos
+        if commentary:
+            context = f"{context}\n{commentary}" if context else commentary
         delivery = alfred.SPOKEN_DELIVERY
         context = f"{context}\n{delivery}" if context else delivery
         history.append({"role": "user", "content": prompt})
@@ -456,7 +493,8 @@ class Handler(BaseHTTPRequestHandler):
                 )
             sentences.flush()
             if play is not None:
-                work.put({"media": {key: play.get(key) for key in ("id", "title", "channel", "duration")}})
+                work.put({"media": {key: play.get(key) for key in ("id", "title", "channel", "duration", "start", "end")
+                                    if play.get(key) is not None}})
             work.put(None)
             worker.join()
             if worker_error:

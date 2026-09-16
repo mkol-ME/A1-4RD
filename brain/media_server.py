@@ -22,6 +22,8 @@ import json
 import os
 import re
 import threading
+import time
+import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
@@ -57,6 +59,65 @@ def search(query: str, count: int = 5) -> list[dict]:
     return results
 
 
+CHANNEL_ID = re.compile(r"^UC[A-Za-z0-9_-]{22}$")
+_cache: dict = {}
+_cache_lock = threading.Lock()
+
+
+def cached(key, seconds: float, compute):
+    """A result kept for a while: a channel's upload list, a video's captions."""
+    now = time.monotonic()
+    with _cache_lock:
+        hit = _cache.get(key)
+        if hit and now - hit[0] < seconds:
+            return hit[1]
+    value = compute()
+    with _cache_lock:
+        _cache[key] = (now, value)
+    return value
+
+
+def uploads(channel_id: str, count: int = 12) -> list[dict]:
+    """A channel's newest uploads, newest first."""
+    def compute():
+        options = dict(QUIET, extract_flat="in_playlist", playlistend=count)
+        with yt_dlp.YoutubeDL(options) as ydl:
+            info = ydl.extract_info(f"https://www.youtube.com/channel/{channel_id}/videos", download=False)
+        return [{"id": e["id"], "title": e.get("title") or "", "duration": e.get("duration")}
+                for e in info.get("entries") or [] if e and VIDEO_ID.match(e.get("id") or "")]
+    return cached(("uploads", channel_id, count), 600, compute)
+
+
+def video(video_id: str) -> dict:
+    """Title, upload date, chapters and timestamped auto-captions of one video.
+
+    A commentator's breakdown video is an hour of talking; the captions are what
+    lets a question about one fight find the few minutes that are about it, and
+    the chapters, where the uploader added them, say exactly where those are.
+    """
+    def compute():
+        with yt_dlp.YoutubeDL(dict(QUIET, skip_download=True)) as ydl:
+            info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
+        chapters = [{"start": c.get("start_time"), "end": c.get("end_time"), "title": c.get("title") or ""}
+                    for c in info.get("chapters") or []]
+        captions = []
+        tracks = (info.get("subtitles") or {}).get("en") or []
+        automatic = info.get("automatic_captions") or {}
+        tracks = tracks or automatic.get("en-orig") or automatic.get("en") or []
+        track = next((t for t in tracks if t.get("ext") == "json3"), None)
+        if track:
+            with urllib.request.urlopen(track["url"], timeout=20) as response:
+                data = json.loads(response.read())
+            for event in data.get("events") or []:
+                text = "".join(s.get("utf8", "") for s in event.get("segs") or []).strip()
+                if text:
+                    captions.append([round(event.get("tStartMs", 0) / 1000, 2), " ".join(text.split())])
+        return {"id": video_id, "title": info.get("title") or "", "channel": info.get("channel") or "",
+                "upload_date": info.get("upload_date"), "duration": info.get("duration"),
+                "chapters": chapters, "captions": captions}
+    return cached(("video", video_id), 6 * 3600, compute)
+
+
 def audio_url(video_id: str) -> str:
     options = dict(QUIET, format="bestaudio/best")
     with yt_dlp.YoutubeDL(options) as ydl:
@@ -64,15 +125,27 @@ def audio_url(video_id: str) -> str:
     return info["url"]
 
 
-def pcm(video_id: str):
-    """Yield the video's audio as 48 kHz stereo s16le bytes, as it decodes."""
+def pcm(video_id: str, start: float = 0.0, end: float | None = None):
+    """Yield the video's audio as 48 kHz stereo s16le bytes, as it decodes.
+
+    start and end, in seconds, play one section: one fight out of an hour-long
+    breakdown. The container seeks to just before start and the frames ahead of
+    it are dropped, so the section begins on the word, not on the keyframe.
+    """
     container = av.open(audio_url(video_id), options={
         "reconnect": "1", "reconnect_streamed": "1", "reconnect_delay_max": "5"})
     try:
         stream = container.streams.audio[0]
+        if start > 0:
+            container.seek(int(start * 1_000_000), backward=True)   # microseconds, any stream
         resampler = av.AudioResampler(format="s16", layout="stereo", rate=RATE)
         pending = bytearray()
         for frame in container.decode(stream):
+            if frame.time is not None:
+                if frame.time + frame.samples / frame.sample_rate <= start:
+                    continue
+                if end is not None and frame.time >= end:
+                    break
             for out in resampler.resample(frame):
                 pending += bytes(out.planes[0])[:out.samples * 4]
             while len(pending) >= CHUNK_FRAMES * 4:
@@ -105,7 +178,20 @@ class Handler(BaseHTTPRequestHandler):
                 video_id = (query.get("id") or [""])[0]
                 if not VIDEO_ID.match(video_id):
                     return self._json({"error": "bad video id"}, 400)
-                return self._stream(video_id)
+                start = max(0.0, float((query.get("start") or ["0"])[0]))
+                end = (query.get("end") or [None])[0]
+                return self._stream(video_id, start, float(end) if end else None)
+            if url.path == "/channel":
+                channel_id = (query.get("id") or [""])[0]
+                if not CHANNEL_ID.match(channel_id):
+                    return self._json({"error": "bad channel id"}, 400)
+                count = max(1, min(30, int((query.get("n") or ["12"])[0])))
+                return self._json({"uploads": uploads(channel_id, count)})
+            if url.path == "/video":
+                video_id = (query.get("id") or [""])[0]
+                if not VIDEO_ID.match(video_id):
+                    return self._json({"error": "bad video id"}, 400)
+                return self._json(video(video_id))
             return self._json({"error": "not found"}, 404)
         except (BrokenPipeError, ConnectionResetError):
             return
@@ -123,8 +209,8 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _stream(self, video_id: str) -> None:
-        chunks = pcm(video_id)
+    def _stream(self, video_id: str, start: float = 0.0, end: float | None = None) -> None:
+        chunks = pcm(video_id, start, end)
         first = next(chunks)            # resolve before promising a 200
         self.send_response(200)
         self.send_header("Content-Type", f"audio/L16;rate={RATE};channels=2")

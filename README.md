@@ -114,7 +114,8 @@ A1-4RD/
 │   ├── markets.py            live prediction-market odds from Polymarket
 │   ├── weather.py            live forecast from Open-Meteo, not search snippets
 │   ├── media.py              "play…" / "find videos of…" requests and spoken titles
-│   ├── media_server.py       YouTube search and audio stream (own venv: yt-dlp, PyAV)
+│   ├── media_server.py       YouTube search, audio stream, chapters and captions (own venv: yt-dlp, PyAV)
+│   ├── guru.py               The MMA Guru's take on a fight, from his breakdown videos
 │   ├── voice_server.py       one spoken turn end to end, streamed sentence by sentence
 │   ├── whisper_server.py     resident Whisper, so no model load per utterance
 │   ├── whisper_transcribe.py one-off file transcription
@@ -165,6 +166,9 @@ running and opens the SSH tunnels itself.
 - **"Play …"** plays it from YouTube through his speaker; **"find videos of …"** reads out the top results, then
   **"play the second one"** or **"next"**. While music plays, say his name first: **"Alfred, pause / resume / stop /
   louder / quieter"**. The music drops while he talks.
+- **"Who does the Guru pick in Pantoja–Van?"** or **"what did the Guru say about …"** summarises The MMA Guru's
+  predictions or recap video on that fight; **"play the Guru's breakdown of …"** or **"play that part"** plays just
+  that section, found from his chapters or, failing those, from the captions.
 - Each turn prints what was heard, how long transcription took, and the longest pause you left inside the
   sentence — the data for tuning when a turn is considered over.
 

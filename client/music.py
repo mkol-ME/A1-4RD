@@ -85,7 +85,9 @@ class MusicPlayer:
             self._stop = threading.Event()
             self._paused.clear()
             self.title = info.get("title")
-            self._thread = threading.Thread(target=self._run, args=(info["id"], self._stop), daemon=True)
+            # start/end play one section of a video: one fight from a commentator's breakdown.
+            section = "".join(f"&{key}={float(info[key]):.2f}" for key in ("start", "end") if info.get(key) is not None)
+            self._thread = threading.Thread(target=self._run, args=(info["id"] + section, self._stop), daemon=True)
             self._thread.start()
 
     def pause(self) -> None:
