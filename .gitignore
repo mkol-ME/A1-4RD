@@ -23,3 +23,6 @@ rvc-f0/
 
 # Personal, machine-local settings (e.g. Whisper place-name vocabulary)
 *.local.txt
+
+# Built locally by client/launcher/build.ps1 (has this machine's path baked in)
+client/launcher/bin/
