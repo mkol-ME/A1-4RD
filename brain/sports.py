@@ -18,6 +18,7 @@ import os
 import re
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
@@ -76,6 +77,9 @@ def when(stamp: str) -> str:
         moment = datetime.fromisoformat(stamp.replace("Z", "+00:00")).astimezone(ZoneInfo(TIMEZONE))
     except Exception:
         return stamp
+    # Without the year, a fight from 2024 read as last November's.
+    if abs((moment - datetime.now(moment.tzinfo)).days) > 150:
+        return f"{moment.strftime('%b')} {moment.day}, {moment.year}"
     return f"{moment.strftime('%A %b')} {moment.day}, {moment.hour % 12 or 12}:{moment.minute:02d} {moment.strftime('%p')}"
 
 
@@ -193,6 +197,62 @@ def league_report(item: dict) -> str:
     return "\n".join(lines)
 
 
+CORE = "https://sports.core.api.espn.com/v2/sports/mma"
+
+
+def _ref(link: dict) -> dict:
+    return _get(link["$ref"].replace("http://", "https://"))
+
+
+def fight_line(entry: dict, fighter_id: str) -> str:
+    """'UFC 309, Nov 16 2024: beat Stipe Miocic by KO/TKO in round 3 (4:29)'."""
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        competition = pool.submit(_ref, entry["competition"])
+        event = pool.submit(_ref, entry["event"])
+        competition, event = competition.result(), event.result()
+        status = pool.submit(_ref, competition["status"])
+        others = [c for c in competition.get("competitors", []) if str(c.get("id")) != fighter_id]
+        mine = next((c for c in competition.get("competitors", []) if str(c.get("id")) == fighter_id), {})
+        opponent = pool.submit(_ref, others[0]["athlete"]) if others and "athlete" in others[0] else None
+        status = status.result()
+        opponent = (opponent.result() if opponent else {}).get("displayName") or "an unknown opponent"
+    date = when(competition.get("date") or event.get("date") or "")
+    name = event.get("name") or "a fight"
+    if not entry.get("played"):
+        return f"{name}, {date}: against {opponent}"
+    method = ((status.get("result") or {}).get("displayName")) or "decision"
+    finish = (f" in round {status['period']} ({status.get('displayClock')})"
+              if status.get("period") and "decision" not in method.lower() else "")
+    verb = "beat" if mine.get("winner") else "lost to"
+    return f"{name}, {date}: {verb} {opponent} by {method}{finish}"
+
+
+def fighter_report(item: dict) -> str:
+    fighter = re.search(r"~a:(\d+)", item.get("uid", ""))
+    if item.get("sport") != "mma" or not fighter:
+        return ""
+    fighter_id = fighter.group(1)
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        profile = pool.submit(_get, f"{API}/common/v3/sports/mma/athletes/{fighter_id}")
+        records = pool.submit(_get, f"{CORE}/athletes/{fighter_id}/records")
+        log = pool.submit(_get, f"{CORE}/athletes/{fighter_id}/eventlog")
+        athlete = profile.result().get("athlete") or {}
+        record = next((r.get("displayValue") for r in records.result().get("items", [])
+                       if r.get("type") == "total"), None)
+        entries = (log.result().get("events") or {}).get("items") or []
+    name = athlete.get("displayName") or item.get("displayName")
+    nickname = f" \"{athlete['nickname']}\"" if athlete.get("nickname") else ""
+    division = (athlete.get("weightClass") or {}).get("text")
+    lines = [f"{name}{nickname}" + (f", {division}" if division else "") + (f", record {record} (W-L-D)" if record else "")]
+    upcoming = [e for e in entries if not e.get("played")]
+    played = [e for e in entries if e.get("played")]      # newest first
+    if upcoming:
+        lines.append("- Next fight: " + fight_line(upcoming[-1], fighter_id))
+    if played:
+        lines.append("- Last fight: " + fight_line(played[0], fighter_id))
+    return "\n".join(lines)
+
+
 def _state(event: dict) -> str | None:
     competition = (event.get("competitions") or [{}])[0]
     status = competition.get("status") or event.get("status") or {}
@@ -209,7 +269,7 @@ def lookup(query: str) -> dict:
     elif item.get("type") == "league":
         report = league_report(item)
     else:
-        report = ""
+        report = fighter_report(item)
     if not report:
         return {"ok": True, "found": 0,
                 "note": f"ESPN knows {item.get('displayName')} but has no schedule for it; search the web."}
