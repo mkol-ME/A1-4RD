@@ -52,6 +52,22 @@ MEMORY_DB = Path(os.environ.get(
 TEMPERATURE = 0.65
 MAX_TOKENS = -1         # -1 = uncapped; set a number only as a runaway guard
 
+# Put in front of every spoken answer, by the voice server and by
+# character_eval, which used to keep its own copy and so never tested the
+# second half.
+#
+# "Answer at whatever total length is useful" was read as permission, and
+# "use multiple short sentences" as encouragement to produce more of them. Over
+# ten samples that wording ran to a mean of 36 words against 29 for no
+# constraint at all. The length sentence below gives 18, against the 13.6-word
+# mean of the examples he is meant to sound like.
+#
+# The correction sentence used to say "assume speech recognition may have
+# misheard him", and on the first real voice session it fired on a perfectly
+# clear one: "it's 92 degrees, where'd you pull 78 from" got "I didn't catch
+# that" (2026-09-16). Mishearing is now the exception it names, not the default.
+SPOKEN_DELIVERY = "(kept private)"
+
 SHOTS = []
 
 DIM = "\033[2m"

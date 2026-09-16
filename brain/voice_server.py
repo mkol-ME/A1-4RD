@@ -23,6 +23,7 @@ from scipy.signal import resample_poly
 import alfred
 import memory
 import memory_tools
+import weather
 from memory import Memory
 import random
 
@@ -344,7 +345,19 @@ class Handler(BaseHTTPRequestHandler):
         def announce() -> None:
             emit(random.choice(HOLDING_LINES))
 
-        if direct_reply is not None or not memory_tools.may_need_tools(prompt):
+        # The weather comes from a forecast service, never from the web search:
+        # search snippets said 78 on a 92-degree afternoon. A forecast turn also
+        # skips the decider, so it is quicker than any other looked-up turn. If
+        # the service fails, or no home location is set, the turn carries on
+        # exactly as it did before.
+        forecast = None
+        if direct_reply is None and weather.asks_about_weather(prompt, history):
+            forecast = weather.lookup(prompt, history)
+        if forecast is not None:
+            print("memory weather", flush=True)
+            consulted = {"context": memory_tools._render(MEMORY, [], []),
+                         "calls": [], "failed": False}
+        elif direct_reply is not None or not memory_tools.may_need_tools(prompt):
             consulted = {"context": memory_tools._render(MEMORY, [], []),
                          "calls": [], "failed": False}
         else:
@@ -361,13 +374,9 @@ class Handler(BaseHTTPRequestHandler):
             print("memory " + ", ".join(
                 f"{call['tool']}{'' if call['ok'] else ' FAILED'}" for call in consulted["calls"]
             ), flush=True)
-        # "Answer at whatever total length is useful" was read as permission, and
-        # "use multiple short sentences" as encouragement to produce more of
-        # them. Over ten samples that wording ran to a mean of 36 words against
-        # 29 for no constraint at all — it was making him worse than saying
-        # nothing. This wording gives 18, against the 13.6-word mean of the
-        # examples he is meant to sound like.
-        delivery = "(kept private)"
+        if forecast:
+            context = f"{context}\n{forecast}" if context else forecast
+        delivery = alfred.SPOKEN_DELIVERY
         context = f"{context}\n{delivery}" if context else delivery
         history.append({"role": "user", "content": prompt})
         sentences = SentenceBuffer(emit)
