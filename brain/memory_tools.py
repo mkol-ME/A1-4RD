@@ -16,6 +16,7 @@ whole extra round trip to fix something we already understood.
 """
 
 import json
+import re
 import urllib.request
 
 import memory as memory_module
@@ -284,35 +285,47 @@ DECIDER_TOKENS = 48
 
 
 def may_need_tools(prompt: str) -> bool:
-    """Cheap conservative gate before paying for the tool-decider model.
+    """Should the decider see this turn? Yes, unless it is plainly conversation.
 
-    Speech arrives without punctuation, so routing uses words rather than a
-    question mark.  Factual and memory-shaped requests still reach the model;
-    greetings, reactions, and ordinary conversation take the fast path.
+    This used to be the other way round: a list of question openers that let a
+    turn through. In the second real voice session (2026-09-16) he searched once
+    in fifteen turns, and routing_eval.py showed why — of the turns that reached
+    the decider it routed every one correctly, and every miss was this gate
+    turning a lookup away ("who's", "how old", "hey did the bears win", "give me
+    the population of"). Adding openers fixed the known misses and then missed
+    5 of 20 new phrasings, because nobody can list every way a question starts.
+
+    Sent everything, the decider scored 65/66 and all 40 lookups, and a turn it
+    decides needs nothing costs 0.15s (max 0.20s). So everything goes, and only
+    turns that are obviously not requests skip it. A wrong skip costs a
+    confidently invented answer; a wrong send costs 0.15s.
     """
-    text = " ".join(prompt.lower().split())
+    text = " ".join(re.findall(r"[a-z0-9']+", prompt.lower().replace("’", "'")))
     if not text:
         return False
-    if any(marker in text for marker in (
-        "remember that", "remember this", "note that", "keep in mind",
-        "what did i", "what have i", "did i mention", "you told me",
-        "last week", "earlier", "forget ", "list facts", "what do you remember",
-        "my printer is a", "my printer is an",
-    )):
-        return True
-    # Asking his opinion, or about him. Over ten such questions the decider called
-    # nothing every time (2026-09-16), so the 0.28s it spends saying so is pure
-    # wait. "do you think" and "is it worth" stay gated: "do you think it will
-    # rain" and "is it worth buying an x1c" both rightly went to the web.
-    if text.startswith(("what do you think", "are you ")):
+    words = text.replace("alfred", " ").split()
+    if not words:
         return False
-    if text.startswith((
-        "what ", "what's ", "whats ", "who ", "when ", "where ", "which ",
-        "how many ", "how much ", "is ", "are ", "does ", "do ", "did ",
-        "look up ", "search for ", "find out ", "tell me about ",
-    )):
-        return True
-    return False
+    if " ".join(words) in CHAT_TURNS:
+        return False
+    return not text.startswith(CHAT_OPENERS)
+
+
+# Whole turns that are conversation, not requests, with his name removed.
+CHAT_TURNS = {
+    "yes", "yeah", "yep", "yup", "no", "nope", "nah", "ok", "okay", "alright", "sure",
+    "mm", "mm hmm", "mhm", "hmm", "uh huh", "right", "got it", "i see", "fair enough",
+    "thanks", "thank you", "thanks a lot", "cheers", "okay thanks", "okay cool thanks",
+    "cool", "nice", "great", "perfect", "awesome", "haha", "haha nice", "lol", "wow",
+    "hi", "hello", "hey", "good morning", "good afternoon", "good evening", "good night",
+    "whats up", "what's up", "sup",
+}
+# Openers of turns that ask his opinion, or about him, or for a bit. Over ten
+# opinion questions the decider called nothing every time (2026-09-16). "do you
+# think" is not here: "do you think it will rain" rightly goes to the web.
+CHAT_OPENERS = ("what do you think", "are you ", "how are you", "hows it going", "how's it going",
+                "tell me a joke", "tell me another joke", "tell me something funny",
+                "say that again", "can you say that again", "repeat that", "come again")
 
 
 CONTINUATIONS = ("and ", "but ", "so ", "or ", "also ", "then ", "what about", "how about", "same ")

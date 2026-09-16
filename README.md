@@ -111,7 +111,8 @@ A1-4RD/
 │   ├── voice_server.py       one spoken turn end to end, streamed sentence by sentence
 │   ├── whisper_server.py     resident Whisper, so no model load per utterance
 │   ├── whisper_transcribe.py one-off file transcription
-│   └── character_eval.py     held-out character test — the one to trust
+│   ├── character_eval.py     held-out character test — the one to trust
+│   └── routing_eval.py       does each question reach the right lookup (web, memory, none)
 ├── persona/
 │   ├── alfred.md             who he is
 │   └── examples.md           how he talks, as real conversation turns
@@ -248,6 +249,9 @@ the gap. `gemma4:31b` is the alternative if character ever matters more than spe
 ```bash
 # character — run after any change to persona/ or the prompt wording (≈1 min)
 ssh a1-4rd "cd ~/a1-4rd && .venv-rvc/bin/python brain/character_eval.py --samples 3"
+
+# routing — run after any change to the tool gate or decider wording (≈1 min)
+ssh a1-4rd "cd ~/a1-4rd && .venv-rvc/bin/python brain/routing_eval.py"
 
 # memory, tool gate and decider history rules (on the server)
 ssh a1-4rd "cd ~/a1-4rd && .venv-rvc/bin/python -m unittest discover -s tests -p 'test_memory.py'"
