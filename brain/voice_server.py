@@ -485,8 +485,11 @@ def main() -> None:
     MEMORY = Memory(alfred.MEMORY_DB)
     PIPELINE = VoicePipeline()
     threading.Thread(target=keep_warm, daemon=True).start()
-    print("voice service ready on 127.0.0.1:5051", flush=True)
-    HTTPServer(("127.0.0.1", 5051), Handler).serve_forever()
+    # A second copy on another port, with ALFRED_MEMORY_DB pointed at a scratch
+    # database, is how test turns run without stopping the real one.
+    port = int(os.environ.get("ALFRED_VOICE_PORT", "5051"))
+    print(f"voice service ready on 127.0.0.1:{port}", flush=True)
+    HTTPServer(("127.0.0.1", port), Handler).serve_forever()
 
 
 if __name__ == "__main__":

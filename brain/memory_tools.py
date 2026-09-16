@@ -20,6 +20,8 @@ import re
 import urllib.request
 
 import memory as memory_module
+import news
+import sports
 import web
 
 MAX_FACT_CHARS = 500
@@ -111,6 +113,49 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "get_sports",
+            "description": (
+                "Live scores, recent results and upcoming games from ESPN for one team, league, "
+                "or fight/race series: NFL, NBA, MLB, NHL, college teams, soccer clubs and "
+                "leagues (Premier League, Copa Libertadores, Champions League), UFC and F1. "
+                "Use it instead of search_web for any score, result, fixture, schedule or who "
+                "is playing or fighting — search pages are a day or a season behind."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The team, league or event name only, e.g. 'chicago bears', 'copa libertadores', 'ufc'.",
+                    },
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_news",
+            "description": (
+                "Current news headlines, from Google News. Use it for 'any news on…', 'what's "
+                "going on with…', 'what happened with…', or for the day's top stories when no "
+                "topic is given. Use search_web instead for facts that are not news."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "topic": {
+                        "type": "string",
+                        "description": "What the news is about, in a few words. Leave it out for top stories.",
+                    },
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "list_facts",
             "description": "List every durable fact currently written down, with its id. Use this before forgetting one.",
             "parameters": {"type": "object", "properties": {}},
@@ -192,7 +237,7 @@ def _settles(name: str, result: dict) -> bool:
     """Did this call produce what the turn needed, so no follow-up round is worth paying for?"""
     if not result.get("ok"):
         return False
-    if name in ("search_memory", "search_web"):
+    if name in ("search_memory", "search_web", "get_sports", "get_news"):
         return bool(result.get("found"))
     return name in ("remember_fact", "forget_fact")
 
@@ -230,6 +275,15 @@ def dispatch(memory, name: str, raw_arguments) -> dict:
                         f"Tell the user you do not know rather than guessing."}
             return {"ok": True, "found": len(results), "results": results,
                     "problems": problems or None}
+
+        if name == "get_sports":
+            query = _as_text(arguments, "query", "team", "league", "text", "q", limit=MAX_QUERY_CHARS)
+            return sports.lookup(query)
+
+        if name == "get_news":
+            topic = arguments.get("topic") or arguments.get("query") or arguments.get("q")
+            topic = _as_text({"topic": topic}, "topic", limit=MAX_QUERY_CHARS) if topic else None
+            return news.lookup(topic)
 
         if name == "list_facts":
             facts = memory.facts()
@@ -385,7 +439,7 @@ def consult(memory, prompt: str, model: str, server: str, timeout: int = 30,
         )
     messages = [{"role": "system", "content": DECIDER_SYSTEM},
                 {"role": "user", "content": decision_prompt}]
-    calls, searched, found_online = [], [], []
+    calls, searched, found_online, reports = [], [], [], []
     try:
         for _ in range(MAX_TOOL_ROUNDS):
             # A tool call is a few dozen tokens. Anything longer is prose, and
@@ -424,6 +478,8 @@ def consult(memory, prompt: str, model: str, server: str, timeout: int = 30,
                     searched.extend(result.get("results", []))
                 if name == "search_web":
                     found_online.extend(result.get("results", []))
+                if name in ("get_sports", "get_news") and result.get("report"):
+                    reports.append(result["report"])
                 messages.append({"role": "tool", "tool_name": name,
                                  "content": json.dumps(result)})
                 settled = settled and _settles(name, result)
@@ -437,10 +493,10 @@ def consult(memory, prompt: str, model: str, server: str, timeout: int = 30,
     except Exception:
         return {"context": "", "calls": calls, "failed": True}
 
-    return {"context": _render(memory, searched, found_online), "calls": calls, "failed": False}
+    return {"context": _render(memory, searched, found_online, reports), "calls": calls, "failed": False}
 
 
-def _render(memory, searched: list, found_online: list = ()) -> str:
+def _render(memory, searched: list, found_online: list = (), reports: list = ()) -> str:
     """The retrieved material, phrased so it cannot be mistaken for an order.
 
     Always returns something, because the clock is always worth having. He had
@@ -471,6 +527,10 @@ def _render(memory, searched: list, found_online: list = ()) -> str:
                 continue
             seen.add(hit["user"])
             lines.append(f"- the user: {hit['user']}")
+
+    # Scores and headlines from their own feeds. Each report carries its own
+    # framing: sports as current data, headlines as quotation.
+    lines.extend(reports)
 
     if found_online:
         # Written by strangers and arriving inside a prompt. It is labelled as

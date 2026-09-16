@@ -54,7 +54,8 @@ the database query itself.
    → wake word / attention window
    → text ────────────────────────────────────→ voice server                            (:5051)
                                                   → tool gate: does this need a lookup?
-                                                  → decider: search memory / search web
+                                                  → decider: search memory / search web /
+                                                    sports scores (ESPN) / news (Google News)
                                                     (SearXNG :8888, Wikipedia) / remember
                                                     weather goes to Open-Meteo instead
                                                   → gemma4 26B on the MI50 via Ollama   (:11434)
@@ -68,7 +69,7 @@ The pieces are deliberately separable:
 | Layer | Files | Decides |
 |---|---|---|
 | **Character** | `persona/alfred.md`, `persona/examples.md` | how he behaves |
-| **Knowledge** | `brain/memory.py`, `brain/memory_tools.py`, `brain/web.py`, `brain/weather.py` | what evidence he sees |
+| **Knowledge** | `brain/memory.py`, `brain/memory_tools.py`, `brain/web.py`, `brain/weather.py`, `brain/sports.py`, `brain/news.py` | what evidence he sees |
 | **Transport** | `brain/voice_server.py`, `brain/whisper_server.py`, SSH | how text and audio move |
 | **Embodiment** | `client/listen.py`, `client/talk.py`, later the servos | how he is present in the room |
 
@@ -107,6 +108,8 @@ A1-4RD/
 │   ├── memory.py             SQLite memory: recent conversation, facts, semantic search
 │   ├── memory_tools.py       the tool decider and its tools (memory, web, facts)
 │   ├── web.py                Wikipedia + SearXNG lookup, run concurrently
+│   ├── sports.py             live scores, results and fixtures from ESPN
+│   ├── news.py               headlines from Google News
 │   ├── weather.py            live forecast from Open-Meteo, not search snippets
 │   ├── media.py              "play…" / "find videos of…" requests and spoken titles
 │   ├── media_server.py       YouTube search and audio stream (own venv: yt-dlp, PyAV)
@@ -123,7 +126,7 @@ A1-4RD/
 │   ├── talk.py               type to him, hear him answer; also the audio player
 │   ├── music.py              plays YouTube audio; pause, stop, volume, ducking under his voice
 │   └── launcher/             builds Alfred.exe, a double-click launcher
-├── scripts/                  server launch scripts (voice, Whisper, SearXNG)
+├── scripts/                  server launch scripts; voice-test-server.sh runs a scratch copy on :5061
 ├── voice-training/           how his voice was made: auditions, RVC, distillation into Piper
 ├── tests/                    unit tests for memory, tool gate and the listening loop
 ├── ops/                      server setup, version-controlled
