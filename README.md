@@ -9,6 +9,21 @@ the language model and his voice. Nothing is sent to a hosted service.
 
 > **The character is the project. Everything else is plumbing.**
 
+## What I built, and what I learned
+
+I built a voice assistant with a fixed personality that runs entirely on my own hardware: speech detection
+and wake word on a laptop, and Whisper, a 26-billion-parameter language model, long-term memory, web and
+weather lookup and a custom synthesized voice on a home server. That server runs on a secondhand datacenter
+GPU I had to reflash and coax into a consumer motherboard. Through measurement rather than guesswork, I got
+a spoken reply's first sound down to about 1.15 seconds, and a web-searched answer from 7.1 to 3.5 seconds.
+The biggest lesson was that intuition is unreliable with language models. Adding rules to the prompt made
+the character worse three separate times. My first test suite passed while the real failures went
+undetected, because its questions had leaked into the training examples. Two confident theories about why
+he rambled both turned out wrong. So I built a held-out evaluation that checks its own contamination, and
+changed things only when a number moved. I also learned to put boundaries in code rather than instructions:
+anything that reaches the prompt will eventually be said out loud, so access to memory has to be enforced in
+the database query itself.
+
 ---
 
 ## Contents
@@ -252,13 +267,12 @@ see the design notes.
 ## Status and roadmap
 
 **Done:** persona (phase 1); the full voice pipeline — text, memory, voice, ears (phase 2); MI50 bring-up and
-latency work.
+latency work; services that start at boot; remote access over Tailscale; live weather; handling spoken
+corrections.
 
 **Next**
-- Voice servers as systemd services, so a reboot never leaves him silent
-- Reply length and small character faults — through example curation, not more rules
 - Recognising who is speaking, with separate memory for a housemate (enforced in SQL, never in the prompt)
-- Handling spoken corrections better; a real weather source instead of web snippets
+- Small character faults — through example curation, not more rules
 
 **Later:** Raspberry Pi client, servo jaw and neck, printed enclosure; Tapology, then Spotify.
 
