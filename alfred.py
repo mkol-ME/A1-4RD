@@ -23,7 +23,16 @@ from pathlib import Path
 from memory import Memory
 
 SERVER = "http://localhost:11434"   # server's IP if running from the laptop
-DEFAULT_MODEL = "qwen3.5:9b"
+# On the MI50 (2026-09-16), with his real 2.5k-token prompt: first sentence 0.56s
+# against 1.77s for qwen3.5:9b, and 74/78 clean on character_eval against 67/78.
+# Most of the gap is architectural. qwen3.5/3.6/3.8 are recurrent hybrids that
+# cannot reuse a cached prefix, so they re-read the whole persona every turn;
+# gemma4 re-reads only the new question. gemma4:31b scored 77/78 but starts a
+# second later and speaks at 15 tok/s — the choice if character outranks speed.
+# Q8 rather than the default Q4: same model, 27.4 of 32GB instead of 18.6, and on
+# the MI50 no slower (0.43s first sentence, 41 tok/s, 75/78). Memory bandwidth is
+# not what limits an MoE with 4B active parameters, so the extra precision is free.
+DEFAULT_MODEL = "gemma4:26b-a4b-it-q8_0"
 PERSONA = Path(__file__).with_name("alfred.md")
 EXAMPLES = Path(__file__).with_name("examples.md")
 # He is meant to run for years, so memory lives on the redundant array rather

@@ -187,6 +187,15 @@ def _coerce_arguments(raw) -> dict:
     raise ToolError(f"Arguments must be a JSON object, got {type(raw).__name__}.")
 
 
+def _settles(name: str, result: dict) -> bool:
+    """Did this call produce what the turn needed, so no follow-up round is worth paying for?"""
+    if not result.get("ok"):
+        return False
+    if name in ("search_memory", "search_web"):
+        return bool(result.get("found"))
+    return name in ("remember_fact", "forget_fact")
+
+
 def dispatch(memory, name: str, raw_arguments) -> dict:
     """Run one tool call. Always returns a dict; never raises."""
     try:
@@ -291,6 +300,12 @@ def may_need_tools(prompt: str) -> bool:
         "my printer is a", "my printer is an",
     )):
         return True
+    # Asking his opinion, or about him. Over ten such questions the decider called
+    # nothing every time (2026-09-16), so the 0.28s it spends saying so is pure
+    # wait. "do you think" and "is it worth" stay gated: "do you think it will
+    # rain" and "is it worth buying an x1c" both rightly went to the web.
+    if text.startswith(("what do you think", "are you ")):
+        return False
     if text.startswith((
         "what ", "what's ", "whats ", "who ", "when ", "where ", "which ",
         "how many ", "how much ", "is ", "are ", "does ", "do ", "did ",
@@ -298,6 +313,30 @@ def may_need_tools(prompt: str) -> bool:
     )):
         return True
     return False
+
+
+CONTINUATIONS = ("and ", "but ", "so ", "or ", "also ", "then ", "what about", "how about", "same ")
+REFERRING = {"it", "its", "it's", "that", "that's", "thats", "this", "these", "those", "them", "they",
+             "one", "ones", "there", "he", "she", "him", "her", "his", "same", "else", "instead", "too",
+             "again", "former", "latter"}
+
+
+def stands_alone(prompt: str) -> bool:
+    """Can the decider read this without the turns before it?
+
+    Handing it the last four messages cost 0.15-0.33s on every decided turn, and
+    across twelve self-contained questions it changed no decision at all
+    (2026-09-16). On fragments it is the whole point: "and tomorrow" only became
+    a local forecast because the weather had just been asked about, and
+    "which one is better" or "is that true" decided differently without it. So
+    anything short, anything that continues, and anything that points back keeps
+    the history. Guessing wrong here costs the old speed, never a wrong decision.
+    """
+    text = " ".join(prompt.lower().split())
+    words = text.replace("?", " ").replace(",", " ").split()
+    if len(words) < 5 or text.startswith(CONTINUATIONS):
+        return False
+    return not any(word in REFERRING for word in words)
 
 
 def consult(memory, prompt: str, model: str, server: str, timeout: int = 30,
@@ -320,7 +359,7 @@ def consult(memory, prompt: str, model: str, server: str, timeout: int = 30,
     # unrelated evidence.  Give the decider only a small labelled tail: enough
     # to resolve references without turning old assistant claims into facts.
     decision_prompt = prompt
-    if history:
+    if history and not stands_alone(prompt):
         tail = history[-4:]
         transcript = "\n".join(
             f"{'the user' if item.get('role') == 'user' else 'Previous assistant'}: "
@@ -356,6 +395,7 @@ def consult(memory, prompt: str, model: str, server: str, timeout: int = 30,
             if not requested:
                 break
             messages.append(message)
+            settled = True
             for call in requested:
                 function = call.get("function", {})
                 name = function.get("name", "")
@@ -373,6 +413,14 @@ def consult(memory, prompt: str, model: str, server: str, timeout: int = 30,
                     found_online.extend(result.get("results", []))
                 messages.append({"role": "tool", "tool_name": name,
                                  "content": json.dumps(result)})
+                settled = settled and _settles(name, result)
+            # The second round exists so a miss can be followed up — nothing in
+            # memory, so look online; a malformed call, so fix it; list_facts,
+            # so forget the one it found. Given a hit it did nothing useful: it
+            # asked for the same search again in other words, every time, and
+            # that repeat was 0.8-1.1s of silence on each looked-up turn.
+            if settled:
+                break
     except Exception:
         return {"context": "", "calls": calls, "failed": True}
 

@@ -60,6 +60,28 @@ def trim(samples: np.ndarray, rate: int) -> np.ndarray:
     return body
 
 
+def open_output() -> sd.OutputStream:
+    """The lowest-latency way to reach the default speakers, falling back to plain.
+
+    PortAudio's default on this laptop is MME, which buffers 91ms before a sound
+    is heard; WASAPI on the same speakers buffers 24ms (measured 2026-09-16).
+    WASAPI refuses 32kHz outright, since the device runs at 48kHz, so it needs
+    auto_convert. The microphone stays on MME: there it is the faster of the two
+    (30ms against 60ms).
+    """
+    try:
+        wasapi = next(api for api in sd.query_hostapis() if "WASAPI" in api["name"])
+        if wasapi["default_output_device"] >= 0:
+            return sd.OutputStream(
+                device=wasapi["default_output_device"], samplerate=SAMPLE_RATE, channels=1,
+                dtype="float32", latency="low",
+                extra_settings=sd.WasapiSettings(auto_convert=True),
+            )
+    except (StopIteration, sd.PortAudioError, AttributeError, ValueError):
+        pass
+    return sd.OutputStream(samplerate=SAMPLE_RATE, channels=1, dtype="float32", latency="low")
+
+
 class Player(threading.Thread):
     """One continuous output stream, fed from a queue.
 
@@ -74,11 +96,9 @@ class Player(threading.Thread):
         self.queue: queue.Queue = queue.Queue()
         self.pause_scale = pause_scale
         self.deadline = 0.0
-        # Opening the device costs the better part of a second on WASAPI. Pay it
-        # now, while the tunnel is coming up, rather than on his first sentence.
-        self.stream = sd.OutputStream(
-            samplerate=SAMPLE_RATE, channels=1, dtype="float32", latency="low"
-        )
+        # Opening the device costs a few hundred milliseconds. Pay it now, while
+        # the tunnel is coming up, rather than on his first sentence.
+        self.stream = open_output()
         self.stream.start()
         self.start()
 

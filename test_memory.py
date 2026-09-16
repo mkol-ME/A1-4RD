@@ -71,5 +71,37 @@ class MemoryTests(unittest.TestCase):
         self.assertEqual(stored[0], "Noted, sir.")
 
 
+class ToolGateTests(unittest.TestCase):
+    """Which spoken turns pay for the tool decider before he answers."""
+
+    def test_opinions_and_questions_about_him_skip_the_decider(self):
+        import memory_tools
+        for prompt in ("what do you think about my new printer", "what do you think of petg",
+                       "are you awake", "are you sure about that"):
+            self.assertFalse(memory_tools.may_need_tools(prompt), prompt)
+
+    def test_lookups_still_reach_it(self):
+        import memory_tools
+        for prompt in ("do you think it will rain today", "is it worth buying a bambu x1c",
+                       "do you remember what i said about my cousin", "what temperature should i run petg at",
+                       "what did i tell you about my guitar lessons", "remember that my printer is a bambu p1s",
+                       "what do you remember about my housemate"):
+            self.assertTrue(memory_tools.may_need_tools(prompt), prompt)
+
+    def test_complete_questions_are_decided_without_the_conversation(self):
+        import memory_tools
+        for prompt in ("what should i have for dinner tonight", "what temperature should i run petg at",
+                       "what did i tell you about my guitar lessons", "how many feet are in a mile",
+                       "who won the ufc fight last night"):
+            self.assertTrue(memory_tools.stands_alone(prompt), prompt)
+
+    def test_fragments_and_references_keep_it(self):
+        import memory_tools
+        for prompt in ("what about 48", "and tomorrow", "and the bed temperature", "is that true",
+                       "which one is better", "how much does it cost", "what did you mean by that",
+                       "do you think it will rain today", "what about for abs on the p1s"):
+            self.assertFalse(memory_tools.stands_alone(prompt), prompt)
+
+
 if __name__ == "__main__":
     unittest.main()

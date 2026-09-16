@@ -31,6 +31,7 @@ import re
 import urllib.error
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from html.parser import HTMLParser
 
 import os
@@ -232,23 +233,33 @@ def search(query, limit=MAX_RESULTS):
     """
     query = " ".join(str(query).split())[:200]
     results, problems = [], []
+    general = brave if BRAVE_KEY else searxng
+    keywords = _keywords(query)
 
-    article = _relevant(query, wikipedia(query))
-    if not article:
+    # All three lookups go out at once. Run in series they were the whole of a
+    # searched turn's silence — 0.6s to 3.4s, while SearXNG alone answers in
+    # 0.3s — and every one of them is waiting on someone else's server, not on
+    # this machine. The keyword retry is sent whether or not it turns out to be
+    # needed; a spare Wikipedia request is cheaper than a second round trip.
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        by_question = pool.submit(wikipedia, query)
         # Wikipedia's search is sensitive to how a question is phrased, and the
         # model phrases things as questions. Try again on the nouns alone.
-        article = _relevant(query, wikipedia(_keywords(query)))
-    if article:
-        results.append(article)
+        by_keywords = pool.submit(wikipedia, keywords) if keywords != query else None
+        general_results = pool.submit(general, query, limit)
 
-    general = brave if BRAVE_KEY else searxng
-    try:
-        for item in general(query, limit):
-            if len(results) >= limit:
-                break
-            results.append(item)
-    except Blocked as blocked:
-        problems.append(str(blocked))
+        article = _relevant(query, by_question.result())
+        if not article and by_keywords is not None:
+            article = _relevant(query, by_keywords.result())
+        if article:
+            results.append(article)
+        try:
+            for item in general_results.result():
+                if len(results) >= limit:
+                    break
+                results.append(item)
+        except Blocked as blocked:
+            problems.append(str(blocked))
 
     return {"results": results, "problems": problems}
 

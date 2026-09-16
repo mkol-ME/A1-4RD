@@ -79,7 +79,19 @@ MEMORY = None
 
 # Nothing may touch either GPU while a question is in flight.
 BUSY = threading.Lock()
-KEEP_WARM_SECONDS = 40
+# Warm once at start, then only after this long with nothing asked. It used to
+# run every 40s regardless, holding BUSY for 0.4-1.4s each time, so a question
+# landing in that window simply waited. Measured 2026-09-16 with the loop off:
+# after 3 and 10 minutes idle the decider, the answer's first token, the embedder
+# and Piper were all exactly as fast as hot (keep_alive=-1 and two llama.cpp
+# slots mean the cached prompts are never evicted). Only a restart loses them.
+KEEP_WARM_SECONDS = 600
+LAST_ACTIVITY = float("-inf")  # monotonic time of the last turn or warmup; -inf so start-up always warms
+
+
+def mark_activity() -> None:
+    global LAST_ACTIVITY
+    LAST_ACTIVITY = time.monotonic()
 
 
 def keep_warm() -> None:
@@ -108,7 +120,24 @@ def keep_warm() -> None:
         "options": {"num_predict": 1},
     }
     body = json.dumps(payload).encode("utf-8")
+    # The decider's prompt is the other prefix every question pays for. With
+    # OLLAMA_NUM_PARALLEL=2 it lives in its own llama.cpp slot instead of
+    # evicting the persona, which took a decider call from 1.1s to 0.5s — but
+    # only once that slot holds it. Cold, the first decider of the day is 1.6s.
+    decider_body = json.dumps({
+        "model": alfred.DEFAULT_MODEL,
+        "keep_alive": -1,
+        "messages": [{"role": "system", "content": memory_tools.DECIDER_SYSTEM}],
+        "tools": memory_tools.TOOLS,
+        "stream": False,
+        "think": False,
+        "options": {"num_predict": 1},
+    }).encode("utf-8")
+    global LAST_ACTIVITY
     while True:
+        if time.monotonic() - LAST_ACTIVITY < KEEP_WARM_SECONDS:
+            time.sleep(5.0)
+            continue          # something ran recently; everything is still warm
         if not BUSY.acquire(blocking=False):
             time.sleep(1.0)
             continue          # a real question is being answered; it is warm
@@ -120,6 +149,12 @@ def keep_warm() -> None:
             started = time.perf_counter()
             with urllib.request.urlopen(request, timeout=30) as response:
                 detail = json.loads(response.read())
+            decider = urllib.request.Request(
+                f"{alfred.SERVER}/api/chat", data=decider_body,
+                headers={"Content-Type": "application/json"},
+            )
+            with urllib.request.urlopen(decider, timeout=30) as response:
+                response.read()
             # Ollama juggles two models on one card and evicted the embedder
             # overnight, so the first memory search of the day paid a 2.8s load.
             # Same argument as everything else here: the first question after a
@@ -137,8 +172,8 @@ def keep_warm() -> None:
             # failing one is worse than none — it looks like it is working.
             print(f"warm failed: {exc}", flush=True)
         finally:
+            LAST_ACTIVITY = time.monotonic()
             BUSY.release()
-        time.sleep(KEEP_WARM_SECONDS)
 
 
 
@@ -232,6 +267,7 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError("text is empty")
             with BUSY:
                 audio, tts_time, rvc_time = PIPELINE.create(text)
+                mark_activity()
             print(f"tts={tts_time:.3f}s rvc={rvc_time:.3f}s chars={len(text)}", flush=True)
         except Exception as exc:
             self.send_error(500, str(exc))
@@ -312,6 +348,11 @@ class Handler(BaseHTTPRequestHandler):
             consulted = {"context": memory_tools._render(MEMORY, [], []),
                          "calls": [], "failed": False}
         else:
+            # Tried starting the answer alongside the decider, on the bet it would
+            # call nothing (2026-09-16). The MI50 does not run two requests for
+            # free: the decider slowed under the load, so no-tool turns gained
+            # 0.23s while memory turns lost 0.96s and web turns 1.33s before the
+            # holding line. The two stay in series.
             consulted = memory_tools.consult(MEMORY, prompt, alfred.DEFAULT_MODEL,
                                              alfred.SERVER, on_search=announce,
                                              history=history)
@@ -359,6 +400,7 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8") + b"\n")
             self.wfile.flush()
         finally:
+            mark_activity()
             BUSY.release()
 
     def log_message(self, format, *args):

@@ -25,6 +25,7 @@ import time
 import urllib.error
 import urllib.request
 import wave
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 import sounddevice as sd
@@ -44,6 +45,36 @@ FLOOR_MINIMUM = 0.004
 # handoff feels immediate.  At 0.55s every turn had a conspicuous half-second
 # pause before transcription could even begin.
 SILENCE_HANGOVER = 0.40
+# Whisper does not have to wait for the hangover to be sure. At this much
+# silence the utterance so far goes off to be transcribed; if the pause runs on
+# to SILENCE_HANGOVER that transcript is the one used, and if he was only
+# drawing breath it is thrown away. Nothing is cut sooner than before — the
+# ~0.3s of transcription just overlaps the wait instead of following it.
+EARLY_TRANSCRIBE_SILENCE = 0.20
+# 0.40s is right for a finished sentence and wrong for a man looking for the
+# next word: in the first real session "what should i have [pause] for dinner",
+# "it's 92 [pause] degrees outside" and "what's the gravitational [pause]
+# constant" were each cut in two and answered as fragments. So at the hangover
+# the early transcript is read, and if it stops somewhere no sentence stops, he
+# is given up to this long to carry on. A finished sentence ends exactly as fast
+# as before, because the transcript was already being waited for.
+UNFINISHED_HANGOVER = 1.0
+# Words an English sentence does not end on. A question can technically end on
+# "have" or "in" ("what do you have", "who's in"), and the cost of that is only
+# the longer wait, never a cut.
+DANGLING = {
+    "a", "an", "the", "my", "your", "his", "her", "its", "our", "their", "this", "that", "these",
+    "those", "some", "any", "every", "each", "no",
+    "in", "on", "at", "of", "to", "for", "from", "with", "about", "into", "onto", "by", "as",
+    "than", "like", "between", "through", "over", "under", "after", "before", "around",
+    "and", "or", "but", "so", "because", "if", "when", "while", "whether", "then",
+    "is", "are", "was", "were", "be", "been", "am", "have", "has", "had", "does", "did",
+    "will", "would", "can", "could", "should", "shall", "might", "must", "may",
+    "i", "i'm", "we", "they", "he", "she", "what's", "whats", "how's", "where's", "who's",
+    "um", "uh", "er", "erm",
+}
+DETERMINERS = {"a", "an", "the", "my", "your", "his", "her", "its", "our", "their", "this", "that", "some"}
+ADJECTIVE_ENDINGS = ("al", "ic", "ical", "ous", "ive", "ful", "less", "able", "ible", "ary", "ent", "ant")
 # Kept rolling so the utterance can start before the microphone noticed it had.
 # Speech crosses the threshold a syllable in, not at the attack, and everything
 # before that was being thrown away: "co-main event" came back as "Comade".
@@ -97,6 +128,66 @@ def transcribe(samples: np.ndarray) -> tuple[str, float]:
     with urllib.request.urlopen(request, timeout=60) as response:
         payload = json.loads(response.read())
     return payload["text"], payload["seconds"]
+
+
+class EarlyTranscript:
+    """The transcription started at the first sign of a pause, if it is still good.
+
+    Each new pause replaces the last one's request; only the most recent can
+    belong to the utterance that ends, because any earlier pause was followed
+    by more speech.
+    """
+
+    def __init__(self, transcribe_fn=None):
+        self.transcribe = transcribe_fn or transcribe
+        self.pool = ThreadPoolExecutor(max_workers=2)
+        self.pending = None
+
+    def start(self, samples: np.ndarray) -> None:
+        self.pending = self.pool.submit(self.transcribe, samples)
+
+    def peek(self, wait: float = 1.0) -> str | None:
+        """The pending transcript's text, waiting briefly for it; None if there is none."""
+        if self.pending is None:
+            return None
+        try:
+            return self.pending.result(timeout=wait)[0]
+        except Exception:
+            return None
+
+    def take(self, audio: np.ndarray, ended_by_silence: bool) -> tuple[str, float]:
+        """The early result when it covers this utterance, else transcribe it now."""
+        pending, self.pending = self.pending, None
+        if pending is not None and ended_by_silence:
+            try:
+                return pending.result()
+            except Exception:
+                pass                      # fall through and ask again, the old way
+        return self.transcribe(audio)
+
+
+def sounds_unfinished(text: str | None) -> bool:
+    """Does this transcript stop somewhere a sentence does not?
+
+    Whisper punctuates everything, "What's the gravitational?" included, so its
+    full stops and question marks mean nothing here; the words decide. Unsure
+    means finished: the old behaviour is the fallback, not a longer wait.
+    """
+    if not text or not text.strip():
+        return False
+    stripped = text.strip()
+    if stripped.endswith(("-", "—", "...", "…")):
+        return True                               # Whisper's own mark for a cut-off word
+    words = plain_words(stripped)
+    while words and words[-1] in WAKE_WORDS:      # "it's 92, alfred" still ends on 92
+        words = words[:-1]
+    if not words:
+        return False
+    if words[-1] in DANGLING:
+        return True
+    # "the gravitational", "a magnetic": a determiner then one describing word.
+    return (len(words) >= 2 and words[-2] in DETERMINERS
+            and words[-1].endswith(ADJECTIVE_ENDINGS))
 
 
 def plain_words(text: str) -> list[str]:
@@ -199,16 +290,28 @@ class Microphone:
         self.flush()
         self.deaf = False
 
-    def next_utterance(self, timeout: float = 2.0) -> np.ndarray | None:
+    def next_utterance(self, timeout: float = 2.0, on_pause=None, unfinished=None) -> np.ndarray | None:
         """Collect from the first loud block until the pause after it.
 
         Returns None if the microphone stops producing. A live stream never
         stops, so this only fires if the device has gone away — but without it
         a rejected utterance drops into a blocking read and the whole loop
         hangs there silently, which is exactly what it did the first time.
+
+        on_pause is handed the audio so far each time a pause reaches
+        EARLY_TRANSCRIBE_SILENCE. Afterwards `ended_by_silence` says whether the
+        latest of those pauses is the one that ended the utterance, and
+        `longest_pause` is the longest gap he left inside it without being cut.
+
+        unfinished is asked, once per pause, when that pause reaches
+        SILENCE_HANGOVER. If it says the words so far trail off, the pause may
+        run to UNFINISHED_HANGOVER before the utterance is called over, and
+        `bridged` counts how many times that let him carry on.
         """
         threshold = self.floor * SPEECH_MARGIN
         collected, silence, started = [], 0.0, False
+        self.ended_by_silence, self.longest_pause, self.bridged = False, 0.0, 0
+        limit = SILENCE_HANGOVER
         while True:
             try:
                 block = self.blocks.get(timeout=timeout)
@@ -225,13 +328,29 @@ class Microphone:
                 collected.append(block)
                 continue
             collected.append(block)
-            silence = silence + FRAME / RATE if level < threshold else 0.0
+            if level < threshold:
+                silence += FRAME / RATE
+            else:
+                if limit > SILENCE_HANGOVER and silence >= SILENCE_HANGOVER:
+                    self.bridged += 1               # he did carry on after all
+                self.longest_pause = max(self.longest_pause, silence)
+                silence, limit = 0.0, SILENCE_HANGOVER
             length = len(collected) * FRAME / RATE
-            if silence >= SILENCE_HANGOVER or length >= MAX_UTTERANCE:
+            if (on_pause is not None and silence >= EARLY_TRANSCRIBE_SILENCE
+                    and silence - FRAME / RATE < EARLY_TRANSCRIBE_SILENCE
+                    and length - silence >= MIN_UTTERANCE):
+                on_pause(np.concatenate(collected))
+            if (unfinished is not None and limit == SILENCE_HANGOVER
+                    and silence >= SILENCE_HANGOVER and length - silence >= MIN_UTTERANCE
+                    and length < MAX_UTTERANCE and unfinished()):
+                limit = UNFINISHED_HANGOVER
+            if silence >= limit or length >= MAX_UTTERANCE:
                 if length - silence < MIN_UTTERANCE:
                     collected, silence, started = [], 0.0, False
+                    self.longest_pause, limit = 0.0, SILENCE_HANGOVER
                     self.preroll.clear()
                     continue
+                self.ended_by_silence = silence >= SILENCE_HANGOVER
                 return np.concatenate(collected)
 
     def close(self) -> None:
@@ -292,12 +411,15 @@ def main() -> None:
               "\"that'll be all\" sends him away.")
     print("Ctrl-C to stop.\n")
     attentive_until = 0.0
+    early = EarlyTranscript()
     try:
         while True:
-            audio = microphone.next_utterance()
+            audio = microphone.next_utterance(
+                on_pause=early.start, unfinished=lambda: sounds_unfinished(early.peek()))
             if audio is None:
+                early.pending = None
                 continue
-            heard, seconds = transcribe(audio)
+            heard, seconds = early.take(audio, microphone.ended_by_silence)
             if not heard:
                 continue
             prompt = heard if args.open else strip_wake_word(heard)
@@ -324,7 +446,9 @@ def main() -> None:
                 attentive_until = 0.0
                 print(talk_dim("  — say \"Alfred\" when you want him again —") + "\n")
                 continue
-            print(f"You: {prompt}   [{len(audio) / RATE:.1f}s audio, {seconds:.2f}s to transcribe]")
+            print(f"You: {prompt}   [{len(audio) / RATE:.1f}s audio, {seconds:.2f}s to transcribe, "
+                  f"longest pause {microphone.longest_pause:.2f}s of {SILENCE_HANGOVER:.2f}s allowed"
+                  f"{f', waited through {microphone.bridged} unfinished pause(s)' if microphone.bridged else ''}]")
             microphone.deaf = True                 # he does not listen while he talks
             try:
                 talk.chat(prompt, player)

@@ -47,7 +47,7 @@ if [[ "${1:-}" == "--setup-only" ]]; then
 fi
 
 mkdir -p "$training_dir/cache" "$training_dir/output"
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=0
 cd "$training_dir/output"
 # The 1060 has 6 GB; a small batch is slower but avoids late-run OOMs.
 "$training_dir/venv/bin/python" -m piper.train fit \
