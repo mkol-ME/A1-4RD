@@ -1,7 +1,7 @@
 #!/bin/bash
 # Run once, from the project root on the box:  sudo bash ops/services/install.sh
 #
-# Starts SearXNG, Whisper and the voice server at boot, so Alfred is ready
+# Starts SearXNG, Whisper, the voice server and the media service at boot, so Alfred is ready
 # whenever the box is on instead of waiting for listen.py to start them.
 # listen.py and talk.py still work unchanged: they only start what is not
 # already running.
@@ -10,12 +10,13 @@ set -euo pipefail
 OWNER="${SUDO_USER:?run with sudo from your own account, not as root}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 PROJECT="$(cd "$HERE/../.." && pwd)"
-UNITS="alfred-searx alfred-whisper alfred-voice"
+UNITS="alfred-searx alfred-whisper alfred-voice alfred-media"
 
 echo "== 1/3 stopping the copies started by hand"
 pkill -u "$OWNER" -f "^$PROJECT/.venv-rvc/bin/python $PROJECT/brain/voice_server.py" || true
 pkill -u "$OWNER" -f "^$PROJECT/.venv-whisper/bin/python $PROJECT/brain/whisper_server.py" || true
 pkill -u "$OWNER" -f "^.venv/bin/python -m searx.webapp" || true
+pkill -u "$OWNER" -f "^$PROJECT/.venv-media/bin/python $PROJECT/brain/media_server.py" || true
 sleep 3
 
 echo "== 2/3 installing units for $OWNER in $PROJECT"

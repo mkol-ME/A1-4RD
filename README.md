@@ -108,6 +108,8 @@ A1-4RD/
 │   ├── memory_tools.py       the tool decider and its tools (memory, web, facts)
 │   ├── web.py                Wikipedia + SearXNG lookup, run concurrently
 │   ├── weather.py            live forecast from Open-Meteo, not search snippets
+│   ├── media.py              "play…" / "find videos of…" requests and spoken titles
+│   ├── media_server.py       YouTube search and audio stream (own venv: yt-dlp, PyAV)
 │   ├── voice_server.py       one spoken turn end to end, streamed sentence by sentence
 │   ├── whisper_server.py     resident Whisper, so no model load per utterance
 │   ├── whisper_transcribe.py one-off file transcription
@@ -118,7 +120,9 @@ A1-4RD/
 │   └── examples.md           how he talks, as real conversation turns
 ├── client/                   runs on the laptop
 │   ├── listen.py             speak to him: wake word, attention window, early transcription
-│   └── talk.py               type to him, hear him answer; also the audio player
+│   ├── talk.py               type to him, hear him answer; also the audio player
+│   ├── music.py              plays YouTube audio; pause, stop, volume, ducking under his voice
+│   └── launcher/             builds Alfred.exe, a double-click launcher
 ├── scripts/                  server launch scripts (voice, Whisper, SearXNG)
 ├── voice-training/           how his voice was made: auditions, RVC, distillation into Piper
 ├── tests/                    unit tests for memory, tool gate and the listening loop
@@ -153,6 +157,9 @@ running and opens the SSH tunnels itself.
 
 - Say **"Alfred, …"** to start. He then stays attentive for three minutes without needing his name.
 - **"That'll be all"** dismisses him. **Ctrl+C** quits.
+- **"Play …"** plays it from YouTube through his speaker; **"find videos of …"** reads out the top results, then
+  **"play the second one"** or **"next"**. While music plays, say his name first: **"Alfred, pause / resume / stop /
+  louder / quieter"**. The music drops while he talks.
 - Each turn prints what was heard, how long transcription took, and the longest pause you left inside the
   sentence — the data for tuning when a turn is considered over.
 
@@ -176,6 +183,7 @@ ssh a1-4rd "cd ~/a1-4rd && .venv-rvc/bin/python brain/alfred.py"
 | 5051 | voice server (`brain/voice_server.py`) | systemd (`alfred-voice`) |
 | 5052 | Whisper (`brain/whisper_server.py`) | systemd (`alfred-whisper`) |
 | 8888 | SearXNG metasearch, localhost only | systemd (`alfred-searx`) |
+| 5053 | media service (`brain/media_server.py`), YouTube search and audio | systemd (`alfred-media`) |
 
 All bind to `127.0.0.1`; the laptop reaches them through SSH port forwarding, over the LAN or Tailscale.
 `client/listen.py` still starts any that are not running. Install the units with

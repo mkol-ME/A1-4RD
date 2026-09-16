@@ -148,7 +148,7 @@ def run(command: list[str], **kwargs) -> subprocess.CompletedProcess:
     return subprocess.run(command, check=True, text=True, **kwargs)
 
 
-def chat(prompt: str, player) -> tuple[float, float, float]:
+def chat(prompt: str, player, on_media=None) -> tuple[float, float, float]:
     request = urllib.request.Request(
         f"{VOICE_URL}/chat",
         data=json.dumps({"text": prompt}).encode("utf-8"),
@@ -167,6 +167,12 @@ def chat(prompt: str, player) -> tuple[float, float, float]:
                 break
             if "error" in frame:
                 raise RuntimeError(frame["error"])
+            if "media" in frame:
+                # Something to play. It starts now, under his announcement,
+                # because resolving the stream takes a couple of seconds anyway.
+                if on_media is not None:
+                    on_media(frame["media"])
+                continue
             sentence = frame["text"]
             if first_audio is None:
                 first_audio = time.perf_counter() - started

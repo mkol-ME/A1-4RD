@@ -22,6 +22,7 @@ from scipy.signal import resample_poly
 
 import alfred
 import memory
+import media
 import memory_tools
 import weather
 from memory import Memory
@@ -77,6 +78,10 @@ class VoicePipeline:
 PIPELINE = None
 PERSONA = None
 MEMORY = None
+# The last YouTube results and which of them is playing, so "the second one"
+# and "next" mean something. One household, one list.
+MEDIA_RESULTS: list = []
+MEDIA_POSITION = [-1]
 
 # Nothing may touch either GPU while a question is in flight.
 BUSY = threading.Lock()
@@ -307,6 +312,16 @@ class Handler(BaseHTTPRequestHandler):
                 sentence = work.get()
                 if sentence is None:
                     return
+                if isinstance(sentence, dict):
+                    # Not speech: an instruction for the client, such as a video
+                    # to play, kept in order with the sentences around it.
+                    try:
+                        self.wfile.write(json.dumps(sentence).encode("utf-8") + b"\n")
+                        self.wfile.flush()
+                    except Exception as exc:
+                        worker_error.append(exc)
+                        return
+                    continue
                 try:
                     audio, tts_time, rvc_time = PIPELINE.create(sentence)
                     frame = {
@@ -350,10 +365,53 @@ class Handler(BaseHTTPRequestHandler):
         # skips the decider, so it is quicker than any other looked-up turn. If
         # the service fails, or no home location is set, the turn carries on
         # exactly as it did before.
+        # "Play…" is a command, not a question: found, announced in a fixed line
+        # and handed to the client, without the decider or the model. "Find
+        # videos of…" is looked up here and then answered by the model as usual,
+        # so he can read the results out; "the second one" plays from them.
         forecast = None
-        if direct_reply is None and weather.asks_about_weather(prompt, history):
+        videos = None
+        play = None
+        media_request = None if direct_reply is not None else media.parse(prompt, bool(MEDIA_RESULTS))
+        if media_request is not None:
+            kind, value = media_request
+            try:
+                if kind in ("play", "search"):
+                    results = media.search(value)
+                    if not results:
+                        direct_reply = "I couldn't find anything by that name."
+                    elif kind == "play":
+                        MEDIA_RESULTS[:] = results
+                        play = media.best(results)
+                    else:
+                        MEDIA_RESULTS[:] = results
+                        MEDIA_POSITION[0] = -1
+                        videos = media.results_context(value, results)
+                elif kind == "pick":
+                    index = value - 1 if value > 0 else len(MEDIA_RESULTS) - 1
+                    if 0 <= index < len(MEDIA_RESULTS):
+                        play = MEDIA_RESULTS[index]
+                    else:
+                        direct_reply = f"There were only {len(MEDIA_RESULTS)}, sir."
+                elif kind == "next":
+                    index = MEDIA_POSITION[0] + 1
+                    if index < len(MEDIA_RESULTS):
+                        play = MEDIA_RESULTS[index]
+                    else:
+                        direct_reply = "That was the last of them."
+            except Exception as exc:
+                print(f"media failed: {exc}", flush=True)
+                direct_reply = "I can't reach YouTube just now."
+            if play is not None:
+                MEDIA_POSITION[0] = MEDIA_RESULTS.index(play) if play in MEDIA_RESULTS else 0
+                direct_reply = media.announce(play)
+            print(f"memory media {kind}{'' if direct_reply or videos else ' FAILED'}", flush=True)
+        if direct_reply is None and videos is None and weather.asks_about_weather(prompt, history):
             forecast = weather.lookup(prompt, history)
-        if forecast is not None:
+        if videos is not None:
+            consulted = {"context": memory_tools._render(MEMORY, [], []),
+                         "calls": [], "failed": False}
+        elif forecast is not None:
             print("memory weather", flush=True)
             consulted = {"context": memory_tools._render(MEMORY, [], []),
                          "calls": [], "failed": False}
@@ -376,6 +434,8 @@ class Handler(BaseHTTPRequestHandler):
             ), flush=True)
         if forecast:
             context = f"{context}\n{forecast}" if context else forecast
+        if videos:
+            context = f"{context}\n{videos}" if context else videos
         delivery = alfred.SPOKEN_DELIVERY
         context = f"{context}\n{delivery}" if context else delivery
         history.append({"role": "user", "content": prompt})
@@ -395,6 +455,8 @@ class Handler(BaseHTTPRequestHandler):
                     on_piece=sentences.add,
                 )
             sentences.flush()
+            if play is not None:
+                work.put({"media": {key: play.get(key) for key in ("id", "title", "channel", "duration")}})
             work.put(None)
             worker.join()
             if worker_error:

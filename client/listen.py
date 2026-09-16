@@ -31,6 +31,7 @@ import numpy as np
 import sounddevice as sd
 
 import talk
+from music import MusicPlayer, control as music_control
 
 RATE = 16000            # what Whisper wants; resampling anywhere else is wasted work
 FRAME = 480             # 30ms
@@ -91,6 +92,15 @@ PREROLL_SECONDS = 0.3
 SETTLE_SECONDS = 0.08
 MIN_UTTERANCE = 0.35    # shorter than this is a cough or a keyboard
 MAX_UTTERANCE = 15.0
+# With music playing through the laptop speakers the room never goes quiet, so
+# an utterance would only ever end at MAX_UTTERANCE. Cut it into short windows
+# instead and listen for his name in each: "Alfred, pause" is heard within a few
+# seconds rather than fifteen. Once his name is heard the music ducks, and the
+# command after it is heard cleanly.
+MUSIC_UTTERANCE = 3.0
+# After his name alone while music plays, how long the next words count as
+# addressed to him without saying it again.
+MUSIC_ADDRESS_SECONDS = 8.0
 
 # What Whisper actually produces when someone says "Alfred" — it has no idea
 # the word is a name, so it reaches for words it knows.
@@ -295,7 +305,8 @@ class Microphone:
         self.flush()
         self.deaf = False
 
-    def next_utterance(self, timeout: float = 2.0, on_pause=None, unfinished=None) -> np.ndarray | None:
+    def next_utterance(self, timeout: float = 2.0, on_pause=None, unfinished=None,
+                       max_length: float = MAX_UTTERANCE) -> np.ndarray | None:
         """Collect from the first loud block until the pause after it.
 
         Returns None if the microphone stops producing. A live stream never
@@ -347,9 +358,9 @@ class Microphone:
                 on_pause(np.concatenate(collected))
             if (unfinished is not None and limit == SILENCE_HANGOVER
                     and silence >= SILENCE_HANGOVER and length - silence >= MIN_UTTERANCE
-                    and length < MAX_UTTERANCE and unfinished()):
+                    and length < max_length and unfinished()):
                 limit = UNFINISHED_HANGOVER
-            if silence >= limit or length >= MAX_UTTERANCE:
+            if silence >= limit or length >= max_length:
                 if length - silence < MIN_UTTERANCE:
                     collected, silence, started = [], 0.0, False
                     self.longest_pause, limit = 0.0, SILENCE_HANGOVER
@@ -370,11 +381,15 @@ def start_tunnels() -> subprocess.Popen:
          f"cd {talk.REMOTE_PROJECT} && "
          f"(pgrep -f '[s]earx.webapp' >/dev/null || setsid -f ./scripts/searx-server.sh >rvc-output/searx.log 2>&1); "
          f"(pgrep -f '[v]oice_server.py' >/dev/null || setsid -f ./scripts/voice-server.sh >rvc-output/voice-server.log 2>&1); "
-         f"(pgrep -f '[w]hisper_server.py' >/dev/null || setsid -f ./scripts/whisper-server.sh >rvc-output/whisper-server.log 2>&1)"],
+         f"(pgrep -f '[w]hisper_server.py' >/dev/null || setsid -f ./scripts/whisper-server.sh >rvc-output/whisper-server.log 2>&1); "
+         f"(pgrep -f '[m]edia_server.py' >/dev/null || setsid -f ./scripts/media-server.sh >rvc-output/media-server.log 2>&1)"],
         capture_output=True,
     )
+    # The media service is forwarded too, but not waited for: without it he
+    # still talks, he just cannot play anything.
     tunnel = subprocess.Popen(
-        ["ssh", "-N", "-L", "5051:127.0.0.1:5051", "-L", "5052:127.0.0.1:5052", talk.REMOTE],
+        ["ssh", "-N", "-L", "5051:127.0.0.1:5051", "-L", "5052:127.0.0.1:5052",
+         "-L", "5053:127.0.0.1:5053", talk.REMOTE],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
     )
     for url in (talk.VOICE_URL, WHISPER_URL):
@@ -424,17 +439,63 @@ def main() -> None:
               "\"that'll be all\" sends him away.")
     print("Ctrl-C to stop.\n")
     attentive_until = 0.0
+    addressed_until = 0.0          # his name alone was heard over music
     early = EarlyTranscript()
+    music = MusicPlayer()
+
+    def reply(prompt: str) -> None:
+        microphone.deaf = True                 # he does not listen while he talks
+        music.duck()
+        try:
+            talk.chat(prompt, player, on_media=music.play)
+        except Exception as exc:
+            print(f"  reply failed: {exc}", file=sys.stderr)
+        finally:
+            music.unduck()
+            microphone.settle()
+
     try:
         while True:
             audio = microphone.next_utterance(
-                on_pause=early.start, unfinished=lambda: sounds_unfinished(early.peek()))
+                on_pause=early.start, unfinished=lambda: sounds_unfinished(early.peek()),
+                max_length=MUSIC_UTTERANCE if music.active else MAX_UTTERANCE)
             if audio is None:
                 early.pending = None
                 continue
             heard, seconds = early.take(audio, microphone.ended_by_silence)
             if not heard:
                 continue
+            if addressed_until and time.monotonic() >= addressed_until:
+                music.unduck()                     # his name, then nothing: music back up
+                addressed_until = 0.0
+            if music.active:
+                # Lyrics are not requests. Over music only his name counts, or
+                # the few seconds after his name was said on its own.
+                prompt = strip_wake_word(heard)
+                if prompt is None and addressed_until:
+                    prompt = " ".join(plain_words(heard))
+                if prompt is None:
+                    continue
+                if not prompt.strip():
+                    if not addressed_until:
+                        music.duck()
+                    addressed_until = time.monotonic() + MUSIC_ADDRESS_SECONDS
+                    print(talk_dim("  — listening, music lowered —"))
+                    continue
+                if addressed_until:
+                    music.unduck()
+                    addressed_until = 0.0
+                action = music_control(prompt)
+                if action is not None:
+                    print(f"You: {prompt}   [music: {action}]")
+                    music.apply(action)
+                    continue
+                print(f"You: {prompt}   [over music]")
+                reply(prompt)
+                continue
+            if addressed_until:                     # the music ended while he was addressed
+                music.unduck()
+                addressed_until = 0.0
             prompt = heard if args.open else strip_wake_word(heard)
             summoned = prompt is not None
             if not summoned and time.monotonic() < attentive_until:
@@ -449,31 +510,20 @@ def main() -> None:
                     continue
             if not args.open and is_dismissal(prompt):
                 print(f"You: {prompt}")
-                microphone.deaf = True
-                try:
-                    talk.chat(prompt, player)
-                except Exception as exc:
-                    print(f"  reply failed: {exc}", file=sys.stderr)
-                finally:
-                    microphone.settle()
+                reply(prompt)
                 attentive_until = 0.0
                 print(talk_dim("  — say \"Alfred\" when you want him again —") + "\n")
                 continue
             print(f"You: {prompt}   [{len(audio) / RATE:.1f}s audio, {seconds:.2f}s to transcribe, "
                   f"longest pause {microphone.longest_pause:.2f}s of {SILENCE_HANGOVER:.2f}s allowed"
                   f"{f', waited through {microphone.bridged} unfinished pause(s)' if microphone.bridged else ''}]")
-            microphone.deaf = True                 # he does not listen while he talks
-            try:
-                talk.chat(prompt, player)
-            except Exception as exc:
-                print(f"  reply failed: {exc}", file=sys.stderr)
-            finally:
-                microphone.settle()
+            reply(prompt)
             if not args.open:
                 attentive_until = time.monotonic() + args.attention
     except KeyboardInterrupt:
         print()
     finally:
+        music.stop()
         microphone.close()
         player.close()
         tunnel.terminate()

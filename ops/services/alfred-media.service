@@ -1,0 +1,13 @@
+[Unit]
+Description=YouTube search and audio for Alfred (127.0.0.1:5053)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=CHANGE_ME
+ExecStart=CHANGE_PROJECT/scripts/media-server.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
