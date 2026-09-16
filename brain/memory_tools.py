@@ -119,6 +119,9 @@ TOOLS = [
                 "Live scores, recent results and upcoming games from ESPN for one team, league, "
                 "or fight/race series: NFL, NBA, MLB, NHL, college teams, soccer clubs and "
                 "leagues (Premier League, Copa Libertadores, Champions League), UFC and F1. "
+                "For UFC fighters and cards it also has the fight in progress (round, clock, "
+                "strikes, takedowns), judges' scores and DraftKings odds — use it for a "
+                "moneyline or DraftKings line on a fight. "
                 "Use it instead of search_web for any score, result, fixture, schedule or who "
                 "is playing or fighting — search pages are a day or a season behind."
             ),

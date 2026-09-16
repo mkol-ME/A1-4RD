@@ -44,7 +44,26 @@ FILLER = {"game", "games", "score", "scores", "schedule", "match", "fixture", "f
 
 
 def find(query: str) -> dict | None:
-    """The team, league or fighter ESPN thinks the query means."""
+    """The team, league or fighter ESPN thinks the query means.
+
+    ESPN's search finds nothing for a matchup ("makhachev garry" returned only
+    articles), so a query that finds nothing is retried a name at a time; the
+    first fighter's record covers the fight between them.
+    """
+    found = _find(query)
+    if found is not None:
+        return found
+    # Short names are skipped: "van" alone is Vanderbilt. "pantoja van" still
+    # tries "pantoja", whose next fight is the one being asked about.
+    parts = [p for p in re.split(r"\s+(?:vs\.?|v|versus|and)\s+|\s+", query.lower()) if len(p) >= 4]
+    for part in parts if len(query.split()) > 1 else []:
+        found = _find(part)
+        if found is not None:
+            return found
+    return None
+
+
+def _find(query: str) -> dict | None:
     words = query.lower().split()
     sport = next((SPORT_WORDS[w] for w in words if w in SPORT_WORDS), None)
     cleaned = " ".join(w for w in words if w not in SPORT_WORDS and w not in FILLER) or query.lower()
@@ -191,7 +210,14 @@ def league_report(item: dict) -> str:
         events = _get(url).get("events") or []
     lines = [f"{item['displayName']}, recent and upcoming:" if sport in ("mma", "racing")
              else f"{item['displayName']}, current scoreboard:"]
-    lines.extend("- " + describe_event(event) for event in events[:MAX_EVENTS])
+    detailed = False
+    for event in events[:MAX_EVENTS]:
+        lines.append("- " + describe_event(event))
+        # The card that is on now, or else the next one, gets the fight-by-fight
+        # view: the bout in progress with its stats, results so far, odds.
+        if sport == "mma" and not detailed and _state(event) in ("in", "pre") and event.get("id"):
+            detailed = True
+            lines.extend(_try(card_report, event, league) or [])
     if not events:
         lines.append("- Nothing scheduled on the current scoreboard.")
     return "\n".join(lines)
@@ -204,27 +230,176 @@ def _ref(link: dict) -> dict:
     return _get(link["$ref"].replace("http://", "https://"))
 
 
-def fight_line(entry: dict, fighter_id: str) -> str:
-    """'UFC 309, Nov 16 2024: beat Stipe Miocic by KO/TKO in round 3 (4:29)'."""
-    with ThreadPoolExecutor(max_workers=3) as pool:
-        competition = pool.submit(_ref, entry["competition"])
-        event = pool.submit(_ref, entry["event"])
-        competition, event = competition.result(), event.result()
+METHODS = {"koTkoDq": "KO/TKO", "submission": "submission", "points": "decision"}
+
+
+def _try(function, *args):
+    try:
+        return function(*args)
+    except Exception:
+        return None
+
+
+def bout(url: str) -> dict:
+    """Everything ESPN has on one fight: who, status, stats, judges' scores, odds.
+
+    Stats and the status update during the fight — the same fields that carry a
+    finished fight's numbers — so this is also the live view. Odds are
+    DraftKings', and ESPN only keeps them until the fight is over.
+    """
+    url = url.split("?")[0].replace("http://", "https://")
+    competition = _get(url)
+    competitors = competition.get("competitors") or []
+    with ThreadPoolExecutor(max_workers=8) as pool:
         status = pool.submit(_ref, competition["status"])
-        others = [c for c in competition.get("competitors", []) if str(c.get("id")) != fighter_id]
-        mine = next((c for c in competition.get("competitors", []) if str(c.get("id")) == fighter_id), {})
-        opponent = pool.submit(_ref, others[0]["athlete"]) if others and "athlete" in others[0] else None
+        names = {str(c["id"]): pool.submit(_try, _ref, c["athlete"]) for c in competitors if "athlete" in c}
+        stats = {str(c["id"]): pool.submit(_try, _ref, c["statistics"]) for c in competitors if "statistics" in c}
+        scores = {str(c["id"]): pool.submit(_try, _ref, c["linescores"]) for c in competitors if "linescores" in c}
+        odds = pool.submit(_try, _get, url + "/odds")
         status = status.result()
-        opponent = (opponent.result() if opponent else {}).get("displayName") or "an unknown opponent"
-    date = when(competition.get("date") or event.get("date") or "")
+        names = {k: ((v.result() or {}).get("displayName") or "?") for k, v in names.items()}
+        stats = {k: v.result() for k, v in stats.items()}
+        scores = {k: v.result() for k, v in scores.items()}
+        odds = odds.result()
+    state = (status.get("type") or {}).get("state")
+    result = {
+        "date": competition.get("date"), "state": state, "names": names,
+        "period": status.get("period"), "clock": status.get("displayClock"),
+        "method": (status.get("result") or {}).get("displayName"),
+        "winner": next((str(c["id"]) for c in competitors if c.get("winner")), None),
+        "stats": {}, "scores": [], "odds": None,
+    }
+    for fighter, data in stats.items():
+        values = {s["name"]: s.get("displayValue") for cat in ((data or {}).get("splits") or {}).get("categories", [])
+                  for s in cat.get("stats", [])}
+        result["stats"][fighter] = values
+    judges = {}
+    for fighter, data in scores.items():
+        for total in (data or {}).get("items", []):
+            for card in total.get("linescores") or []:
+                judges.setdefault(card.get("order"), {})[fighter] = card.get("displayValue")
+    result["scores"] = [judges[order] for order in sorted(judges, key=lambda o: o or 0)]
+    for item in (odds or {}).get("items", []):
+        sides = {}
+        for key in ("homeAthleteOdds", "awayAthleteOdds"):
+            side = item.get(key) or {}
+            fighter = re.search(r"athletes/(\d+)", (side.get("athlete") or {}).get("$ref", ""))
+            if not fighter or side.get("moneyLine") is None:
+                continue
+            methods = ((side.get("current") or {}).get("victoryMethod")
+                       or (side.get("open") or {}).get("victoryMethod") or {})
+            sides[fighter.group(1)] = {
+                "moneyline": side["moneyLine"], "favorite": side.get("favorite"),
+                "methods": {METHODS.get(k, k): v.get("american") for k, v in methods.items() if v.get("american")},
+            }
+        if sides:
+            result["odds"] = {"provider": (item.get("provider") or {}).get("name") or "sportsbook",
+                              "sides": sides, "rounds": item.get("overUnder")}
+            break
+    return result
+
+
+def _american(value) -> str:
+    return f"+{value}" if isinstance(value, (int, float)) and value > 0 else str(value)
+
+
+def odds_text(details: dict) -> str:
+    odds = details.get("odds")
+    if not odds:
+        return ""
+    parts = []
+    for fighter, side in odds["sides"].items():
+        name = details["names"].get(fighter, "?")
+        methods = ", ".join(f"by {m} {_american(p)}" for m, p in side["methods"].items())
+        parts.append(f"{name} {_american(side['moneyline'])}" + (" (favourite)" if side.get("favorite") else "")
+                     + (f" [{methods}]" if methods else ""))
+    rounds = f"; over/under {odds['rounds']} rounds" if odds.get("rounds") else ""
+    return f" Odds ({odds['provider']}, American moneyline): " + "; ".join(parts) + rounds + "."
+
+
+def stats_text(details: dict) -> str:
+    parts = []
+    for fighter, values in details["stats"].items():
+        if not values:
+            continue
+        bits = []
+        if values.get("knockDowns") not in (None, "0"):
+            bits.append(f"{values['knockDowns']} knockdown{'s' if values['knockDowns'] != '1' else ''}")
+        if values.get("sigStrikesAttempted") not in (None, "0"):
+            bits.append(f"{values.get('sigStrikesLanded')} of {values['sigStrikesAttempted']} significant strikes")
+        if values.get("takedownsAttempted") not in (None, "0"):
+            bits.append(f"{values.get('takedownsLanded')} of {values['takedownsAttempted']} takedowns")
+        if values.get("timeInControl") not in (None, "0:00", "0"):
+            bits.append(f"{values['timeInControl']} control time")
+        if bits:
+            parts.append(f"{details['names'].get(fighter, '?')}: " + ", ".join(bits))
+    return (" Stats — " + "; ".join(parts) + ".") if parts else ""
+
+
+def scores_text(details: dict, fighter: str) -> str:
+    cards = [f"{card.get(fighter)}-{next((v for k, v in card.items() if k != fighter), '?')}"
+             for card in details["scores"] if card.get(fighter)]
+    return f" Judges scored it {', '.join(cards)} for {details['names'].get(fighter, '?')}." if cards else ""
+
+
+def fight_line(entry: dict, fighter_id: str) -> str:
+    """'UFC 309, Nov 16 2024: beat Stipe Miocic by KO/TKO in round 3 (4:29)', with
+    odds before a fight, round, clock and stats during it, and scores after."""
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        details = pool.submit(bout, entry["competition"]["$ref"])
+        event = pool.submit(_ref, entry["event"])
+        details, event = details.result(), event.result()
+    opponent = next((n for k, n in details["names"].items() if k != fighter_id), "an unknown opponent")
     name = event.get("name") or "a fight"
-    if not entry.get("played"):
-        return f"{name}, {date}: against {opponent}"
-    method = ((status.get("result") or {}).get("displayName")) or "decision"
-    finish = (f" in round {status['period']} ({status.get('displayClock')})"
-              if status.get("period") and "decision" not in method.lower() else "")
-    verb = "beat" if mine.get("winner") else "lost to"
-    return f"{name}, {date}: {verb} {opponent} by {method}{finish}"
+    date = when(details.get("date") or event.get("date") or "")
+    if details["state"] == "pre":
+        return f"{name}, {date}: against {opponent}.{odds_text(details)}"
+    if details["state"] == "in":
+        return (f"{name}: LIVE NOW against {opponent}, round {details['period']}, {details['clock']} on the clock."
+                f"{stats_text(details)}{odds_text(details)}")
+    method = details["method"] or "decision"
+    finish = (f" in round {details['period']} ({details['clock']})"
+              if details["period"] and "decision" not in method.lower() else "")
+    verb = "beat" if details["winner"] == fighter_id else "lost to"
+    return (f"{name}, {date}: {verb} {opponent} by {method}{finish}."
+            f"{scores_text(details, details['winner']) if 'decision' in method.lower() and details['winner'] else ''}"
+            f"{stats_text(details)}")
+
+
+def card_report(event: dict, league: str) -> list[str]:
+    """A fight card: live bout with stats, latest results, what is next; odds on the main event."""
+    base = f"{CORE}/leagues/{league}/events/{event['id']}/competitions"
+    bouts = event.get("competitions") or []
+    state = lambda b: ((b.get("status") or {}).get("type") or {}).get("state")
+    finished = [b for b in bouts if state(b) == "post"]
+    live = [b for b in bouts if state(b) == "in"]
+    coming = [b for b in bouts if state(b) == "pre"]
+    names = lambda b: " vs ".join(((c.get("athlete") or {}).get("displayName") or "?") for c in b.get("competitors", []))
+    lines = []
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        live_details = [pool.submit(bout, f"{base}/{b['id']}") for b in live]
+        result_details = [pool.submit(_try, bout, f"{base}/{b['id']}") for b in finished[-3:]]
+        main = pool.submit(_try, bout, f"{base}/{bouts[-1]['id']}") if bouts and state(bouts[-1]) != "post" else None
+        for future in live_details:
+            details = future.result()
+            fighters = " vs ".join(details["names"].values())
+            lines.append(f"  - FIGHTING NOW: {fighters}, round {details['period']}, {details['clock']} on the clock."
+                         f"{stats_text(details)}")
+        for future in result_details:
+            details = future.result()
+            if not details or not details["winner"]:
+                continue
+            loser = next((n for k, n in details["names"].items() if k != details["winner"]), "?")
+            method = details["method"] or "decision"
+            finish = (f" in round {details['period']}" if details["period"] and "decision" not in method.lower() else "")
+            lines.append(f"  - Result: {details['names'].get(details['winner'])} beat {loser} by {method}{finish}.")
+        if coming and (live or finished):
+            # Only once the card is under way; before it, the first three are
+            # just the early prelims, which is not what "what's next" means.
+            lines.append("  - Still to come: " + "; ".join(names(b) for b in coming[:3]) + ".")
+        if main is not None and main.result() and main.result().get("odds"):
+            lines.append(f"  - Main event {names(bouts[-1])}.{odds_text(main.result())}")
+    return lines
 
 
 def fighter_report(item: dict) -> str:
