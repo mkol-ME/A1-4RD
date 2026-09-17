@@ -290,7 +290,12 @@ class Memory:
         if missing:
             self.db.executemany(
                 "INSERT INTO vec_exchanges(exchange_id, embedding) VALUES (?, ?)", missing)
-            self.db.commit()
+        # Always, not only after inserting: the DELETE above opens a write
+        # transaction even when it removes nothing, and left uncommitted it held
+        # the database's write lock from voice-server start until his next turn,
+        # so every maintenance script in between died with "database is locked"
+        # (2026-09-17).
+        self.db.commit()
         return len(missing)
 
     def _store_vector(self, exchange_id: int, vector: array.array) -> None:

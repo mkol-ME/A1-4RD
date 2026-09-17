@@ -26,6 +26,18 @@ class MemoryTests(unittest.TestCase):
         self.memory.close()
         self.tempdir.cleanup()
 
+    def test_opening_leaves_no_write_lock_behind(self):
+        # A second opener is what a maintenance script is while the voice server runs.
+        self.memory.close()
+        self.memory = Memory(Path(self.tempdir.name) / "memory.sqlite3")
+        self.assertFalse(self.memory.db.in_transaction)
+        other = Memory(Path(self.tempdir.name) / "memory.sqlite3")
+        try:
+            self.assertFalse(other.db.in_transaction)
+            other.remember("a second connection can write")
+        finally:
+            other.close()
+
     def test_fact_lifecycle(self):
         fact_id = self.memory.remember("the user uses PrusaSlicer")
         self.assertEqual(self.memory.facts(), [(fact_id, "the user uses PrusaSlicer")])
