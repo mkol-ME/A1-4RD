@@ -69,7 +69,7 @@ The pieces are deliberately separable:
 
 | Layer | Files | Decides |
 |---|---|---|
-| **Character** | `persona/alfred.md`, `persona/examples.md` | how he behaves |
+| **Character** | `persona/` (private; `.example` stand-ins here), `brain/prompts.py` | how he behaves |
 | **Knowledge** | `brain/memory.py`, `brain/memory_tools.py`, `brain/web.py`, `brain/weather.py`, `brain/sports.py`, `brain/news.py`, `brain/markets.py` | what evidence he sees |
 | **Transport** | `brain/voice_server.py`, `brain/whisper_server.py`, SSH | how text and audio move |
 | **Embodiment** | `client/listen.py`, `client/talk.py`, later the servos | how he is present in the room |
@@ -119,12 +119,14 @@ A1-4RD/
 │   ├── guru.py               The MMA Guru's take on a fight, from his breakdown videos
 │   ├── voice_server.py       one spoken turn end to end, streamed sentence by sentence
 │   ├── whisper_server.py     resident Whisper, so no model load per utterance
-│   ├── whisper_transcribe.py one-off file transcription
-│   ├── character_eval.py     held-out character test — the one to trust
-│   └── routing_eval.py       does each question reach the right lookup (web, memory, none)
+│   ├── youtube.py            what a named YouTube channel has posted, from its real upload list
+│   ├── spoken.py             text rules for what is said aloud, such as which voice reads a sentence
+│   ├── prompts.py            loads the private wording, or the .example stand-ins
+│   └── whisper_transcribe.py one-off file transcription
 ├── persona/
-│   ├── alfred.md             who he is
-│   └── examples.md           how he talks, as real conversation turns
+│   ├── alfred.example.md     stand-in for alfred.md (who he is), which is kept private
+│   ├── examples.example.md   stand-in for examples.md (how he talks)
+│   └── prompts.example.json  stand-in for prompts.json (the instructions sent with each turn)
 ├── client/                   runs on the laptop
 │   ├── listen.py             speak to him: wake word, attention window, early transcription
 │   ├── talk.py               type to him, hear him answer; also the audio player
@@ -141,8 +143,7 @@ A1-4RD/
 │   └── remote-access/        key-only SSH and Tailscale
 ├── requirements/             pinned environments (client TTS, Whisper, RVC, Qwen-TTS)
 ├── hardware/                 CAD spec and PCB notes for the body
-├── docs/                     SSH access, design notes and project history
-└── legacy/                   retired pieces kept for reference (the unused Modelfile)
+└── docs/                     SSH access
 ```
 
 Large assets are **not** in git and live at the project root on the server: the virtual environments
@@ -265,12 +266,6 @@ the gap. `gemma4:31b` is the alternative if character ever matters more than spe
 ## Testing
 
 ```bash
-# character — run after any change to persona/ or the prompt wording (≈1 min)
-ssh a1-4rd "cd ~/a1-4rd && .venv-rvc/bin/python brain/character_eval.py --samples 3"
-
-# routing — run after any change to the tool gate or decider wording (≈1 min)
-ssh a1-4rd "cd ~/a1-4rd && .venv-rvc/bin/python brain/routing_eval.py"
-
 # memory, tool gate and decider history rules (on the server)
 ssh a1-4rd "cd ~/a1-4rd && .venv-rvc/bin/python -m unittest discover -s tests -p 'test_memory.py'"
 ```
@@ -280,9 +275,8 @@ ssh a1-4rd "cd ~/a1-4rd && .venv-rvc/bin/python -m unittest discover -s tests -p
 .venv-tts\Scripts\python.exe -m unittest discover -s tests -p "test_listen.py"
 ```
 
-`character_eval.py` checks that its own probes are not contaminated by `examples.md` before it scores
-anything. The older `/test` battery inside `alfred.py` is contaminated and cannot detect the main failure —
-see the design notes.
+The character, conversation and routing evaluations are built on the private persona and real
+conversations, so they are kept out of this repository along with it.
 
 ---
 
@@ -293,7 +287,7 @@ latency work; services that start at boot; remote access over Tailscale; live we
 corrections.
 
 **Next**
-- Recognising who is speaking, with separate memory for a housemate (enforced in SQL, never in the prompt)
+- Recognising who is speaking, with separate memory per person (enforced in SQL, never in the prompt)
 - Small character faults — through example curation, not more rules
 
 **Later:** Raspberry Pi client, servo jaw and neck, printed enclosure; Tapology, then Spotify.
@@ -302,7 +296,5 @@ corrections.
 
 ## Further reading
 
-- [docs/DESIGN-NOTES.md](docs/DESIGN-NOTES.md) — how the design got here: what was tried and failed, settled
-  decisions, and notes for anyone (or any agent) working on Alfred
 - [docs/SSH.md](docs/SSH.md) — reaching the server
 - [hardware/](hardware) — the physical build

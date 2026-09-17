@@ -20,6 +20,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+import prompts
 from memory import Memory
 
 SERVER = "http://localhost:11434"   # server's IP if running from the laptop
@@ -35,8 +36,8 @@ SERVER = "http://localhost:11434"   # server's IP if running from the laptop
 DEFAULT_MODEL = "gemma4:26b-a4b-it-q8_0"
 # brain/ sits one level below the project root, which holds persona/, the models and the venvs.
 ROOT = Path(__file__).resolve().parent.parent
-PERSONA = ROOT / "persona" / "alfred.md"
-EXAMPLES = ROOT / "persona" / "examples.md"
+PERSONA = prompts.private_or_example("alfred.md")
+EXAMPLES = prompts.private_or_example("examples.md")
 # He is meant to run for years, so memory lives on the redundant array rather
 # than beside the code. Falls back to a local file wherever that array is not
 # mounted, so a checkout on the laptop still works.
@@ -52,23 +53,11 @@ MEMORY_DB = Path(os.environ.get(
 TEMPERATURE = 0.65
 MAX_TOKENS = -1         # -1 = uncapped; set a number only as a runaway guard
 
-# Put in front of every spoken answer, by the voice server and by
-# character_eval, which used to keep its own copy and so never tested the
-# second half.
-#
-# "Answer at whatever total length is useful" was read as permission, and
-# "use multiple short sentences" as encouragement to produce more of them. Over
-# ten samples that wording ran to a mean of 36 words against 29 for no
-# constraint at all. The length sentence below gives 18, against the 13.6-word
-# mean of the examples he is meant to sound like.
-#
-# The correction sentence used to say "assume speech recognition may have
-# misheard him", and on the first real voice session it fired on a perfectly
-# clear one: "it's 92 degrees, where'd you pull 78 from" got "I didn't catch
-# that" (2026-09-16). Mishearing is now the exception it names, not the default.
-SPOKEN_DELIVERY = "(kept private)"
-
-PORTUGUESE_INSTRUCTION = "(kept private)"
+# Said in front of every spoken answer, and what is added to it for a turn in
+# Portuguese. The wording is part of the character, so it lives in
+# persona/prompts.json with the rest of it; see brain/prompts.py.
+SPOKEN_DELIVERY = prompts.get("spoken_delivery")
+PORTUGUESE_INSTRUCTION = prompts.get("portuguese_instruction")
 
 SHOTS = []
 
@@ -79,7 +68,7 @@ RESET = "\033[0m"
 
 # Each case is a list of user turns. Multi-turn cases generate the intermediate
 # reply for real, so the final turn has something genuine to respond to.
-TESTS = []
+TESTS = [(name, turns) for name, turns in prompts.get("tests")]
 
 
 def load_persona() -> str:

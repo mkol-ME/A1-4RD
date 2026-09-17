@@ -25,6 +25,7 @@ import markets
 import memory as memory_module
 import news
 import sports
+import prompts
 import web
 import youtube
 
@@ -409,10 +410,10 @@ def dispatch(memory, name: str, raw_arguments) -> dict:
 # deserve nothing, took it to 15 of 16 and dropped mean pass-one time from 1.93s
 # to 1.50s, because the cost is almost entirely in the calls it makes.
 #
-# The last remaining miss is a mislabelled probe rather than a mistake: "i hate
-# my guitar lessons" does deserve a search, because examples.md answers it with
-# a reply that assumes a search — which is only true if he looked.
-DECIDER_SYSTEM = "(kept private)"
+#
+# The wording itself lives in persona/prompts.json with the rest of the
+# character; see brain/prompts.py.
+DECIDER_SYSTEM = prompts.get("decider_system")
 
 MAX_TOOL_ROUNDS = 2
 

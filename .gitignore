@@ -31,5 +31,14 @@ client/launcher/bin/
 # Local audio diagnostics from talk.py
 client/logs/
 
-# Private test conversations (a friend's name and running joke); kept on the laptop and server only.
+# The character, its wording and everything built from real conversations stay private:
+# kept on the laptop and server, never in this repository.
+persona/alfred.md
+persona/examples.md
+persona/prompts.json
+brain/character_eval.py
 brain/conversation_eval.py
+brain/routing_eval.py
+tests/test_decider.py
+docs/DESIGN-NOTES.md
+legacy/
