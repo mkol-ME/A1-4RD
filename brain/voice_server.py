@@ -25,6 +25,7 @@ import guru
 import memory
 import media
 import memory_tools
+import spoken
 import weather
 from memory import Memory
 import random
@@ -53,7 +54,6 @@ PORTUGUESE_LINES = {
     "That was the last of them.": "Esse era o último, senhor.",
     "I can't reach YouTube just now.": "Não consigo acessar o YouTube agora, senhor.",
 }
-PORTUGUESE_INSTRUCTION = "(kept private)"
 
 
 def local(line: str, language: str) -> str:
@@ -367,7 +367,8 @@ class Handler(BaseHTTPRequestHandler):
                         return
                     continue
                 try:
-                    audio, tts_time, rvc_time = PIPELINE.create(sentence, language)
+                    voice = "pt" if language == "pt" or spoken.looks_portuguese(sentence) else "en"
+                    audio, tts_time, rvc_time = PIPELINE.create(sentence, voice)
                     frame = {
                         "text": sentence,
                         "audio": base64.b64encode(audio).decode("ascii"),
@@ -383,10 +384,18 @@ class Handler(BaseHTTPRequestHandler):
         worker = threading.Thread(target=convert_sentences, daemon=True)
         worker.start()
 
+        history = MEMORY.recent()
+        ration = spoken.TitleRation([m["content"] for m in history if m["role"] == "assistant"])
+        said = []   # the reply as actually spoken, which is what memory keeps
+
         def emit(sentence: str) -> None:
+            work.put(ration.apply(sentence))
+
+        def say(sentence: str) -> None:
+            sentence = ration.apply(sentence)
+            said.append(sentence)
             work.put(sentence)
 
-        history = MEMORY.recent()
         bare_prompt = " ".join(re.findall(r"[^\W_]+", prompt.lower()))
         direct_reply = None
         if bare_prompt in {
@@ -522,10 +531,10 @@ class Handler(BaseHTTPRequestHandler):
             context = f"{context}\n{commentary}" if context else commentary
         delivery = alfred.SPOKEN_DELIVERY
         if language == "pt":
-            delivery = f"{delivery}\n{PORTUGUESE_INSTRUCTION}"
+            delivery = f"{delivery}\n{alfred.PORTUGUESE_INSTRUCTION}"
         context = f"{context}\n{delivery}" if context else delivery
         history.append({"role": "user", "content": prompt})
-        sentences = SentenceBuffer(emit)
+        sentences = SentenceBuffer(say)
         try:
             if direct_reply is not None:
                 reply = local(direct_reply, language)
@@ -548,7 +557,8 @@ class Handler(BaseHTTPRequestHandler):
             worker.join()
             if worker_error:
                 raise worker_error[0]
-            MEMORY.record(prompt, reply)
+            # Kept as spoken, so the history he imitates next turn has the rationed "sir".
+            MEMORY.record(prompt, " ".join(said) or reply)
             self.wfile.write(b'{"done":true}\n')
             self.wfile.flush()
         except Exception as exc:

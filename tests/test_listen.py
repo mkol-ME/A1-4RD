@@ -270,3 +270,20 @@ class EarlyTranscription(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class LanguageCommand(unittest.TestCase):
+    def test_every_tense_whisper_hands_back(self):
+        # The real one from 2026-09-17: "switch to Portuguese" arrived in the past tense.
+        for said in ("Alfred switched to Portuguese.", "switch to portuguese", "speaking portuguese now",
+                     "can you talk in Portuguese", "change to portuguese", "fala português",
+                     "muda pro português", "Alfred, speak Portuguese."):
+            self.assertEqual(listen.language_command(said), "pt", said)
+        for said in ("switched back to English", "speak english", "volta pro inglês",
+                     "voltar para o inglês", "Alfred, English please."):
+            self.assertEqual(listen.language_command(said), "en", said)
+
+    def test_mentioning_a_language_is_not_a_command(self):
+        for said in ("my cousin speaks portuguese and english at home with his whole family",
+                     "how do you say thanks in portuguese", "what time is it"):
+            self.assertIsNone(listen.language_command(said), said)

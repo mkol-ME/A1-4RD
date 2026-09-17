@@ -145,18 +145,20 @@ def to_wav(samples: np.ndarray) -> bytes:
 # Portuguese" / "fala português", and "speak English" / "volta pro inglês".
 # Guessing it per turn was tried first and switched unreliably (2026-09-17).
 LISTEN_LANGUAGE = ["en"]
-TO_PORTUGUESE = re.compile(
-    r"\b(?:speak|talk|switch|change|answer|reply|use|go|fala|falar|fale|muda|mudar|mude|troca|trocar|modo)\b"
-    r".*\bportugu", re.I)
+# Any form of the verb, because Whisper does not keep tense: "switch to Portuguese"
+# came back as "Alfred switched to Portuguese", matched nothing, and he answered in
+# Portuguese through his English voice with his ears still in English (2026-09-17).
+_SWITCH_VERBS = (r"speak\w*|spoke|talk\w*|switch\w*|chang\w*|answer\w*|repl\w*|use|using|go|going|"
+                 r"fala\w*|fale|muda\w*|mude|troca\w*|troque|modo")
+TO_PORTUGUESE = re.compile(rf"\b(?:{_SWITCH_VERBS})\b.*\bportugu", re.I)
 TO_ENGLISH = re.compile(
-    r"\b(?:speak|talk|switch|change|answer|reply|use|go|back|fala|falar|fale|muda|mudar|mude|troca|trocar|"
-    r"volta|voltar|volte|modo)\b.*\b(?:english|ingles)\b", re.I)
+    rf"\b(?:{_SWITCH_VERBS}|back|volta\w*|volte)\b.*\b(?:english|ingles)\b", re.I)
 
 
 def language_command(prompt: str) -> str | None:
     """"pt" or "en" if this turn asks to change language, else None."""
     text = unicodedata.normalize("NFKD", prompt.lower()).encode("ascii", "ignore").decode()
-    text = " ".join(re.findall(r"[a-z]+", text))
+    text = " ".join(word for word in re.findall(r"[a-z]+", text) if word != "alfred")
     if text in ("portuguese", "em portugues", "portugues", "portuguese mode", "portuguese please"):
         return "pt"
     if text in ("english", "em ingles", "ingles", "english mode", "english please"):
