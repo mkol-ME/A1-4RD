@@ -23,6 +23,7 @@ import socket
 import subprocess
 import sys
 import time
+import unicodedata
 import urllib.error
 import urllib.request
 import wave
@@ -140,10 +141,39 @@ def to_wav(samples: np.ndarray) -> bytes:
     return buffer.getvalue()
 
 
+# The language he listens and answers in, changed only by saying so: "speak
+# Portuguese" / "fala português", and "speak English" / "volta pro inglês".
+# Guessing it per turn was tried first and switched unreliably (2026-09-17).
+LISTEN_LANGUAGE = ["en"]
+TO_PORTUGUESE = re.compile(
+    r"\b(?:speak|talk|switch|change|answer|reply|use|go|fala|falar|fale|muda|mudar|mude|troca|trocar|modo)\b"
+    r".*\bportugu", re.I)
+TO_ENGLISH = re.compile(
+    r"\b(?:speak|talk|switch|change|answer|reply|use|go|back|fala|falar|fale|muda|mudar|mude|troca|trocar|"
+    r"volta|voltar|volte|modo)\b.*\b(?:english|ingles)\b", re.I)
+
+
+def language_command(prompt: str) -> str | None:
+    """"pt" or "en" if this turn asks to change language, else None."""
+    text = unicodedata.normalize("NFKD", prompt.lower()).encode("ascii", "ignore").decode()
+    text = " ".join(re.findall(r"[a-z]+", text))
+    if text in ("portuguese", "em portugues", "portugues", "portuguese mode", "portuguese please"):
+        return "pt"
+    if text in ("english", "em ingles", "ingles", "english mode", "english please"):
+        return "en"
+    if len(text.split()) > 8:
+        return None                     # a sentence that mentions a language, not a command
+    if TO_PORTUGUESE.search(text):
+        return "pt"
+    if TO_ENGLISH.search(text):
+        return "en"
+    return None
+
+
 def transcribe(samples: np.ndarray) -> tuple[str, float, str]:
     """Text, seconds taken, and the language Whisper heard ("en" or "pt")."""
     request = urllib.request.Request(
-        f"{WHISPER_URL}/transcribe", data=to_wav(samples),
+        f"{WHISPER_URL}/transcribe?mode={LISTEN_LANGUAGE[0]}", data=to_wav(samples),
         headers={"Content-Type": "audio/wav"},
     )
     with urllib.request.urlopen(request, timeout=60) as response:
@@ -465,12 +495,31 @@ def main() -> None:
         microphone.deaf = True                 # he does not listen while he talks
         music.duck()
         try:
-            talk.chat(prompt, player, on_media=music.play, language=language)
+            talk.chat(prompt, player, on_media=music.play, language=LISTEN_LANGUAGE[0])
         except Exception as exc:
             print(f"  reply failed: {exc}", file=sys.stderr)
         finally:
             music.unduck()
             microphone.settle()
+
+    def switch_language(prompt: str) -> bool:
+        """"Speak Portuguese" / "speak English": change language, say so, and stop there."""
+        wanted = language_command(prompt)
+        if wanted is None:
+            return False
+        LISTEN_LANGUAGE[0] = wanted
+        line = "Português, senhor." if wanted == "pt" else "English, sir."
+        print(f"You: {prompt}   [language: {'Portuguese' if wanted == 'pt' else 'English'}]")
+        microphone.deaf = True
+        try:
+            print(f"Alfred: {line}")
+            player.submit(talk.speak(line, wanted), line)
+            player.drain()
+        except Exception as exc:
+            print(f"  (could not say it: {exc})", file=sys.stderr)
+        finally:
+            microphone.settle()
+        return True
 
     try:
         while True:
@@ -480,8 +529,7 @@ def main() -> None:
             if audio is None:
                 early.pending = None
                 continue
-            heard, seconds, *spoken = early.take(audio, microphone.ended_by_silence)
-            language = spoken[0] if spoken else "en"
+            heard, seconds, *_ = early.take(audio, microphone.ended_by_silence)
             if not heard:
                 continue
             if addressed_until and time.monotonic() >= addressed_until:
@@ -504,6 +552,8 @@ def main() -> None:
                 if addressed_until:
                     music.unduck()
                     addressed_until = 0.0
+                if switch_language(prompt):
+                    continue
                 action = music_control(prompt)
                 if action is not None:
                     print(f"You: {prompt}   [music: {action}]")
@@ -527,6 +577,10 @@ def main() -> None:
                 else:
                     print(f"  {talk_dim(heard)}")  # heard, but not addressed to him
                     continue
+            if switch_language(prompt):
+                if not args.open:
+                    attentive_until = time.monotonic() + args.attention
+                continue
             if not args.open and is_dismissal(prompt):
                 print(f"You: {prompt}")
                 reply(prompt)

@@ -37,6 +37,30 @@ SAMPLE_RATE = 48000
 OUTPUT_BUFFER = 0.1     # seconds of audio the device holds; see open_output
 
 
+# Evidence for the next time his voice sounds wrong ("crackly", "under water"):
+# every sentence's playback numbers in client/logs/audio.log, and the last
+# CLIP_KEEP sentences exactly as received in client/logs/clips/. If a saved clip
+# sounds fine in a media player and was bad live, the fault is playback; if the
+# clip itself is bad, it arrived that way.
+LOG_DIR = Path(__file__).resolve().parent / "logs"
+CLIP_KEEP = 20
+_clip_counter = [0]
+
+
+def audio_log(audio: bytes, sentence: str, dropouts: int, slowest_write: float, took: float, length: float,
+              latency: float) -> None:
+    try:
+        (LOG_DIR / "clips").mkdir(parents=True, exist_ok=True)
+        _clip_counter[0] = (_clip_counter[0] % CLIP_KEEP) + 1
+        (LOG_DIR / "clips" / f"{_clip_counter[0]:02d}.wav").write_bytes(audio)
+        with open(LOG_DIR / "audio.log", "a", encoding="utf-8") as log:
+            log.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} clip={_clip_counter[0]:02d} length={length:.2f}s "
+                      f"played_in={took:.2f}s dropouts={dropouts} slowest_write={slowest_write * 1000:.0f}ms "
+                      f"buffer={latency * 1000:.0f}ms  {sentence[:70]!r}\n")
+    except OSError:
+        pass                            # a log must never stop him talking
+
+
 def decode(data: bytes) -> tuple[np.ndarray, int]:
     with wave.open(io.BytesIO(data)) as clip:
         rate = clip.getframerate()
@@ -158,9 +182,24 @@ class Player(threading.Thread):
         # after it happens, so one write per sentence would blame every dropout
         # on the silence between sentences. Only mid-sentence ones are counted.
         piece = int(0.02 * rate)
+        dropouts, slowest, started = 0, 0.0, time.perf_counter()
         for index, start in enumerate(range(0, block.size, piece)):
+            before = time.perf_counter()
             if self.stream.write(block[start:start + piece]) and index > 0:
-                self.dropouts += 1
+                dropouts += 1
+            slowest = max(slowest, time.perf_counter() - before)
+        self.dropouts += dropouts
+        audio_log(audio, sentence, dropouts, slowest, time.perf_counter() - started, block.size / rate,
+                  self.stream.latency)
+
+
+def speak(text: str, language: str = "en") -> bytes:
+    """One fixed line in his voice (or the Portuguese one), as WAV bytes."""
+    request = urllib.request.Request(
+        f"{VOICE_URL}/speak", data=json.dumps({"text": text, "language": language}).encode("utf-8"),
+        headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(request, timeout=60) as response:
+        return response.read()
 
 
 def run(command: list[str], **kwargs) -> subprocess.CompletedProcess:

@@ -27,3 +27,6 @@ rvc-f0/
 # Built locally by client/launcher/build.ps1 (has this machine's path baked in)
 client/launcher/bin/
 .venv-media/
+
+# Local audio diagnostics from talk.py
+client/logs/

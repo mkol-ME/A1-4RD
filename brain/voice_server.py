@@ -307,11 +307,12 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             length = int(self.headers.get("Content-Length", "0"))
-            text = json.loads(self.rfile.read(length))["text"].strip()
+            body = json.loads(self.rfile.read(length))
+            text = body["text"].strip()
             if not text:
                 raise ValueError("text is empty")
             with BUSY:
-                audio, tts_time, rvc_time = PIPELINE.create(text)
+                audio, tts_time, rvc_time = PIPELINE.create(text, "pt" if body.get("language") == "pt" else "en")
                 mark_activity()
             print(f"tts={tts_time:.3f}s rvc={rvc_time:.3f}s chars={len(text)}", flush=True)
         except Exception as exc:

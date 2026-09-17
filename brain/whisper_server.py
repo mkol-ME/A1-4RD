@@ -22,22 +22,19 @@ from pathlib import Path
 
 from faster_whisper import WhisperModel, decode_audio
 
-# English first, Portuguese when he speaks it (the user: English 95% of the time,
-# so English stays fast and Portuguese may be slow).
+# The client says which language it is listening in: "en" (the default) or "pt".
 #
-# Every turn goes through the English-only model, exactly as before. Fed
-# Portuguese it writes confident-looking nonsense but scores it badly: over 88
-# English and 32 Brazilian Portuguese clips (2026-09-17) its average token
-# log-probability was -0.15 to -0.71 on English (median -0.28) and -0.49 to -1.27
-# on Portuguese (median -0.86). Below SECOND_PASS the multilingual model decides
-# between English and Portuguese and, if Portuguese, transcribes it: that caught
-# 32/32 Portuguese clips and re-checked 4/88 English ones (all "Pokemon number
-# 25"), which stay English at the cost of one language check. Running the
-# multilingual model on every turn instead was 0.15s slower and no better at English.
-LANGUAGES = [code.strip() for code in os.environ.get("ALFRED_LANGUAGES", "en,pt").split(",") if code.strip()]
+# English mode is the English-only model, exactly as it always was. Portuguese
+# mode uses the multilingual model, choosing between Portuguese and English on
+# each turn so that "speak English" still comes through as English.
+#
+# Guessing the language on every turn was tried first (2026-09-17): English
+# first, and a multilingual second pass when the English model scored its own
+# tokens badly. It caught 32/32 Portuguese test clips, but in real use switching
+# back and forth was unreliable, and the user asked for an explicit command.
 MODEL = "small.en"
 MULTILINGUAL_MODEL = "small"
-SECOND_PASS = float(os.environ.get("ALFRED_SECOND_PASS_LOGPROB", "-0.45"))
+MODES = ("en", "pt")
 # The 1060 is Pascal — no tensor cores and crippled FP16, so int8_float32 is the
 # right compute type here and float16 would be slower, not faster.
 COMPUTE = "int8_float32"
@@ -73,8 +70,7 @@ class Ears:
         self.model = WhisperModel(MODEL, device="cuda", compute_type=COMPUTE)
         # Both stay loaded (about 0.43 GB each on the 1060's 6 GB), so a
         # Portuguese turn never waits for a model to load.
-        self.multilingual = (WhisperModel(MULTILINGUAL_MODEL, device="cuda", compute_type=COMPUTE)
-                             if len(LANGUAGES) > 1 else None)
+        self.multilingual = WhisperModel(MULTILINGUAL_MODEL, device="cuda", compute_type=COMPUTE)
         # Force the CUDA kernels and the encoder to load before anyone speaks.
         silence = io.BytesIO()
         with wave.open(silence, "wb") as handle:
@@ -85,18 +81,17 @@ class Ears:
         silence.seek(0)
         self.transcribe(silence.read())
 
-    def transcribe(self, audio: bytes) -> tuple[str, float, str]:
+    def transcribe(self, audio: bytes, mode: str = "en") -> tuple[str, float, str]:
         started = time.perf_counter()
         samples = decode_audio(io.BytesIO(audio), sampling_rate=16000)
-        text, confidence = self._pass(self.model, samples, "en")
-        if self.multilingual is not None and text and confidence < SECOND_PASS:
-            _, _, probabilities = self.multilingual.detect_language(samples)
-            probabilities = dict(probabilities)
-            language = max(LANGUAGES, key=lambda code: probabilities.get(code, 0.0))
-            if language != "en":
-                text, _ = self._pass(self.multilingual, samples, language)
-                return text, time.perf_counter() - started, language
-        return text, time.perf_counter() - started, "en"
+        if mode != "pt":
+            text, _ = self._pass(self.model, samples, "en")
+            return text, time.perf_counter() - started, "en"
+        _, _, probabilities = self.multilingual.detect_language(samples)
+        probabilities = dict(probabilities)
+        language = max(MODES, key=lambda code: probabilities.get(code, 0.0))
+        text, _ = self._pass(self.multilingual, samples, language)
+        return text, time.perf_counter() - started, language
 
     def _pass(self, model, samples, language: str) -> tuple[str, float]:
         """Text, and the average log-probability of its tokens (how sure the model was)."""
@@ -127,15 +122,17 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(b"ready")
 
     def do_POST(self):
-        if self.path != "/transcribe":
+        path, _, query = self.path.partition("?")
+        if path != "/transcribe":
             self.send_error(404)
             return
+        mode = "pt" if "mode=pt" in query.split("&") else "en"
         try:
             length = int(self.headers.get("Content-Length", "0"))
             if not 0 < length <= MAX_AUDIO_BYTES:
                 raise ValueError(f"audio must be 1..{MAX_AUDIO_BYTES} bytes, got {length}")
             audio = self.rfile.read(length)
-            text, elapsed, language = EARS.transcribe(audio)
+            text, elapsed, language = EARS.transcribe(audio, mode)
         except Exception as exc:
             self.send_error(500, str(exc))
             return
@@ -154,8 +151,8 @@ class Handler(BaseHTTPRequestHandler):
 def main() -> None:
     global EARS
     EARS = Ears()
-    print(f"whisper service ready on 127.0.0.1:{PORT} ({MODEL}, {COMPUTE}, languages {','.join(LANGUAGES)})",
-          flush=True)
+    print(f"whisper service ready on 127.0.0.1:{PORT} ({MODEL} for English, {MULTILINGUAL_MODEL} for "
+          f"Portuguese mode, {COMPUTE})", flush=True)
     HTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
 
 
