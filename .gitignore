@@ -30,3 +30,6 @@ client/launcher/bin/
 
 # Local audio diagnostics from talk.py
 client/logs/
+
+# Private test conversations (a friend's name and running joke); kept on the laptop and server only.
+brain/conversation_eval.py
