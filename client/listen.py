@@ -14,6 +14,7 @@ else, and is transcribed on the user's own machine.
 """
 
 import argparse
+import base64
 import collections
 import io
 import json
@@ -170,6 +171,18 @@ def language_command(prompt: str) -> str | None:
     if TO_ENGLISH.search(text):
         return "en"
     return None
+
+
+def keep_clip(samples: np.ndarray, text: str, language: str) -> None:
+    """Hand the finished utterance to the server's archive. Never worth failing a turn for."""
+    body = json.dumps({"audio": base64.b64encode(to_wav(samples)).decode("ascii"),
+                       "text": text, "language": language}).encode("utf-8")
+    request = urllib.request.Request(f"{WHISPER_URL}/keep", data=body,
+                                     headers={"Content-Type": "application/json"})
+    try:
+        urllib.request.urlopen(request, timeout=30).close()
+    except Exception:
+        pass
 
 
 def transcribe(samples: np.ndarray) -> tuple[str, float, str]:
@@ -491,6 +504,7 @@ def main() -> None:
     attentive_until = 0.0
     addressed_until = 0.0          # his name alone was heard over music
     early = EarlyTranscript()
+    archive = ThreadPoolExecutor(max_workers=1)
     music = MusicPlayer()
 
     def reply(prompt: str) -> None:
@@ -534,6 +548,9 @@ def main() -> None:
             heard, seconds, *_ = early.take(audio, microphone.ended_by_silence)
             if not heard:
                 continue
+            # Kept for a better Whisper later and for learning whose voice it is.
+            # Off the critical path: he is already being answered while it uploads.
+            archive.submit(keep_clip, audio, heard, LISTEN_LANGUAGE[0])
             if addressed_until and time.monotonic() >= addressed_until:
                 music.unduck()                     # his name, then nothing: music back up
                 addressed_until = 0.0

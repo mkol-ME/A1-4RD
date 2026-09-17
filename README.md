@@ -119,6 +119,7 @@ A1-4RD/
 │   ├── guru.py               The MMA Guru's take on a fight, from his breakdown videos
 │   ├── voice_server.py       one spoken turn end to end, streamed sentence by sentence
 │   ├── whisper_server.py     resident Whisper, so no model load per utterance
+│   ├── audio_archive.py      every utterance kept on the array with its transcript, under a size cap
 │   ├── youtube.py            what a named YouTube channel has posted, from its real upload list
 │   ├── spoken.py             text rules for what is said aloud, such as which voice reads a sentence
 │   ├── prompts.py            loads the private wording, or the .example stand-ins

@@ -12,6 +12,7 @@ ctranslate2; putting them in one interpreter is asking for a dependency fight
 over something that only needs a socket between them.
 """
 
+import base64
 import io
 import json
 import os
@@ -21,6 +22,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 from faster_whisper import WhisperModel, decode_audio
+
+import audio_archive
 
 # The client says which language it is listening in: "en" (the default) or "pt".
 #
@@ -40,6 +43,11 @@ MODES = ("en", "pt")
 COMPUTE = "int8_float32"
 PORT = 5052
 MAX_AUDIO_BYTES = 32 * 1024 * 1024
+# Every utterance is kept, with the transcript that was used for it, so a better
+# Whisper can be run over it later and a voice can be learned from it. The client
+# sends the finished clip here once, after the partial ones it races through
+# /transcribe, so what is stored is one clip per thing said.
+ARCHIVE = None
 
 # Whisper has never met most of these words and guesses at them phonetically —
 # "Bambu P1S" came back as "Bamboo P1's". Priming it with the vocabulary this
@@ -135,8 +143,11 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path, _, query = self.path.partition("?")
-        if path != "/transcribe":
+        if path not in ("/transcribe", "/keep"):
             self.send_error(404)
+            return
+        if path == "/keep":
+            self.keep()
             return
         mode = "pt" if "mode=pt" in query.split("&") else "en"
         try:
@@ -156,13 +167,34 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def keep(self):
+        """Archive one finished clip and the transcript that was used for it."""
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            if not 0 < length <= MAX_AUDIO_BYTES * 2:
+                raise ValueError(f"body must be 1..{MAX_AUDIO_BYTES * 2} bytes, got {length}")
+            body = json.loads(self.rfile.read(length))
+            saved = ARCHIVE.keep(base64.b64decode(body["audio"]), body.get("text", ""),
+                                 body.get("language", "en"), body.get("source", "voice"))
+        except Exception as exc:
+            self.send_error(500, str(exc))
+            return
+        payload = json.dumps({"kept": saved is not None}).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
     def log_message(self, format, *args):
         return
 
 
 def main() -> None:
-    global EARS
+    global EARS, ARCHIVE
     EARS = Ears()
+    ARCHIVE = audio_archive.Archive()
+    print(f"archive: {ARCHIVE.stats()}", flush=True)
     print(f"whisper service ready on 127.0.0.1:{PORT} ({MODEL} for English, {MULTILINGUAL_MODEL} for "
           f"Portuguese mode, {COMPUTE})", flush=True)
     HTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
