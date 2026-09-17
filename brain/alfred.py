@@ -68,6 +68,8 @@ MAX_TOKENS = -1         # -1 = uncapped; set a number only as a runaway guard
 # that" (2026-09-16). Mishearing is now the exception it names, not the default.
 SPOKEN_DELIVERY = "(kept private)"
 
+PORTUGUESE_INSTRUCTION = "(kept private)"
+
 SHOTS = []
 
 DIM = "\033[2m"
