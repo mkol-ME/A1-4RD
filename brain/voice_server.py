@@ -116,6 +116,18 @@ MEDIA_POSITION = [-1]
 # The last commentator section talked about, so "play that part" can follow it.
 GURU_LAST: list = []
 
+# What he is handed about the past on a turn that looked nothing up: at most two
+# lines, above a bar set by measurement rather than by taste. brain/recall_eval.py
+# over invented memories puts genuine follow-ups at 0.49-0.75 and unrelated ones
+# at 0.45-0.54 — a narrow gap, so 0.72 (the first guess) recalled 1 of 10 and
+# 0.58, the floor a deliberate search uses, recalled 8 with nothing spurious.
+# 0.60 keeps 7 of 10 and a little margin, which this wants and a search does not:
+# it arrives unasked in front of every ordinary sentence, while a miss only
+# leaves him answering as he would have anyway.
+RECALL_LIMIT = 2
+RECALL_FLOOR = 0.60
+RECALL_SKIP_RECENT = 6      # the current conversation is already in front of him
+
 # Nothing may touch either GPU while a question is in flight.
 BUSY = threading.Lock()
 # Warm once at start, then only after this long with nothing asked. It used to
@@ -518,6 +530,20 @@ class Handler(BaseHTTPRequestHandler):
             consulted = memory_tools.consult(MEMORY, prompt, alfred.DEFAULT_MODEL,
                                              alfred.SERVER, on_search=announce,
                                              history=history)
+        # Ordinary conversation, nothing fetched: the one case where he used to have
+        # no past in front of him at all.
+        if (not consulted["calls"] and not consulted["failed"] and direct_reply is None
+                and forecast is None and videos is None and commentary is None and play is None
+                and memory_tools.worth_recalling(prompt)):
+            try:
+                recalled = MEMORY.search(prompt, limit=RECALL_LIMIT,
+                                         skip_recent=RECALL_SKIP_RECENT, floor=RECALL_FLOOR)
+                if recalled:
+                    consulted["context"] = memory_tools._render(MEMORY, recalled)
+                    print(f"memory recalled {len(recalled)} "
+                          f"({', '.join(str(hit['score']) for hit in recalled)})", flush=True)
+            except Exception as exc:
+                print(f"recall failed: {exc}", flush=True)
         context = consulted["context"] if not consulted["failed"] else MEMORY.context(prompt)
         if consulted["calls"]:
             print("memory " + ", ".join(

@@ -405,7 +405,8 @@ class Memory:
             done += len(chunk)
         return done
 
-    def search(self, query: str, limit: int = 3, skip_recent: int = 0) -> list[dict]:
+    def search(self, query: str, limit: int = 3, skip_recent: int = 0,
+               floor: float | None = None) -> list[dict]:
         """What the user has said that relates to `query`, with similarity scores.
 
         Alfred's own replies are deliberately absent. He guessed "past midnight"
@@ -416,6 +417,7 @@ class Memory:
         in the `exchanges` table, so the record is complete; they are simply
         never handed back to him as a source.
         """
+        floor = SIMILARITY_FLOOR if floor is None else floor
         skip = {row[0] for row in self.db.execute(
             "SELECT id FROM exchanges ORDER BY id DESC LIMIT ?", (skip_recent,))} if skip_recent else set()
         vectors = _embed([QUERY_PREFIX + query])
@@ -444,7 +446,7 @@ class Memory:
 
         results = []
         for score, exchange_id in hits:
-            if exchange_id in skip or score < SIMILARITY_FLOOR:
+            if exchange_id in skip or score < floor:
                 continue
             row = self.db.execute(
                 "SELECT user_text FROM exchanges WHERE id = ?", (exchange_id,)).fetchone()
@@ -454,9 +456,10 @@ class Memory:
                 break
         return results
 
-    def recall(self, query: str, limit: int = 3, skip_recent: int = 6) -> list[str]:
+    def recall(self, query: str, limit: int = 3, skip_recent: int = 6,
+               floor: float | None = None) -> list[str]:
         """The things the user said that relate to this message."""
-        return [hit["user"] for hit in self.search(query, limit, skip_recent)]
+        return [hit["user"] for hit in self.search(query, limit, skip_recent, floor)]
 
     def _recall_by_words(self, query: str, limit: int, skip_recent: int) -> list[str]:
         query_terms = _terms(query)

@@ -110,6 +110,15 @@ class ToolGateTests(unittest.TestCase):
                        "who won the ufc fight last night"):
             self.assertTrue(memory_tools.stands_alone(prompt), prompt)
 
+    def test_worth_recalling_skips_the_rote_and_the_tiny(self):
+        """The gate in front of unasked recall: an embedding is cheap, not free."""
+        import memory_tools
+        for prompt in ("thanks alfred", "good evening", "yeah", "ok", "hello", "mm hmm"):
+            self.assertFalse(memory_tools.worth_recalling(prompt), prompt)
+        for prompt in ("the radiator is knocking again", "the spool still hasnt turned up",
+                       "i might skip the long run this week", "nothing is going right today"):
+            self.assertTrue(memory_tools.worth_recalling(prompt), prompt)
+
     def test_fragments_and_references_keep_it(self):
         import memory_tools
         for prompt in ("what about 48", "and tomorrow", "and the bed temperature", "is that true",

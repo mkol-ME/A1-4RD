@@ -450,6 +450,22 @@ def may_need_tools(prompt: str) -> bool:
 
 
 # Whole turns that are conversation, not requests, with his name removed.
+def worth_recalling(prompt: str) -> bool:
+    """Is this worth quietly looking up his past for, before he answers?
+
+    The decider only searches memory when the message points at the past, which
+    leaves him with no past at all on ordinary conversation — the turns where
+    noticing "you said the same thing about the last one" would matter most. This
+    is the cheap gate in front of that: an embedding and a KNN, skipped for the
+    turns too short or too rote to relate to anything.
+    """
+    folded = unicodedata.normalize("NFKD", prompt.lower().replace("’", "'")).encode("ascii", "ignore").decode()
+    words = [w for w in re.findall(r"[a-z0-9']+", folded) if w != "alfred"]
+    if len(words) < 3:
+        return False
+    return " ".join(words) not in CHAT_TURNS
+
+
 CHAT_TURNS = {
     "yes", "yeah", "yep", "yup", "no", "nope", "nah", "ok", "okay", "alright", "sure",
     "mm", "mm hmm", "mhm", "hmm", "uh huh", "right", "got it", "i see", "fair enough",
