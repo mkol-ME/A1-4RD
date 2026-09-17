@@ -4,7 +4,7 @@ After=systemd-modules-load.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/sbin/ram-color FF0000
+ExecStart=/usr/bin/python3 /usr/local/sbin/ram-color FF0000
 RemainAfterExit=yes
 
 [Install]
