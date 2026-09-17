@@ -19,6 +19,7 @@ import json
 import re
 import urllib.request
 
+import machine
 import markets
 import memory as memory_module
 import news
@@ -162,6 +163,19 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "get_server_status",
+            "description": (
+                "Live readings from the server Alfred runs on: GPU and CPU temperatures, the "
+                "MI50 fan's speed, power draw, how busy the GPUs are, VRAM, RAID health, disk "
+                "space and uptime. Use it for 'how hot is the gpu', 'how's the server doing', "
+                "'is the fan ok', 'why is the server loud', 'is the raid healthy'."
+            ),
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "get_news",
             "description": (
                 "Current news headlines, from Google News. Use it for 'any news on…', 'what's "
@@ -263,7 +277,7 @@ def _settles(name: str, result: dict) -> bool:
     """Did this call produce what the turn needed, so no follow-up round is worth paying for?"""
     if not result.get("ok"):
         return False
-    if name in ("search_memory", "search_web", "get_sports", "get_news", "get_odds"):
+    if name in ("search_memory", "search_web", "get_sports", "get_news", "get_odds", "get_server_status"):
         return bool(result.get("found"))
     return name in ("remember_fact", "forget_fact")
 
@@ -305,6 +319,9 @@ def dispatch(memory, name: str, raw_arguments) -> dict:
         if name == "get_sports":
             query = _as_text(arguments, "query", "team", "league", "text", "q", limit=MAX_QUERY_CHARS)
             return sports.lookup(query)
+
+        if name == "get_server_status":
+            return machine.lookup()
 
         if name == "get_odds":
             query = _as_text(arguments, "query", "topic", "text", "q", limit=MAX_QUERY_CHARS)
@@ -508,7 +525,7 @@ def consult(memory, prompt: str, model: str, server: str, timeout: int = 30,
                     searched.extend(result.get("results", []))
                 if name == "search_web":
                     found_online.extend(result.get("results", []))
-                if name in ("get_sports", "get_news", "get_odds") and result.get("report"):
+                if name in ("get_sports", "get_news", "get_odds", "get_server_status") and result.get("report"):
                     reports.append(result["report"])
                 messages.append({"role": "tool", "tool_name": name,
                                  "content": json.dumps(result)})

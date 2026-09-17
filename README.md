@@ -112,6 +112,7 @@ A1-4RD/
 │   ├── sports.py             live scores, results and fixtures from ESPN
 │   ├── news.py               headlines from Google News
 │   ├── markets.py            live prediction-market odds from Polymarket
+│   ├── machine.py            the server's own temperatures, fan, power, VRAM, RAID and disks
 │   ├── weather.py            live forecast from Open-Meteo, not search snippets
 │   ├── media.py              "play…" / "find videos of…" requests and spoken titles
 │   ├── media_server.py       YouTube search, audio stream, chapters and captions (own venv: yt-dlp, PyAV)
