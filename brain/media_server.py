@@ -8,6 +8,7 @@ resident so nobody pays yt-dlp's import on every request.
     GET /health
     GET /search?q=bohemian+rhapsody&n=5   -> {"results": [{id, title, channel, duration}]}
     GET /stream?id=<11-char video id>     -> raw PCM, 48 kHz stereo signed 16-bit little-endian
+    GET /find_channel?q=bedtime+mma       -> {"channels": [{id, name, followers}]}
 
 Audio is decoded here rather than on the client because the client is meant to
 become a Pi Zero: raw PCM is about 1.5 Mbit/s, trivial on the LAN or Tailscale,
@@ -23,6 +24,7 @@ import os
 import re
 import threading
 import time
+import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
@@ -75,6 +77,24 @@ def cached(key, seconds: float, compute):
     with _cache_lock:
         _cache[key] = (now, value)
     return value
+
+
+def find_channels(name: str, count: int = 5) -> list[dict]:
+    """Channels YouTube offers for a spoken name, best first, with follower counts.
+
+    Uses the channel-only results page. Uncapped it pages through hundreds of
+    channels ("the mma guru" took 18s), so it stops at a handful.
+    """
+    def compute():
+        url = ("https://www.youtube.com/results?search_query=" + urllib.parse.quote_plus(name)
+               + "&sp=EgIQAg%3D%3D")   # the "Channels" filter
+        options = dict(QUIET, extract_flat="in_playlist", playlistend=count)
+        with yt_dlp.YoutubeDL(options) as ydl:
+            info = ydl.extract_info(url, download=False)
+        return [{"id": e["channel_id"], "name": e.get("channel") or e.get("title") or "",
+                 "followers": e.get("channel_follower_count")}
+                for e in (info.get("entries") or [])[:count] if e and CHANNEL_ID.match(e.get("channel_id") or "")]
+    return cached(("channels", name.lower(), count), 24 * 3600, compute)
 
 
 def uploads(channel_id: str, count: int = 12) -> list[dict]:
@@ -181,6 +201,11 @@ class Handler(BaseHTTPRequestHandler):
                 start = max(0.0, float((query.get("start") or ["0"])[0]))
                 end = (query.get("end") or [None])[0]
                 return self._stream(video_id, start, float(end) if end else None)
+            if url.path == "/find_channel":
+                name = " ".join((query.get("q") or [""])[0].split())[:100]
+                if not name:
+                    return self._json({"error": "q is required"}, 400)
+                return self._json({"channels": find_channels(name)})
             if url.path == "/channel":
                 channel_id = (query.get("id") or [""])[0]
                 if not CHANNEL_ID.match(channel_id):

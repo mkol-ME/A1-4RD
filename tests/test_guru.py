@@ -68,3 +68,21 @@ class SectionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CardTests(unittest.TestCase):
+    UPLOADS = [
+        {"id": "aaaaaaaaaaa", "title": "UFC Noche Event Recap Silva vs Delgado Full Card Reaction & Breakdown"},
+        {"id": "bbbbbbbbbbb", "title": "UFC 331 Predictions & Full Card Breakdown"},
+        {"id": "ccccccccccc", "title": "UFC 330 Predictions & Full Card Breakdown"},
+    ]
+
+    def test_the_question_that_found_nothing(self):
+        # 2026-09-17, as Whisper delivered it.
+        request = guru.parse("has mma guru released a prediction post for ufc 331")
+        self.assertEqual((request["kind"], request["subject"]), ("predictions", "ufc 331"))
+        self.assertEqual(guru.match_card(self.UPLOADS, request["subject"])["id"], "bbbbbbbbbbb")
+
+    def test_wrong_number_or_no_card(self):
+        self.assertIsNone(guru.match_card(self.UPLOADS, "ufc 332"))
+        self.assertIsNone(guru.match_card(self.UPLOADS, "silva delgado"))

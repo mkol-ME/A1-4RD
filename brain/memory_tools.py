@@ -26,6 +26,7 @@ import memory as memory_module
 import news
 import sports
 import web
+import youtube
 
 MAX_FACT_CHARS = 500
 MAX_WEB_RESULTS = 4
@@ -199,6 +200,30 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "get_youtube",
+            "description": (
+                "The real, current upload list of a named YouTube channel: its latest video "
+                "titles and dates, or its videos about a topic. Use it for 'what's the latest "
+                "video from bedtime mma', 'has money manzel posted today', 'did lucas tracy put "
+                "out his ufc 331 predictions', 'check youtube for …'s newest upload'."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "channel": {"type": "string", "description": "The channel's name as he said it."},
+                    "topic": {
+                        "type": "string",
+                        "description": "What the video should be about, like 'ufc 331 predictions'. "
+                                       "Leave it out for the latest uploads.",
+                    },
+                },
+                "required": ["channel"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "list_facts",
             "description": "List every durable fact currently written down, with its id. Use this before forgetting one.",
             "parameters": {"type": "object", "properties": {}},
@@ -280,7 +305,8 @@ def _settles(name: str, result: dict) -> bool:
     """Did this call produce what the turn needed, so no follow-up round is worth paying for?"""
     if not result.get("ok"):
         return False
-    if name in ("search_memory", "search_web", "get_sports", "get_news", "get_odds", "get_server_status"):
+    if name in ("search_memory", "search_web", "get_sports", "get_news", "get_odds", "get_server_status",
+                "get_youtube"):
         return bool(result.get("found"))
     return name in ("remember_fact", "forget_fact")
 
@@ -334,6 +360,12 @@ def dispatch(memory, name: str, raw_arguments) -> dict:
             topic = arguments.get("topic") or arguments.get("query") or arguments.get("q")
             topic = _as_text({"topic": topic}, "topic", limit=MAX_QUERY_CHARS) if topic else None
             return news.lookup(topic)
+
+        if name == "get_youtube":
+            channel = _as_text(arguments, "channel", "name", "query", "q", limit=MAX_QUERY_CHARS)
+            topic = arguments.get("topic") or arguments.get("about")
+            topic = _as_text({"topic": topic}, "topic", limit=MAX_QUERY_CHARS) if topic else None
+            return youtube.lookup(channel, topic)
 
         if name == "list_facts":
             facts = memory.facts()
@@ -523,7 +555,7 @@ def consult(memory, prompt: str, model: str, server: str, timeout: int = 30,
             for call in requested:
                 function = call.get("function", {})
                 name = function.get("name", "")
-                if name == "search_web" and on_search is not None:
+                if name in ("search_web", "get_youtube") and on_search is not None:
                     try:
                         on_search()
                     except Exception:
@@ -535,7 +567,8 @@ def consult(memory, prompt: str, model: str, server: str, timeout: int = 30,
                     searched.extend(result.get("results", []))
                 if name == "search_web":
                     found_online.extend(result.get("results", []))
-                if name in ("get_sports", "get_news", "get_odds", "get_server_status") and result.get("report"):
+                if name in ("get_sports", "get_news", "get_odds", "get_server_status",
+                            "get_youtube") and result.get("report"):
                     reports.append(result["report"])
                 messages.append({"role": "tool", "tool_name": name,
                                  "content": json.dumps(result)})

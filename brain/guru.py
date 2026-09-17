@@ -132,6 +132,21 @@ def match_captions(captions: list, subject: str, window: float = 300.0) -> dict 
     return {"start": max(0.0, inside[0] - 20), "end": inside[-1] + 45, "title": subject}
 
 
+CARD = re.compile(r"\b(ufc|pfl|bellator|one|lfa)\s*(\d{2,4})\b")
+
+
+def match_card(uploads: list[dict], subject: str) -> dict | None:
+    """The newest upload whose title names the numbered card in the subject, like "ufc 331"."""
+    card = CARD.search(plain(subject))
+    if card is None:
+        return None
+    for upload in uploads:
+        title = plain(upload.get("title") or "").split()
+        if card.group(1) in title and card.group(2) in title:
+            return upload
+    return None
+
+
 def excerpt(captions: list, start: float, end: float) -> str:
     words = " ".join(text for t, text in captions if start <= t < end).split()
     return " ".join(words[:MAX_EXCERPT_WORDS])
@@ -159,6 +174,13 @@ def find_section(request: dict, who: str = "guru") -> dict | None:
         chosen = candidates[0] if candidates else None
         if chosen is None:
             return None
+        return {"video": _get("/video", id=chosen["id"]), "section": None, "commentator": commentator["name"]}
+    # A card, not a fight: "has the guru put out his ufc 331 predictions" names no
+    # fighter for a chapter or the captions to match, and "ufc" and "331" are too
+    # short for the caption search, so it found nothing (2026-09-17). The card
+    # number is in the video's title.
+    chosen = match_card(candidates, subject)
+    if chosen is not None:
         return {"video": _get("/video", id=chosen["id"]), "section": None, "commentator": commentator["name"]}
     # Fetched together: one at a time, four uncached videos took 4.7s.
     with ThreadPoolExecutor(max_workers=MAX_VIDEOS_SEARCHED) as pool:
