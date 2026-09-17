@@ -14,8 +14,8 @@ export HOME=/var/lib/openrgb QT_QPA_PLATFORM=offscreen
 mkdir -p "$HOME"
 
 listing="$("$OPENRGB" --noautoconnect --list-devices 2>&1)"
-# "0: G.Skill Trident Z RGB" followed a few lines later by "  Type: DRAM"
-sticks="$(awk '/^[0-9]+: /{index_=$1; sub(":","",index_)} /^[[:space:]]*Type:/ && /DRAM/ {print index_}' <<<"$listing")"
+# OpenRGB 1.0 lists one line per device, no types: "0: ENE DRAM", "2: MSI MPG Z390 GAMING PLUS"
+sticks="$(awk -F': ' '/^[0-9]+: .*DRAM/ {print $1}' <<<"$listing")"
 if [ -z "$sticks" ]; then
   echo "no RGB memory found. OpenRGB saw:"
   echo "$listing"
