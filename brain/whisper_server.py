@@ -60,9 +60,21 @@ VOCABULARY = (
 LOCAL_VOCABULARY = Path(__file__).resolve().parent.parent / "persona" / "vocabulary.local.txt"
 if LOCAL_VOCABULARY.exists():
     VOCABULARY += " " + " ".join(LOCAL_VOCABULARY.read_text(encoding="utf-8").split())
+# The people he talks about, in both languages. In the first Portuguese session
+# "o Diego" came back as "o chão", so "never forget this, Diego is..." had
+# nothing to save and "do you know Diego" nothing to find. Over ten synthetic
+# Portuguese clips (2026-09-17) the name fixed "o tirágua é o quê", settled
+# "Tiago" into one spelling, and left "o chão está molhado" alone. Friends'
+# names are personal, so they live in persona/people.local.txt, one per line.
+LOCAL_PEOPLE = Path(__file__).resolve().parent.parent / "persona" / "people.local.txt"
+PEOPLE = "Alfred. the user."
+if LOCAL_PEOPLE.exists():
+    PEOPLE += " " + " ".join(f"{name.strip()}." for name in LOCAL_PEOPLE.read_text(encoding="utf-8").splitlines()
+                             if name.strip())
+VOCABULARY = PEOPLE + VOCABULARY.removeprefix("Alfred. the user.")
 # Portuguese gets names only. With the printing terms too, "toca Bohemian
 # Rhapsody" came back as "toca a Bambu P1S": the prompt leaked into the words.
-PROMPTS = {"en": VOCABULARY, "pt": "Alfred. the user."}
+PROMPTS = {"en": VOCABULARY, "pt": PEOPLE}
 
 
 class Ears:

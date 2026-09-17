@@ -35,6 +35,12 @@ FADE_SECONDS = 0.005    # edge ramp, so a trimmed clip starts without a click
 # while the same audio was clean in a media player (2026-09-16).
 SAMPLE_RATE = 48000
 OUTPUT_BUFFER = 0.1     # seconds of audio the device holds; see open_output
+# Both voices arrive peak-normalised to full scale. The laptop speakers run
+# Realtek's enhancements, which add gain after that, and his voice came out
+# "rumbly" although all 38 sentences of a session played with zero dropouts and
+# the saved clips had no DC offset or sub-bass (2026-09-17). Half scale (-6 dB)
+# leaves the processing room; turn the volume up instead.
+HEADROOM = 0.5
 
 
 # Evidence for the next time his voice sounds wrong ("crackly", "under water"):
@@ -174,7 +180,7 @@ class Player(threading.Thread):
         if rate != SAMPLE_RATE:
             raise RuntimeError(f"expected {SAMPLE_RATE}Hz from the voice server, got {rate}Hz")
         pause = PAUSE.get(sentence.rstrip()[-1:], DEFAULT_PAUSE) * self.pause_scale
-        block = np.concatenate([trim(samples, rate), np.zeros(int(pause * rate), dtype=np.float32)])
+        block = np.concatenate([trim(samples, rate) * HEADROOM, np.zeros(int(pause * rate), dtype=np.float32)])
         # If the queue starved, the device has already drained and this block
         # starts now rather than where the last one was due to end.
         self.deadline = max(self.deadline, time.perf_counter()) + block.size / rate
