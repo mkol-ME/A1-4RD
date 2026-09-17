@@ -31,6 +31,13 @@ class MediaParseTests(unittest.TestCase):
         for prompt, query in cases.items():
             self.assertEqual(media.parse(prompt), ("search", query), prompt)
 
+    def test_portuguese(self):
+        self.assertEqual(media.parse("Toca Bohemian Rhapsody."), ("play", "bohemian rhapsody"))
+        self.assertEqual(media.parse("pode colocar um pouco de lofi por favor"), ("play", "lofi"))
+        self.assertEqual(media.parse("põe Mr. Brightside no YouTube"), ("play", "mr brightside"))
+        self.assertEqual(media.parse("procura vídeos de gatos caindo"), ("search", "gatos caindo"))
+        self.assertIsNone(media.parse("que horas são"))
+
     def test_picking_needs_results(self):
         self.assertEqual(media.parse("play the second one", have_results=True), ("pick", 2))
         self.assertEqual(media.parse("the first one", have_results=True), ("pick", 1))

@@ -8,6 +8,7 @@ needs the model.
 
 import re
 import threading
+import unicodedata
 import time
 import urllib.request
 
@@ -22,25 +23,30 @@ DEFAULT_VOLUME = 0.5
 VOLUME_STEP = 1.5                        # louder/quieter multiply or divide by this
 DUCKED = 0.15                            # while he talks, or is being spoken to
 
+# English and Brazilian Portuguese; matched on accent-stripped text.
 CONTROLS = {
-    "pause": ("pause", "pause it", "pause the music", "pause this", "pause the song", "hold on", "wait"),
+    "pause": ("pause", "pause it", "pause the music", "pause this", "pause the song", "hold on", "wait",
+              "pausa", "pausar", "pausa a musica", "espera"),
     "resume": ("resume", "unpause", "continue", "keep playing", "carry on", "play", "resume the music",
-               "start it again", "back on"),
+               "start it again", "back on", "continua", "continuar", "volta a tocar", "pode continuar"),
     "stop": ("stop", "stop it", "stop the music", "stop playing", "turn it off", "shut it off",
-             "kill the music", "enough music", "stop the song", "that's enough", "thats enough"),
+             "kill the music", "enough music", "stop the song", "that's enough", "thats enough",
+             "para", "parar", "para a musica", "desliga", "desliga a musica", "chega"),
     "louder": ("louder", "turn it up", "volume up", "a bit louder", "turn up the volume", "crank it",
-               "turn the music up", "up"),
+               "turn the music up", "up", "mais alto", "aumenta", "aumenta o volume", "sobe o volume"),
     "quieter": ("quieter", "softer", "turn it down", "volume down", "a bit quieter", "lower the volume",
-                "turn down the volume", "turn the music down", "down"),
+                "turn down the volume", "turn the music down", "down", "mais baixo", "abaixa",
+                "abaixa o volume", "diminui o volume"),
 }
 _LOOKUP = {phrase: action for action, phrases in CONTROLS.items() for phrase in phrases}
 
 
 def control(prompt: str) -> str | None:
     """pause, resume, stop, louder, quieter — or None if this is not a music control."""
-    text = " ".join(re.findall(r"[a-z']+", prompt.lower()))
-    text = re.sub(r"^(?:please |can you |could you |okay |ok |hey )+", "", text)
-    text = re.sub(r"(?: please| for me| a bit| a little)+$", "", text)
+    text = unicodedata.normalize("NFKD", prompt.lower()).encode("ascii", "ignore").decode()
+    text = " ".join(re.findall(r"[a-z']+", text))
+    text = re.sub(r"^(?:please |can you |could you |okay |ok |hey |pode |por favor |ei )+", "", text)
+    text = re.sub(r"(?: please| for me| a bit| a little| por favor| um pouco)+$", "", text)
     return _LOOKUP.get(text)
 
 

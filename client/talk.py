@@ -167,10 +167,10 @@ def run(command: list[str], **kwargs) -> subprocess.CompletedProcess:
     return subprocess.run(command, check=True, text=True, **kwargs)
 
 
-def chat(prompt: str, player, on_media=None) -> tuple[float, float, float]:
+def chat(prompt: str, player, on_media=None, language: str = "en") -> tuple[float, float, float]:
     request = urllib.request.Request(
         f"{VOICE_URL}/chat",
-        data=json.dumps({"text": prompt}).encode("utf-8"),
+        data=json.dumps({"text": prompt, "language": language}).encode("utf-8"),
         headers={"Content-Type": "application/json"},
     )
     total_tts = 0.0

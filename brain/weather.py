@@ -54,7 +54,10 @@ ASKS = re.compile(
     r"|(?:how )?(?:hot|cold|warm|chilly|freezing) (?:is it|out|outside|today|tonight|tomorrow)"
     r"|temp(?:erature)? (?:outside|out|today|tonight|tomorrow|this|right now"
     r"|(?:in|at|for|near) (?!my\b|the\b|your\b|here\b))"
-    r"|degrees (?:outside|out)|need a (?:jacket|coat))\b",
+    r"|degrees (?:outside|out)|need a (?:jacket|coat)"
+    # Brazilian Portuguese
+    r"|previs[aã]o do tempo|tempo (?:hoje|amanh[aã]|l[aá] fora)|clima|vai chover|chov\w+|guarda[- ]chuva"
+    r"|(?:est[aá]|vai) (?:fazer |fazendo )?(?:calor|frio)|temperatura (?:l[aá] fora|hoje|amanh[aã]|agora|em))\b",
     re.I)
 # Enough to keep a follow-up on the weather once a recent question was. From the
 # first voice session: "as of when alfred i have it as 92".

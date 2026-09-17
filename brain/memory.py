@@ -83,12 +83,14 @@ SIMILARITY_FLOOR = 0.58
 TIMEZONE = os.environ.get("ALFRED_TIMEZONE", "America/New_York")
 
 
-def local_time_reply() -> str:
+def local_time_reply(language: str = "en") -> str:
     """A short conventional clock answer for the voice server's fast path."""
     try:
         stamp = datetime.now(ZoneInfo(TIMEZONE))
     except Exception:
         stamp = datetime.now()
+    if language == "pt":
+        return f"São {stamp.hour}:{stamp.minute:02d}, senhor."      # Brazil says the time in 24-hour form
     return f"{(stamp.hour % 12 or 12)}:{stamp.minute:02d} {stamp.strftime('%p')}, sir."
 
 

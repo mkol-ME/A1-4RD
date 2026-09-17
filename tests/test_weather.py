@@ -19,6 +19,12 @@ class WeatherRoutingTests(unittest.TestCase):
                        "whats the temperature outside"):
             self.assertTrue(weather.asks_about_weather(prompt), prompt)
 
+    def test_portuguese_weather_questions(self):
+        for prompt in ("qual é a previsão do tempo para amanhã", "vai chover hoje", "está fazendo calor lá fora",
+                       "preciso de guarda-chuva", "qual a temperatura lá fora"):
+            self.assertTrue(weather.asks_about_weather(prompt), prompt)
+        self.assertFalse(weather.asks_about_weather("qual temperatura uso para imprimir petg"))
+
     def test_other_temperatures_are_not_weather(self):
         for prompt in ("what temperature should i run petg at",
                        "what temperature does water boil at in fahrenheit",

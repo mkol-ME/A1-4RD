@@ -13,6 +13,7 @@ import json
 import os
 import random
 import re
+import unicodedata
 import urllib.parse
 import urllib.request
 
@@ -25,15 +26,21 @@ ORDINALS = {
     "fifth": 5, "5th": 5, "five": 5, "5": 5, "last": -1,
 }
 
-POLITE = r"(?:(?:hey |ok |okay |so |and |now )?(?:can you |could you |would you |will you |please )?)"
+# English and Brazilian Portuguese ("toca Bohemian Rhapsody", "procura vídeos de
+# gatos"). Matched on accent-stripped text, so "põe" arrives as "poe".
+POLITE = (r"(?:(?:hey |ok |okay |so |and |now |ei |oi )?"
+          r"(?:can you |could you |would you |will you |please |pode |voce pode |por favor )?)")
 PLAY = re.compile(
-    rf"^{POLITE}(?:play|put on|throw on|queue up|start playing|blast)(?: me)?(?: some)? (?P<query>.+?)"
-    r"(?: (?:on|from|off) youtube)?(?: for me)?(?: please)?$")
+    rf"^{POLITE}(?:play|put on|throw on|queue up|start playing|blast|toca|tocar|toque|coloca|colocar|bota|poe)"
+    r"(?: me)?(?: some| um pouco de| uma| um)? (?P<query>.+?)"
+    r"(?: (?:on|from|off|no) youtube)?(?: for me| pra mim| para mim)?(?: please| por favor)?$")
 SEARCH = re.compile(
-    rf"^{POLITE}(?:search|look up|find|show me|pull up|get me)(?: me)?"
-    r"(?: (?:some|a few|a|the))? (?:(?:youtube )?videos?|youtube)(?: (?:for|of|about|on|with))? (?P<query>.+?)"
-    r"(?: on youtube)?(?: please)?$"
-    rf"|^{POLITE}(?:search|look up|find|pull up)(?: youtube for| for)? (?P<query2>.+?) (?:on youtube|videos?)(?: please)?$")
+    rf"^{POLITE}(?:search|look up|find|show me|pull up|get me|procura|procure|busca|busque|mostra|acha)(?: me)?"
+    r"(?: (?:some|a few|a|the|uns|umas|alguns|algumas))? (?:(?:youtube )?videos?|youtube)"
+    r"(?: (?:for|of|about|on|with|de|do|da|sobre))? (?P<query>.+?)"
+    r"(?: (?:on|no) youtube)?(?: please| por favor)?$"
+    rf"|^{POLITE}(?:search|look up|find|pull up|procura|busca)(?: youtube for| for| no youtube)? (?P<query2>.+?)"
+    r" (?:on youtube|videos?|no youtube)(?: please| por favor)?$")
 PICK = re.compile(
     rf"^{POLITE}(?:play |put on )?(?:the |number |video )?(?P<which>first|1st|second|2nd|third|3rd|fourth|4th"
     r"|fifth|5th|last|one|two|three|four|five|[1-5])(?: one| video| result)?(?: please)?$")
@@ -47,7 +54,8 @@ CLUTTER = re.compile(
 
 def parse(prompt: str, have_results: bool = False) -> tuple[str, object] | None:
     """("play", query), ("search", query), ("pick", n), ("next", None), or None."""
-    text = " ".join(re.findall(r"[a-z0-9']+", prompt.lower()))
+    text = unicodedata.normalize("NFKD", prompt.lower()).encode("ascii", "ignore").decode()
+    text = " ".join(re.findall(r"[a-z0-9']+", text))
     if not text:
         return None
     if have_results:
@@ -94,8 +102,10 @@ def spoken_duration(seconds) -> str:
     return f"{hours} hour{'s' if hours != 1 else ''}" + (f" {minutes} minutes" if minutes else "")
 
 
-def announce(result: dict) -> str:
+def announce(result: dict, language: str = "en") -> str:
     title = spoken_title(result)
+    if language == "pt":
+        return random.choice((f"{title}, senhor.", f"Colocando {title}.", f"{title}. Muito bem, senhor."))
     return random.choice((f"{title}, sir.", f"Putting on {title}.", f"{title}. Very good, sir."))
 
 

@@ -41,6 +41,23 @@ RVC_DIR = ROOT / "rvc-model"
 # in a media player (2026-09-16). Resampling here, once, with a proper filter,
 # means nothing downstream converts at all.
 OUTPUT_RATE = 48000
+PORTUGUESE_MODEL = Path(os.environ.get(
+    "ALFRED_PIPER_PT_MODEL", ROOT / "tts-models" / "piper" / "pt_BR-faber-medium.onnx"))
+
+# His fixed lines, in Brazilian Portuguese for a turn spoken in Portuguese.
+PORTUGUESE_LINES = {
+    "Here it is, sir.": "Aqui está, senhor.",
+    "I can't find him talking about that.": "Não encontrei ele falando sobre isso, senhor.",
+    "I can't reach his videos just now.": "Não consigo acessar os vídeos dele agora, senhor.",
+    "I couldn't find anything by that name.": "Não encontrei nada com esse nome, senhor.",
+    "That was the last of them.": "Esse era o último, senhor.",
+    "I can't reach YouTube just now.": "Não consigo acessar o YouTube agora, senhor.",
+}
+PORTUGUESE_INSTRUCTION = "(kept private)"
+
+
+def local(line: str, language: str) -> str:
+    return PORTUGUESE_LINES.get(line, line) if language == "pt" else line
 
 
 class VoicePipeline:
@@ -57,19 +74,26 @@ class VoicePipeline:
                 version="v2",
             )
             self.rvc.set_params(f0method="rmvpe", index_rate=0.7, protect=0.33)
+        # Portuguese replies get a Brazilian voice. His own was trained on English
+        # only; a different voice in Portuguese is accepted (the user, 2026-09-17).
+        self.voices = {"en": self.piper}
+        if PORTUGUESE_MODEL.exists():
+            self.voices["pt"] = PiperVoice.load(PORTUGUESE_MODEL, use_cuda=False)
         self.temp = tempfile.TemporaryDirectory(prefix="alfred-voice-")
         # Force lazy CUDA kernels and RVC feature models to load before the
         # first real request.
         self.create("Ready, sir.")
 
-    def create(self, text: str) -> tuple[bytes, float, float]:
+    def create(self, text: str, language: str = "en") -> tuple[bytes, float, float]:
         source = Path(self.temp.name) / "source.wav"
         converted = Path(self.temp.name) / "converted.wav"
         started = time.perf_counter()
+        voice = self.voices.get(language, self.piper)
         with wave.open(str(source), "wb") as wav_file:
-            self.piper.synthesize_wav(text, wav_file)
+            voice.synthesize_wav(text, wav_file)
         tts_finished = time.perf_counter()
-        if self.rvc is None:
+        # RVC turns English Piper into his voice; it is not for the Portuguese one.
+        if self.rvc is None or voice is not self.piper:
             samples, rate = sf.read(source, dtype="float32")
             if rate != OUTPUT_RATE:
                 divisor = np.gcd(rate, OUTPUT_RATE)
@@ -200,6 +224,12 @@ HOLDING_LINES = (
     "A moment.",
     "Checking, sir.",
 )
+HOLDING_LINES_PT = (
+    "Um momento, senhor.",
+    "Deixa eu ver, senhor.",
+    "Só um instante.",
+    "Verificando, senhor.",
+)
 
 class SentenceBuffer:
     """Cut the stream into whole sentences and nothing smaller.
@@ -298,9 +328,13 @@ class Handler(BaseHTTPRequestHandler):
     def chat(self):
         try:
             length = int(self.headers.get("Content-Length", "0"))
-            prompt = json.loads(self.rfile.read(length))["text"].strip()
+            body = json.loads(self.rfile.read(length))
+            prompt = body["text"].strip()
             if not prompt:
                 raise ValueError("text is empty")
+            # Which language he spoke, as Whisper heard it. Anything but
+            # Portuguese is English, which is also what a typed turn is.
+            language = "pt" if body.get("language") == "pt" else "en"
         except Exception as exc:
             self.send_error(400, str(exc))
             return
@@ -332,7 +366,7 @@ class Handler(BaseHTTPRequestHandler):
                         return
                     continue
                 try:
-                    audio, tts_time, rvc_time = PIPELINE.create(sentence)
+                    audio, tts_time, rvc_time = PIPELINE.create(sentence, language)
                     frame = {
                         "text": sentence,
                         "audio": base64.b64encode(audio).decode("ascii"),
@@ -357,8 +391,9 @@ class Handler(BaseHTTPRequestHandler):
         if bare_prompt in {
             "what time is it", "what is the time", "whats the time",
             "tell me the time", "current time", "time please",
+            "que horas são", "que horas sao", "que hora é", "que hora e", "me diz a hora",
         }:
-            direct_reply = memory.local_time_reply()
+            direct_reply = memory.local_time_reply(language)
         # Pass one decides what to look up, with no persona and no examples in
         # front of it. Pass two — the one below, which actually answers — never
         # sees a tool definition. If the decider fails for any reason we fall
@@ -367,7 +402,7 @@ class Handler(BaseHTTPRequestHandler):
         # front of it instead of six seconds of nothing. Rotated because a
         # butler who says the identical four words every time is a doorbell.
         def announce() -> None:
-            emit(random.choice(HOLDING_LINES))
+            emit(random.choice(HOLDING_LINES_PT if language == "pt" else HOLDING_LINES))
 
         # The weather comes from a forecast service, never from the web search:
         # search snippets said 78 on a 92-degree afternoon. A forecast turn also
@@ -403,8 +438,12 @@ class Handler(BaseHTTPRequestHandler):
                         if guru_request["action"] == "play":
                             play = GURU_LAST[0]
                             section = found["section"]
-                            direct_reply = (f"{found['commentator']} on {section['title']}, sir." if section
-                                            else f"{found['commentator']}'s latest, sir.")
+                            if language == "pt":
+                                direct_reply = (f"{found['commentator']} sobre {section['title']}, senhor." if section
+                                                else f"O mais recente do {found['commentator']}, senhor.")
+                            else:
+                                direct_reply = (f"{found['commentator']} on {section['title']}, sir." if section
+                                                else f"{found['commentator']}'s latest, sir.")
                         else:
                             commentary = guru.context(found, guru_request.get("subject") or "")
             except Exception as exc:
@@ -432,7 +471,8 @@ class Handler(BaseHTTPRequestHandler):
                     if 0 <= index < len(MEDIA_RESULTS):
                         play = MEDIA_RESULTS[index]
                     else:
-                        direct_reply = f"There were only {len(MEDIA_RESULTS)}, sir."
+                        direct_reply = (f"Só havia {len(MEDIA_RESULTS)}, senhor." if language == "pt"
+                                        else f"There were only {len(MEDIA_RESULTS)}, sir.")
                 elif kind == "next":
                     index = MEDIA_POSITION[0] + 1
                     if index < len(MEDIA_RESULTS):
@@ -444,7 +484,7 @@ class Handler(BaseHTTPRequestHandler):
                 direct_reply = "I can't reach YouTube just now."
             if play is not None and guru_request is None:
                 MEDIA_POSITION[0] = MEDIA_RESULTS.index(play) if play in MEDIA_RESULTS else 0
-                direct_reply = media.announce(play)
+                direct_reply = media.announce(play, language)
             print(f"memory media {kind}{'' if direct_reply or videos else ' FAILED'}", flush=True)
         if (direct_reply is None and videos is None and commentary is None
                 and weather.asks_about_weather(prompt, history)):
@@ -480,12 +520,14 @@ class Handler(BaseHTTPRequestHandler):
         if commentary:
             context = f"{context}\n{commentary}" if context else commentary
         delivery = alfred.SPOKEN_DELIVERY
+        if language == "pt":
+            delivery = f"{delivery}\n{PORTUGUESE_INSTRUCTION}"
         context = f"{context}\n{delivery}" if context else delivery
         history.append({"role": "user", "content": prompt})
         sentences = SentenceBuffer(emit)
         try:
             if direct_reply is not None:
-                reply = direct_reply
+                reply = local(direct_reply, language)
                 sentences.add(reply)
             else:
                 reply = alfred.ask(

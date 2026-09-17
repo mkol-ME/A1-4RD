@@ -17,6 +17,7 @@ whole extra round trip to fix something we already understood.
 
 import json
 import re
+import unicodedata
 import urllib.request
 
 import machine
@@ -403,7 +404,8 @@ def may_need_tools(prompt: str) -> bool:
     turns that are obviously not requests skip it. A wrong skip costs a
     confidently invented answer; a wrong send costs 0.15s.
     """
-    text = " ".join(re.findall(r"[a-z0-9']+", prompt.lower().replace("’", "'")))
+    folded = unicodedata.normalize("NFKD", prompt.lower().replace("’", "'")).encode("ascii", "ignore").decode()
+    text = " ".join(re.findall(r"[a-z0-9']+", folded))
     if not text:
         return False
     words = text.replace("alfred", " ").split()
@@ -422,13 +424,19 @@ CHAT_TURNS = {
     "cool", "nice", "great", "perfect", "awesome", "haha", "haha nice", "lol", "wow",
     "hi", "hello", "hey", "good morning", "good afternoon", "good evening", "good night",
     "whats up", "what's up", "sup",
+    # Brazilian Portuguese, accent-stripped
+    "sim", "nao", "ok", "beleza", "valeu", "obrigado", "obrigada", "muito obrigado", "legal", "show",
+    "entendi", "ta bom", "ta", "oi", "ola", "bom dia", "boa tarde", "boa noite", "tudo bem", "e ai",
+    "haha", "kkk", "kkkk", "nossa",
 }
 # Openers of turns that ask his opinion, or about him, or for a bit. Over ten
 # opinion questions the decider called nothing every time (2026-09-16). "do you
 # think" is not here: "do you think it will rain" rightly goes to the web.
 CHAT_OPENERS = ("what do you think", "are you ", "how are you", "hows it going", "how's it going",
                 "tell me a joke", "tell me another joke", "tell me something funny",
-                "say that again", "can you say that again", "repeat that", "come again")
+                "say that again", "can you say that again", "repeat that", "come again",
+                "me conta uma piada", "conta uma piada", "o que voce acha", "voce esta", "como voce esta",
+                "tudo bem com voce", "repete")
 
 
 CONTINUATIONS = ("and ", "but ", "so ", "or ", "also ", "then ", "what about", "how about", "same ")

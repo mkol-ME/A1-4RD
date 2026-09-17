@@ -116,6 +116,9 @@ DISMISSALS = (
     "that will be all", "that'll be all", "that's all", "thats all", "that is all",
     "go to sleep", "goodnight", "good night", "nevermind", "never mind",
     "dismissed", "stand down", "leave me", "leave me be", "you can go",
+    # Brazilian Portuguese
+    "é só isso", "e so isso", "só isso", "so isso", "pode ir", "boa noite", "tchau", "pode descansar",
+    "obrigado é só isso", "obrigado e so isso",
 )
 # How long he stays in the room with nothing said to him. Long enough to read
 # what he said, try it on the printer, and come back with the next question;
@@ -137,14 +140,15 @@ def to_wav(samples: np.ndarray) -> bytes:
     return buffer.getvalue()
 
 
-def transcribe(samples: np.ndarray) -> tuple[str, float]:
+def transcribe(samples: np.ndarray) -> tuple[str, float, str]:
+    """Text, seconds taken, and the language Whisper heard ("en" or "pt")."""
     request = urllib.request.Request(
         f"{WHISPER_URL}/transcribe", data=to_wav(samples),
         headers={"Content-Type": "audio/wav"},
     )
     with urllib.request.urlopen(request, timeout=60) as response:
         payload = json.loads(response.read())
-    return payload["text"], payload["seconds"]
+    return payload["text"], payload["seconds"], payload.get("language", "en")
 
 
 class EarlyTranscript:
@@ -461,7 +465,7 @@ def main() -> None:
         microphone.deaf = True                 # he does not listen while he talks
         music.duck()
         try:
-            talk.chat(prompt, player, on_media=music.play)
+            talk.chat(prompt, player, on_media=music.play, language=language)
         except Exception as exc:
             print(f"  reply failed: {exc}", file=sys.stderr)
         finally:
@@ -476,7 +480,8 @@ def main() -> None:
             if audio is None:
                 early.pending = None
                 continue
-            heard, seconds = early.take(audio, microphone.ended_by_silence)
+            heard, seconds, *spoken = early.take(audio, microphone.ended_by_silence)
+            language = spoken[0] if spoken else "en"
             if not heard:
                 continue
             if addressed_until and time.monotonic() >= addressed_until:
