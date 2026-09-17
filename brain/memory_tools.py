@@ -167,8 +167,10 @@ TOOLS = [
             "description": (
                 "Live readings from the server Alfred runs on: GPU and CPU temperatures, the "
                 "MI50 fan's speed, power draw, how busy the GPUs are, VRAM, RAID health, disk "
-                "space and uptime. Use it for 'how hot is the gpu', 'how's the server doing', "
-                "'is the fan ok', 'why is the server loud', 'is the raid healthy'."
+                "space and uptime — and what the machine is made of: motherboard, CPU, RAM, "
+                "both GPUs and what each runs, every drive and its role, OS and model. Use it "
+                "for 'how hot is the gpu', 'is the raid healthy', 'why is the server loud', "
+                "'what hardware do you run on', 'what gpu do you have', 'what are your specs'."
             ),
             "parameters": {"type": "object", "properties": {}},
         },

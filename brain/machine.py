@@ -9,7 +9,9 @@ written, and nothing controls the fan: that stays with mi50-fan.service.
 """
 
 import glob
+import json
 import os
+import re
 import shutil
 import subprocess
 import time
@@ -146,6 +148,85 @@ def uptime() -> str:
     return f"{days} day{'s' if days != 1 else ''} {hours} h" if days else f"{hours} h {rest % 3600 // 60} min"
 
 
+def _run(*command: str) -> str:
+    try:
+        return subprocess.run(list(command), capture_output=True, text=True, timeout=5).stdout
+    except Exception:
+        return ""
+
+
+_inventory: list[str] = []
+
+
+def inventory() -> list[str]:
+    """What the machine is made of, and what each part is for. Read once; it does not change."""
+    if _inventory:
+        return _inventory
+    def dmi(field):
+        try:
+            return open(f"/sys/class/dmi/id/{field}").read().strip()
+        except OSError:
+            return ""
+    lines = []
+    board = " ".join(part for part in (dmi("board_vendor").replace(" Co., Ltd.", ""), dmi("board_name")) if part)
+    if board:
+        lines.append(f"- Motherboard: {board}, BIOS {dmi('bios_version') or 'unknown'}")
+    model = next((l.split(":", 1)[1].strip() for l in open("/proc/cpuinfo") if l.startswith("model name")), "unknown CPU")
+    memory = next((int(l.split()[1]) for l in open("/proc/meminfo") if l.startswith("MemTotal")), 0) / 1024 ** 2
+    # MemTotal leaves out what firmware reserves: 48 GB installed reads as 47.
+    installed = -(-memory // 8) * 8 if memory > 6 else memory
+    lines.append(f"- CPU: {model}, {os.cpu_count()} threads; {installed:.0f} GB RAM")
+    gpus = [l.split(": ", 1)[1] for l in _run("lspci").splitlines()
+            if any(kind in l for kind in ("VGA compatible", "Display controller", "3D controller"))]
+    vbios = ""
+    try:
+        vbios = open(f"/sys/bus/pci/devices/{MI50_PCI}/vbios_version").read().strip()
+    except OSError:
+        pass
+    for gpu in gpus:
+        if "MI50" in gpu or "Vega 20" in gpu:
+            model_name = ""
+            try:
+                import alfred
+                model_name = f" ({alfred.DEFAULT_MODEL})"
+            except Exception:
+                pass
+            ollama = _run("ollama", "--version").strip().replace("ollama version is ", "")
+            lines.append(f"- AMD Radeon Instinct MI50, 32 GB HBM2, passively cooled with a server fan on the "
+                         f"motherboard: runs your language model{model_name} through Ollama {ollama} on Vulkan"
+                         + (f"; VBIOS {vbios} (stock, reflashed from a cross-flashed Apple ROM)" if vbios else ""))
+        elif "GTX 1060" in gpu or "GP106" in gpu:
+            driver = _run("nvidia-smi", "--query-gpu=driver_version", "--format=csv,noheader").strip()
+            lines.append(f"- NVIDIA GeForce GTX 1060 6 GB: runs Whisper, your speech recognition"
+                         + (f"; driver {driver}" if driver else ""))
+        else:
+            lines.append(f"- GPU: {gpu}")
+    members = {}
+    try:
+        for line in open("/proc/mdstat"):
+            if line.startswith("md") and ":" in line:
+                name = line.split()[0]
+                for part in line.split()[4:]:
+                    members[re.sub(r"\d*\[\d+\]$", "", part)] = name
+    except OSError:
+        pass
+    try:
+        devices = json.loads(_run("lsblk", "-J", "-d", "-o", "NAME,MODEL,SIZE,ROTA,TRAN")).get("blockdevices", [])
+    except ValueError:
+        devices = []
+    for device in devices:
+        kind = "hard drive" if device.get("rota") in (True, "1") else "SSD"
+        role = (f"in RAID 5 array {members[device['name']]} (holds your memory database)"
+                if device["name"] in members else
+                "system drive (Ubuntu, models)" if device["name"].startswith("nvme") else "spare storage")
+        lines.append(f"- {device.get('model') or device['name']} {device.get('size')} {kind}: {role}")
+    release = next((l.split("=", 1)[1].strip().strip('"') for l in open("/etc/os-release")
+                    if l.startswith("PRETTY_NAME")), "Linux")
+    lines.append(f"- {release}, kernel {os.uname().release}; reached over the LAN and Tailscale")
+    _inventory.extend(lines)
+    return _inventory
+
+
 def _c(value) -> str:
     return f"{value:.0f}°C" if value is not None else "unknown"
 
@@ -176,6 +257,12 @@ def report() -> str:
     storage = disks()
     if storage:
         lines.append("- Disks: " + "; ".join(storage))
+    # "the server you run on" came back as "You're running an i7-8700, sir":
+    # he mirrored the second person onto the user. Say whose hardware it is.
+    lines.append("Hardware of the server that is your brain. It is YOUR hardware, not the user's: say "
+                 "\"I run on…\" or \"my GPU is…\", never \"you're running\". the user's laptop is only your "
+                 "microphone and speaker for now; a Raspberry Pi in your printed body will be later:")
+    lines.extend(inventory())
     return "\n".join(lines)
 
 
