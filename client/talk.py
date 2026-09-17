@@ -34,6 +34,7 @@ FADE_SECONDS = 0.005    # edge ramp, so a trimmed clip starts without a click
 # converts. At 32 kHz WASAPI's on-the-fly converter made his voice crackle live,
 # while the same audio was clean in a media player (2026-09-16).
 SAMPLE_RATE = 48000
+OUTPUT_BUFFER = 0.1     # seconds of audio the device holds; see open_output
 
 
 def decode(data: bytes) -> tuple[np.ndarray, int]:
@@ -63,7 +64,7 @@ def trim(samples: np.ndarray, rate: int) -> np.ndarray:
     return body
 
 
-def open_output() -> sd.OutputStream:
+def open_output(buffer: float = None) -> sd.OutputStream:
     """The lowest-latency way to reach the default speakers, falling back to plain.
 
     PortAudio's default on this laptop is MME, which buffers 91ms before a sound
@@ -71,18 +72,24 @@ def open_output() -> sd.OutputStream:
     The voice now arrives at the device's own 48kHz, so auto_convert does
     nothing here; it stays only for a speaker running at some other rate. The
     microphone stays on MME: there it is the faster of the two (30ms against 60ms).
+
+    That 24ms is also almost no margin. His voice grew crackly the longer a
+    session ran, which is what a warm laptop missing a 24ms deadline sounds like,
+    so the buffer is now OUTPUT_BUFFER. WASAPI ignores "high" here (still 22ms)
+    but honours a number: 0.1 gives 110ms (measured 2026-09-17).
     """
+    latency = OUTPUT_BUFFER if buffer is None else buffer
     try:
         wasapi = next(api for api in sd.query_hostapis() if "WASAPI" in api["name"])
         if wasapi["default_output_device"] >= 0:
             return sd.OutputStream(
                 device=wasapi["default_output_device"], samplerate=SAMPLE_RATE, channels=1,
-                dtype="float32", latency="low",
+                dtype="float32", latency=latency,
                 extra_settings=sd.WasapiSettings(auto_convert=True),
             )
     except (StopIteration, sd.PortAudioError, AttributeError, ValueError):
         pass
-    return sd.OutputStream(samplerate=SAMPLE_RATE, channels=1, dtype="float32", latency="low")
+    return sd.OutputStream(samplerate=SAMPLE_RATE, channels=1, dtype="float32", latency=latency)
 
 
 class Player(threading.Thread):
@@ -94,14 +101,17 @@ class Player(threading.Thread):
     Here the stream stays open for the session and the network keeps running.
     """
 
-    def __init__(self, pause_scale: float = 1.0):
+    def __init__(self, pause_scale: float = 1.0, buffer: float = OUTPUT_BUFFER):
         super().__init__(daemon=True)
         self.queue: queue.Queue = queue.Queue()
         self.pause_scale = pause_scale
         self.deadline = 0.0
+        # Times the device ran dry in the middle of a sentence. A dropout is heard
+        # as a crackle, and this is the only way to tell one from a bad voice.
+        self.dropouts = 0
         # Opening the device costs a few hundred milliseconds. Pay it now, while
         # the tunnel is coming up, rather than on his first sentence.
-        self.stream = open_output()
+        self.stream = open_output(buffer)
         self.stream.start()
         self.start()
 
@@ -144,7 +154,13 @@ class Player(threading.Thread):
         # If the queue starved, the device has already drained and this block
         # starts now rather than where the last one was due to end.
         self.deadline = max(self.deadline, time.perf_counter()) + block.size / rate
-        self.stream.write(block)
+        # Written in 20ms pieces: PortAudio reports an underflow on the write
+        # after it happens, so one write per sentence would blame every dropout
+        # on the silence between sentences. Only mid-sentence ones are counted.
+        piece = int(0.02 * rate)
+        for index, start in enumerate(range(0, block.size, piece)):
+            if self.stream.write(block[start:start + piece]) and index > 0:
+                self.dropouts += 1
 
 
 def run(command: list[str], **kwargs) -> subprocess.CompletedProcess:
@@ -187,7 +203,12 @@ def chat(prompt: str, player, on_media=None) -> tuple[float, float, float]:
                 player.submit(base64.b64decode(frame["audio"]), sentence)
     print()
     if player is not None:
+        dropouts_before = getattr(player, "dropouts", 0)
         player.drain()
+        dropped = getattr(player, "dropouts", 0) - dropouts_before
+        if dropped:
+            print(f"\033[2m  (audio dropped out {dropped} time{'s' if dropped != 1 else ''} mid-sentence: "
+                  f"the laptop fell behind; try --buffer 0.2)\033[0m")
     return total_tts, total_rvc, first_audio or 0.0
 
 

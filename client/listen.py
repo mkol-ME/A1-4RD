@@ -19,6 +19,7 @@ import io
 import json
 import queue
 import re
+import socket
 import subprocess
 import sys
 import time
@@ -98,6 +99,7 @@ MAX_UTTERANCE = 15.0
 # seconds rather than fifteen. Once his name is heard the music ducks, and the
 # command after it is heard cleanly.
 MUSIC_UTTERANCE = 3.0
+INSTANCE_PORT = 5049      # held while listen.py runs, so a second copy refuses to start
 # After his name alone while music plays, how long the next words count as
 # addressed to him without saying it again.
 MUSIC_ADDRESS_SECONDS = 8.0
@@ -418,7 +420,19 @@ def main() -> None:
     parser.add_argument("--hangover", type=float, default=SILENCE_HANGOVER,
                         help="seconds of silence that end your turn; raise it if he cuts you off, "
                              "lower it if he feels slow to answer")
+    parser.add_argument("--buffer", type=float, default=talk.OUTPUT_BUFFER,
+                        help="seconds of audio the speaker holds; raise it if his voice crackles")
     args = parser.parse_args()
+
+    # One Alfred at a time. A second copy started while the first runs finds the
+    # tunnel ports already forwarded, passes its health checks through the first
+    # copy's tunnel, and then both listen and both answer over each other.
+    try:
+        instance_lock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        instance_lock.bind(("127.0.0.1", INSTANCE_PORT))
+    except OSError:
+        print("Alfred is already running in another window. Close that one first.")
+        return
 
     # The unfinished-sentence allowance keeps its margin over the normal one.
     UNFINISHED_HANGOVER = max(UNFINISHED_HANGOVER, args.hangover + 0.6)
@@ -429,7 +443,7 @@ def main() -> None:
         device = int(device)
 
     tunnel = start_tunnels()
-    player = talk.Player(pause_scale=args.pause)
+    player = talk.Player(pause_scale=args.pause, buffer=args.buffer)
     microphone = Microphone(device)
     print(f"Listening. Noise floor {microphone.floor:.4f}, speaking above {microphone.floor * SPEECH_MARGIN:.4f}.")
     if args.open:
