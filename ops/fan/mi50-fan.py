@@ -71,6 +71,11 @@ def main():
 
     write(enable, 1)
     current, last_log = pmax, 0
+    # A stalled fan on a passively cooled card. The floor was lowered from 110 to
+    # 98 after find-floor.sh (2026-09-17), and the step below the one it kept
+    # stopped the fan outright, so the floor is now near stall. Nothing used to
+    # notice a stopped fan until the card heated enough to raise the curve.
+    stall_rpm, stalled_reads = CONF.get("stall_rpm", 300), 0
     # A reply heats the junction 35->55C inside five seconds and it falls just as
     # fast. Steering off the raw reading surged the fan on every sentence, so the
     # curve follows a short rolling average; only a genuinely hot junction
@@ -106,13 +111,31 @@ def main():
                 write(enable, 1)
             if read(pwm) != current:
                 write(pwm, current)
-        except OSError as exc:
+        except (OSError, ValueError) as exc:
             print(f"mi50-fan: write error {exc!r}", flush=True)
+        try:
+            spinning = read(fan)
+        except (OSError, ValueError):
+            spinning = None
+        # Two slow readings in a row, not one: the tachometer reads 0 for a moment
+        # whenever the speed changes sharply.
+        stalled_reads = stalled_reads + 1 if spinning is not None and spinning < stall_rpm else 0
+        if stalled_reads >= 2:
+            print(f"mi50-fan: fan reads {spinning} rpm at pwm {current}; kicking it to full speed "
+                  f"and raising this run's floor from {pmin} to {min(pmax, pmin + 8)}", flush=True)
+            try:
+                write(pwm, pmax)
+                time.sleep(3)
+            except OSError:
+                pass
+            pmin = min(pmax, pmin + 8)
+            current, stalled_reads = pmax, 0
+            continue
         now = time.time()
         if now - last_log >= CONF.get("log_every", 300):
             try:
                 rpm = read(fan)
-            except OSError:
+            except (OSError, ValueError):
                 rpm = -1
             print(f"mi50-fan: edge {e:.0f}C junction {j:.0f}C mem {m:.0f}C -> pwm {current} ({rpm} rpm)", flush=True)
             last_log = now
