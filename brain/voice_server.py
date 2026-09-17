@@ -35,7 +35,12 @@ PIPER_MODEL = Path(os.environ.get(
 ))
 DIRECT_PIPER = "ALFRED_PIPER_MODEL" in os.environ
 RVC_DIR = ROOT / "rvc-model"
-OUTPUT_RATE = 32000
+# 48 kHz, the rate laptop and Pi speakers actually run at. At 32 kHz (what RVC
+# returned) the client had Windows convert on the fly with WASAPI's fast
+# converter, and his voice crackled live while the same audio played cleanly
+# in a media player (2026-09-16). Resampling here, once, with a proper filter,
+# means nothing downstream converts at all.
+OUTPUT_RATE = 48000
 
 
 class VoicePipeline:
@@ -69,7 +74,8 @@ class VoicePipeline:
             if rate != OUTPUT_RATE:
                 divisor = np.gcd(rate, OUTPUT_RATE)
                 samples = resample_poly(samples, OUTPUT_RATE // divisor, rate // divisor)
-            sf.write(converted, samples, OUTPUT_RATE, subtype="PCM_16")
+            # Piper normalises to full scale and resampling overshoots it slightly.
+            sf.write(converted, np.clip(samples, -1.0, 1.0), OUTPUT_RATE, subtype="PCM_16")
         else:
             self.rvc.infer_file(str(source), str(converted))
         finished = time.perf_counter()

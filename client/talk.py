@@ -30,7 +30,10 @@ PAUSE = {".": 0.28, "!": 0.26, "?": 0.30, ",": 0.14, ";": 0.16, ":": 0.16, "—"
 DEFAULT_PAUSE = 0.18
 SILENCE_FLOOR = 0.003   # amplitude below which a sample counts as silence
 FADE_SECONDS = 0.005    # edge ramp, so a trimmed clip starts without a click
-SAMPLE_RATE = 32000     # what RVC returns; the stream is opened on this up front
+# What the voice server sends, and what the speakers run at, so Windows never
+# converts. At 32 kHz WASAPI's on-the-fly converter made his voice crackle live,
+# while the same audio was clean in a media player (2026-09-16).
+SAMPLE_RATE = 48000
 
 
 def decode(data: bytes) -> tuple[np.ndarray, int]:
@@ -65,9 +68,9 @@ def open_output() -> sd.OutputStream:
 
     PortAudio's default on this laptop is MME, which buffers 91ms before a sound
     is heard; WASAPI on the same speakers buffers 24ms (measured 2026-09-16).
-    WASAPI refuses 32kHz outright, since the device runs at 48kHz, so it needs
-    auto_convert. The microphone stays on MME: there it is the faster of the two
-    (30ms against 60ms).
+    The voice now arrives at the device's own 48kHz, so auto_convert does
+    nothing here; it stays only for a speaker running at some other rate. The
+    microphone stays on MME: there it is the faster of the two (30ms against 60ms).
     """
     try:
         wasapi = next(api for api in sd.query_hostapis() if "WASAPI" in api["name"])
