@@ -287,7 +287,20 @@ class SentenceBuffer:
 
 
 class Handler(BaseHTTPRequestHandler):
+    # The few lines the client says without asking him first. They are his
+    # wording, which lives on the array and nowhere else, so the client fetches
+    # them at start-up rather than keeping a copy of the file on the laptop.
+    CLIENT_LINES = ("language_english", "language_portuguese")
+
     def do_GET(self):
+        if self.path == "/lines":
+            body = json.dumps({key: prompts.LINES[key] for key in self.CLIENT_LINES}).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if self.path != "/health":
             self.send_error(404)
             return

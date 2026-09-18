@@ -5,6 +5,7 @@ import argparse
 import base64
 import io
 import json
+import os
 import queue
 import subprocess
 import sys
@@ -44,11 +45,17 @@ HEADROOM = 0.5
 
 
 # Evidence for the next time his voice sounds wrong ("crackly", "under water"):
-# every sentence's playback numbers in client/logs/audio.log, and the last
-# CLIP_KEEP sentences exactly as received in client/logs/clips/. If a saved clip
-# sounds fine in a media player and was bad live, the fault is playback; if the
-# clip itself is bad, it arrived that way.
-LOG_DIR = Path(__file__).resolve().parent / "logs"
+# every sentence's playback numbers in audio.log, and the last CLIP_KEEP
+# sentences exactly as received in clips/. If a saved clip sounds fine in a
+# media player and was bad live, the fault is playback; if the clip itself is
+# bad, it arrived that way.
+#
+# These carry what he said, so they are never written inside the project folder,
+# which may sit in a synced drive. ALFRED_CLIENT_LOGS overrides; the default is
+# per-user scratch space that syncs nowhere. They belong on the server, and
+# ops/privacy/collect-client-logs.sh is what puts them there.
+LOG_DIR = Path(os.environ.get("ALFRED_CLIENT_LOGS")
+               or Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".cache") / "A1-4RD" / "logs")
 CLIP_KEEP = 20
 _clip_counter = [0]
 

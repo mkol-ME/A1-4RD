@@ -38,22 +38,23 @@ import sounddevice as sd
 import talk
 from music import MusicPlayer, control as music_control
 
-# The two confirmations the client says on its own. They are his wording, so
-# they come from the private file rather than living here; ALFRED_PERSONA_DIR
-# points at it on a machine that keeps it elsewhere.
-_PERSONA = Path(os.environ.get("ALFRED_PERSONA_DIR")
-                or Path(__file__).resolve().parent.parent / "persona")
-_EXAMPLES = Path(__file__).resolve().parent.parent / "persona"
+# The two confirmations the client says on its own. They are his wording, which
+# lives on his server and nowhere else, so they are fetched from it rather than
+# kept in a file here. Fetched on first use, not at import: the tunnel to him is
+# not up yet when this module loads. If he cannot be reached there is nothing to
+# confirm anyway, and the plain stand-ins still show the switch happened.
+_WORDING: dict = {}
 
 
-def _wording() -> dict:
-    for candidate in (_PERSONA / "prompts.json", _EXAMPLES / "prompts.example.json"):
-        if candidate.exists():
-            return json.loads(candidate.read_text(encoding="utf-8"))["lines"]
-    return {"language_english": {"en": "English."}, "language_portuguese": {"pt": "Português."}}
-
-
-WORDING = _wording()
+def wording() -> dict:
+    if not _WORDING:
+        try:
+            with urllib.request.urlopen(f"{talk.VOICE_URL}/lines", timeout=3) as response:
+                _WORDING.update(json.load(response))
+        except Exception:
+            _WORDING.update({"language_english": {"en": "English."},
+                             "language_portuguese": {"pt": "Português."}})
+    return _WORDING
 
 
 RATE = 16000            # what Whisper wants; resampling anywhere else is wasted work
@@ -547,7 +548,8 @@ def main() -> None:
         if wanted is None:
             return False
         LISTEN_LANGUAGE[0] = wanted
-        line = WORDING["language_portuguese"]["pt"] if wanted == "pt" else WORDING["language_english"]["en"]
+        said = wording()
+        line = said["language_portuguese"]["pt"] if wanted == "pt" else said["language_english"]["en"]
         print(f"You: {prompt}   [language: {'Portuguese' if wanted == 'pt' else 'English'}]")
         microphone.deaf = True
         try:

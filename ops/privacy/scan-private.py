@@ -38,19 +38,37 @@ def persona_dir() -> Path:
     return Path(os.environ.get("ALFRED_PERSONA_DIR") or ROOT / "persona")
 
 
+def read_private(name: str) -> str | None:
+    """The private file, from wherever it is kept.
+
+    The wording is not supposed to sit on this machine at all, so when it is
+    not here the scan asks the server for it over ssh and keeps it in memory.
+    Without either, there is nothing to check against and the push is refused
+    rather than waved through.
+    """
+    local = persona_dir() / name
+    if local.exists():
+        return local.read_text(encoding="utf-8")
+    import os
+    host = os.environ.get("ALFRED_HOST", "a1-4rd")
+    done = subprocess.run(["ssh", "-o", "ConnectTimeout=8", "-o", "BatchMode=yes", host,
+                           f"cat /srv/storage/alfred/persona/{name}"],
+                          capture_output=True, text=True, errors="replace")
+    return done.stdout if done.returncode == 0 and done.stdout.strip() else None
+
+
 def needles() -> dict[str, set[str]]:
     """What to look for, grouped by what it is, from the private files themselves."""
     found: dict[str, set[str]] = {}
-    directory = persona_dir()
 
     def add(label: str, value: str) -> None:
         value = value.strip()
         if value:
             found.setdefault(label, set()).add(value)
 
-    prompts = directory / "prompts.json"
-    if prompts.exists():
-        data = json.loads(prompts.read_text(encoding="utf-8"))
+    raw = read_private("prompts.json")
+    if raw:
+        data = json.loads(raw)
         if isinstance(data.get("owner_name"), str):
             add("the owner's name", data["owner_name"])
         for key, value in data.items():
@@ -62,21 +80,21 @@ def needles() -> dict[str, set[str]]:
                     add("private prompt wording", phrase)
 
     for name, label in (("alfred.md", "persona wording"), ("examples.md", "a real example exchange")):
-        path = directory / name
-        if not path.exists():
+        text = read_private(name)
+        if not text:
             continue
-        for raw in path.read_text(encoding="utf-8").splitlines():
-            phrase = raw.strip().lstrip("#-* MA:").strip()
+        for line_ in text.splitlines():
+            phrase = line_.strip().lstrip("#-* MA:").strip()
             if len(phrase) >= MIN_PHRASE:
                 add(label, phrase)
 
     for name, label in (("people.local.txt", "a real person's name"),
                         ("location.local.txt", "where he lives"),
                         ("vocabulary.local.txt", "a personal place or school")):
-        path = directory / name
-        if not path.exists():
+        text = read_private(name)
+        if not text:
             continue
-        for token in re.split(r"[\s,]+", path.read_text(encoding="utf-8")):
+        for token in re.split(r"[\s,]+", text):
             if len(token.strip()) >= 4:
                 add(label, token.strip())
 
@@ -132,7 +150,8 @@ def main() -> int:
 
     marks = needles()
     if not marks:
-        print("No private files found to check against — is ALFRED_PERSONA_DIR set?", file=sys.stderr)
+        print("Nothing to check against: no private files here and the server did not answer.\n"
+              "The scan refuses rather than passes a push it could not inspect.", file=sys.stderr)
         return 1
 
     hits: list[tuple[str, str, str]] = []
