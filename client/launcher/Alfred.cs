@@ -72,9 +72,15 @@ static class Alfred
             {
                 listen.WaitForExit();
                 // 0 is a normal goodbye; Ctrl+C in Python exits with 0xC000013A.
-                if (listen.ExitCode != 0 && listen.ExitCode != unchecked((int)0xC000013A))
-                    return Fail("listen.py stopped with exit code " + listen.ExitCode + ".");
-                return 0;
+                if (listen.ExitCode == 0 || listen.ExitCode == unchecked((int)0xC000013A))
+                    return 0;
+                // Anything else has already said its piece on this console -- its own
+                // message, or a traceback. Hold the window open so it can be read
+                // instead of talking over it in red.
+                Console.WriteLine();
+                Console.WriteLine("listen.py stopped (exit code " + listen.ExitCode + "). Press Enter to close.");
+                Console.ReadLine();
+                return listen.ExitCode;
             }
         }
         catch (Exception error)

@@ -481,7 +481,10 @@ def main() -> None:
         instance_lock.bind(("127.0.0.1", INSTANCE_PORT))
     except OSError:
         print("Alfred is already running in another window. Close that one first.")
-        return
+        # Refusing to start is not the ordinary goodbye. Exit non-zero so the
+        # launcher holds the window open: on a double-click the console dies with
+        # the process, and a clean exit took the line above with it.
+        sys.exit(1)
 
     # The unfinished-sentence allowance keeps its margin over the normal one.
     UNFINISHED_HANGOVER = max(UNFINISHED_HANGOVER, args.hangover + 0.6)

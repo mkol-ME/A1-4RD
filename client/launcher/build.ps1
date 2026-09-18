@@ -20,6 +20,12 @@ $exe = Join-Path $bin "Alfred.exe"
 if ($LASTEXITCODE -ne 0) { throw "compile failed" }
 
 $desktop = [Environment]::GetFolderPath("Desktop")
-Copy-Item $exe (Join-Path $desktop "Alfred.exe") -Force
+# A running Alfred holds its own exe open, so say so rather than dying on a
+# raw IOException. The bin copy above is already the new one.
+try {
+    Copy-Item $exe (Join-Path $desktop "Alfred.exe") -Force
+} catch {
+    throw "Built $exe, but could not replace the Desktop copy: $($_.Exception.Message)`nClose the Alfred window if one is open, then run this again."
+}
 Write-Host "Built $exe"
 Write-Host "Copied to $(Join-Path $desktop 'Alfred.exe')"
