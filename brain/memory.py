@@ -248,6 +248,19 @@ class Memory:
         self.db.execute("CREATE TABLE IF NOT EXISTS facts (id INTEGER PRIMARY KEY, text TEXT NOT NULL UNIQUE COLLATE NOCASE, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
         self.db.execute("CREATE TABLE IF NOT EXISTS exchanges (id INTEGER PRIMARY KEY, user_text TEXT NOT NULL, assistant_text TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
         self.db.execute("CREATE TABLE IF NOT EXISTS embeddings (exchange_id INTEGER PRIMARY KEY, model TEXT NOT NULL, vector BLOB NOT NULL)")
+        # Two indexes, both measured rather than assumed (2026-09-18).
+        #
+        # exchanges(created_at): recent() asks for the last few turns inside a
+        # time window. Mid-conversation that costs nothing either way, because
+        # it finds its six immediately. After a quiet spell there is nothing in
+        # the window, and without this it reads every exchange ever recorded to
+        # prove it: 22ms at 200,000 rows, on the first turn after a pause. With
+        # it, 0.06ms. Every utterance is kept now, so that table only grows.
+        #
+        # embeddings(model): the start-up sync and the backfill both ask which
+        # rows belong to the current scheme. 238ms -> 31ms at 50,000 rows.
+        self.db.execute("CREATE INDEX IF NOT EXISTS exchanges_created_at ON exchanges(created_at)")
+        self.db.execute("CREATE INDEX IF NOT EXISTS embeddings_model ON embeddings(model)")
         self.db.commit()
         self.vec = self._open_index()
 
@@ -374,8 +387,12 @@ class Memory:
         search — where only the owner's own words come back.
         """
         rows = self.db.execute(
+            # Ordered by time rather than by id so the index above can be used
+            # and the search can stop at the window's edge. The two orders are
+            # the same list: ids are handed out in the order rows are written,
+            # and id breaks any tie inside one second.
             "SELECT user_text, assistant_text FROM exchanges "
-            "WHERE created_at >= datetime('now', ?) ORDER BY id DESC LIMIT ?",
+            "WHERE created_at >= datetime('now', ?) ORDER BY created_at DESC, id DESC LIMIT ?",
             (f"-{int(within_minutes)} minutes", limit),
         ).fetchall()
         messages = []

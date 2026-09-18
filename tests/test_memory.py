@@ -10,10 +10,15 @@ from memory import Memory, local_time_reply, now_line
 
 class MemoryTests(unittest.TestCase):
     def test_clock_instruction_uses_normal_numeric_time(self):
+        # What matters is the shape: a real clock, the date around it, and an
+        # instruction to hand it over plainly. The phrasing itself is his, and
+        # lives in the private wording, so a checkout without it renders the
+        # stand-in — the assertions hold for either.
         line = now_line()
         self.assertRegex(line, r"\b(?:1[0-2]|[1-9]):[0-5][0-9] [AP]M\b")
+        self.assertRegex(line, r"\b(?:January|February|March|April|May|June|July|August|"
+                               r"September|October|November|December)\b")
         self.assertIn("reply only", line)
-        self.assertIn("normal numeric format", line)
 
     def test_fast_clock_reply_is_short_and_numeric(self):
         self.assertRegex(local_time_reply(), r"^(?:1[0-2]|[1-9]):[0-5][0-9] [AP]M\b")
