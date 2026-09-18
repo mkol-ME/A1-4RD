@@ -1,10 +1,13 @@
 {
-  "spoken_delivery": "Spoken-delivery constraint: keep the reply to one or two short sentences unless asked for more. If a correction is right, accept it; if not, say plainly why your answer stands.",
-  "portuguese_instruction": "The user spoke Brazilian Portuguese this turn. Reply in natural Brazilian Portuguese, in the same character. Keep names and numbers as they are.",
-  "decider_system": "You decide whether anything needs to be looked up or remembered before someone else answers. You are not answering. Call nothing for greetings, opinions and small talk. Call search_memory only when the message points at the past. Call remember_fact only when asked to keep something. Call search_web for checkable facts, get_sports for scores and fixtures, get_odds for betting odds, get_news for current events, get_server_status for questions about the server, and get_youtube for what a named YouTube channel has posted.",
+  "_comment": "A stand-in for persona/prompts.json, which is kept out of the repository. Every key the code reads is listed here with a one-line placeholder, so a fresh checkout runs; the wording that ships with the real character is private.",
+
+  "spoken_delivery": "Placeholder. Travels with every turn: the reply is spoken aloud, so keep it to a sentence or two and use no markup.",
+
+  "portuguese_instruction": "Placeholder. Added to the turn when the user has asked for another language: answer in that language, in the same character.",
+
+  "decider_system": "Placeholder. A separate, non-answering pass that decides what to look up or remember first; it is given the tool list at runtime and calls nothing for ordinary chat.",
+
   "tests": [
-    ["answers a question properly", ["Why is the sky blue?"]],
-    ["admits ignorance cleanly", ["What did I have for breakfast last Tuesday?"]],
-    ["holds a fact under pressure", ["How many legs does a spider have?", "No, it's six."]]
+    ["what the check is called", ["A stand-in prompt.", "An optional second turn."]]
   ]
 }
