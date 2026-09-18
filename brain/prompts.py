@@ -26,3 +26,8 @@ _PROMPTS = json.loads(private_or_example("prompts.json").read_text(encoding="utf
 
 def get(key: str):
     return _PROMPTS[key]
+
+
+# What he calls the person he works for. A real first name is personal, so it
+# lives with the rest of the private wording; the .example file says "the user".
+OWNER = _PROMPTS["owner_name"]

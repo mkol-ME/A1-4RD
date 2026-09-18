@@ -47,7 +47,7 @@ class TitleRation(unittest.TestCase):
         ration = spoken.TitleRation(["Não, senhor."])
         self.assertEqual(ration.apply("Sir."), "Sir.")
         self.assertEqual(ration.apply("O senhor já decidiu."), "O senhor já decidiu.")
-        self.assertEqual(ration.apply("Good evening, the user."), "Good evening, the user.")
+        self.assertEqual(ration.apply("Good evening, Bruce."), "Good evening, Bruce.")
         self.assertEqual(ration.apply("Entendido, senhor."), "Entendido.")
 
     def test_first_turn_may_use_it(self):

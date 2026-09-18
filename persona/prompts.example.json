@@ -1,6 +1,8 @@
 {
   "_comment": "A stand-in for persona/prompts.json, which is kept out of the repository. Every key the code reads is listed here with a one-line placeholder, so a fresh checkout runs; the wording that ships with the real character is private.",
 
+  "owner_name": "the user",
+
   "spoken_delivery": "Placeholder. Travels with every turn: the reply is spoken aloud, so keep it to a sentence or two and use no markup.",
 
   "portuguese_instruction": "Placeholder. Added to the turn when the user has asked for another language: answer in that language, in the same character.",

@@ -7,7 +7,7 @@ is different — it arrives unasked in front of every turn, so a loose match is
 noise he may repeat back, while a miss only leaves him answering as he would
 have anyway. That asymmetry says the bar belongs higher, and this says where.
 
-Memories and probes here are invented, not the user's own, so this can live in
+Memories and probes here are invented, not the owner's own, so this can live in
 the repository: what is being measured is the embedder's geometry, not him.
 
     python3 brain/recall_eval.py              # the table

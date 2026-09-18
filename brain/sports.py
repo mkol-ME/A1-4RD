@@ -91,7 +91,7 @@ def _find(query: str) -> dict | None:
 
 
 def when(stamp: str) -> str:
-    """'2026-09-20T17:00Z' as 'Sunday 1:00 PM' in the user's time zone."""
+    """'2026-09-20T17:00Z' as 'Sunday 1:00 PM' in the owner's time zone."""
     try:
         moment = datetime.fromisoformat(stamp.replace("Z", "+00:00")).astimezone(ZoneInfo(TIMEZONE))
     except Exception:

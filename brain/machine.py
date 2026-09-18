@@ -16,6 +16,8 @@ import shutil
 import subprocess
 import time
 
+import prompts
+
 MI50_PCI = os.environ.get("ALFRED_MI50_PCI", "0000:03:00.0")
 FAN_CHIP = os.environ.get("ALFRED_FAN_CHIP", "nct6797")
 FAN_HEADER = int(os.environ.get("ALFRED_FAN_HEADER", "7"))
@@ -258,9 +260,9 @@ def report() -> str:
     if storage:
         lines.append("- Disks: " + "; ".join(storage))
     # "the server you run on" came back as "You're running an i7-8700, sir":
-    # he mirrored the second person onto the user. Say whose hardware it is.
-    lines.append("Hardware of the server that is your brain. It is YOUR hardware, not the user's: say "
-                 "\"I run on…\" or \"my GPU is…\", never \"you're running\". the user's laptop is only your "
+    # he mirrored the second person onto the owner. Say whose hardware it is.
+    lines.append(f"Hardware of the server that is your brain. It is YOUR hardware, not {prompts.OWNER}'s: say "
+                 f"\"I run on…\" or \"my GPU is…\", never \"you're running\". {prompts.OWNER}'s laptop is only your "
                  "microphone and speaker for now; a Raspberry Pi in your printed body will be later:")
     lines.extend(inventory())
     return "\n".join(lines)

@@ -39,9 +39,9 @@ class MemoryTests(unittest.TestCase):
             other.close()
 
     def test_fact_lifecycle(self):
-        fact_id = self.memory.remember("the user uses PrusaSlicer")
-        self.assertEqual(self.memory.facts(), [(fact_id, "the user uses PrusaSlicer")])
-        self.assertEqual(self.memory.remember("owner uses prusaslicer"), fact_id)
+        fact_id = self.memory.remember("Bruce uses PrusaSlicer")
+        self.assertEqual(self.memory.facts(), [(fact_id, "Bruce uses PrusaSlicer")])
+        self.assertEqual(self.memory.remember("bruce uses prusaslicer"), fact_id)
         self.assertTrue(self.memory.forget(fact_id))
         self.assertEqual(self.memory.facts(), [])
 
@@ -62,7 +62,7 @@ class MemoryTests(unittest.TestCase):
         recent = self.memory.recent(limit=2)
         self.assertEqual([message["content"] for message in recent], ["question 6", "answer 6", "question 7", "answer 7"])
 
-    def test_recall_skips_recent_and_finds_what_owner_said(self):
+    def test_recall_skips_recent_and_finds_what_the_owner_said(self):
         self.memory.record("My Voron uses ABS filament", "A sensible pairing, sir.")
         for number in range(6):
             self.memory.record(f"unrelated message {number}", "Quite.")

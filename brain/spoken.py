@@ -19,7 +19,7 @@ def looks_portuguese(sentence: str) -> bool:
 
 
 # "sir" came back in 30 of 34 replies on the first day of the new persona, and
-# reads as a tic long before it reads as manners (the user, 2026-09-17). The model
+# reads as a tic long before it reads as manners (owner, 2026-09-17). The model
 # does not keep to a rate it is asked for, so the rate is kept here: at most once
 # a reply, and only when neither of his last two replies had it. Once a reply and
 # never twice running still came to 8 of 13. Only the vocative is removed ("Yes, sir."

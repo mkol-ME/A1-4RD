@@ -31,6 +31,8 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import prompts
+
 try:                                # present in the voice server's venv, absent
     import numpy as _np             # from the system python the terminal uses
 except ImportError:
@@ -44,7 +46,7 @@ except ImportError:
 EMBED_SERVER = os.environ.get("ALFRED_EMBED_SERVER", "http://localhost:11434")
 EMBED_MODEL = os.environ.get("ALFRED_EMBED_MODEL", "nomic-embed-text")
 EMBED_DIMS = 768
-# Only the user's own messages are embedded. Bumping this invalidates every
+# Only the owner's own messages are embedded. Bumping this invalidates every
 # stored vector, because the text behind them changed meaning.
 EMBED_SCHEME = "owner-only"
 EMBED_KEY = f"{EMBED_MODEL}/{EMBED_SCHEME}"
@@ -77,7 +79,7 @@ QUERY_PREFIX = "search_query: "
 # "how do I tune a guitar", whose best match is noise at 0.549.
 SIMILARITY_FLOOR = 0.58
 
-# The box runs UTC and the user does not. Injecting the server clock raw had him
+# The box runs UTC and the owner does not. Injecting the server clock raw had him
 # saying Wednesday 3am when it was Tuesday 11pm — wrong hour and wrong day, and
 # exactly the confident wrongness this is meant to remove.
 TIMEZONE = os.environ.get("ALFRED_TIMEZONE", "America/New_York")
@@ -95,7 +97,7 @@ def local_time_reply(language: str = "en") -> str:
 
 
 def now_line() -> str:
-    """What the time is where the user is, phrased for a system message.
+    """What the time is where the owner is, phrased for a system message.
 
     The permission at the end is load-bearing. alfred.md tells him never to
     invent details about his day, which he read as covering the hour: given
@@ -118,7 +120,7 @@ def now_line() -> str:
     clock = f"{(stamp.hour % 12 or 12)}:{stamp.minute:02d} {stamp.strftime('%p')}"
     return (f"Current local date and time: {stamp.strftime('%A, %B')} "
             f"{stamp.day}, {stamp.year}, {clock}. This is current and correct. "
-            f"If the user asks only for the time, reply only: '{clock}, sir.' "
+            f"If {prompts.OWNER} asks only for the time, reply only: '{clock}, sir.' "
             "Use that normal numeric format; do not translate it into phrases such as "
             "'minutes to', and do not add commentary or describe how you know it.")
 
@@ -338,7 +340,7 @@ class Memory:
             (user_text, assistant_text),
         )
         self.db.commit()
-        # Only what the user said is embedded. What Alfred answered is kept in the
+        # Only what the owner said is embedded. What Alfred answered is kept in the
         # row and never made searchable — see the class docstring.
         vectors = _embed([DOCUMENT_PREFIX + user_text])
         if vectors:
@@ -371,7 +373,7 @@ class Memory:
         the previous evening and he was still reading his own words from then.
 
         Past this window it is not conversation any more, and it belongs to
-        search — where only the user's own words come back.
+        search — where only the owner's own words come back.
         """
         rows = self.db.execute(
             "SELECT user_text, assistant_text FROM exchanges "
@@ -407,13 +409,13 @@ class Memory:
 
     def search(self, query: str, limit: int = 3, skip_recent: int = 0,
                floor: float | None = None) -> list[dict]:
-        """What the user has said that relates to `query`, with similarity scores.
+        """What the owner has said that relates to `query`, with similarity scores.
 
         Alfred's own replies are deliberately absent. He guessed "past midnight"
         at five past eleven, that guess was recorded, and recall returned it at
         0.737 — above the floor — as an earlier conversation, which he then
         repeated word for word. His answers are inferences, not evidence; only
-        what the user actually said is treated as ground truth. The replies stay
+        what the owner actually said is treated as ground truth. The replies stay
         in the `exchanges` table, so the record is complete; they are simply
         never handed back to him as a source.
         """
@@ -458,7 +460,7 @@ class Memory:
 
     def recall(self, query: str, limit: int = 3, skip_recent: int = 6,
                floor: float | None = None) -> list[str]:
-        """The things the user said that relate to this message."""
+        """The things the owner said that relate to this message."""
         return [hit["user"] for hit in self.search(query, limit, skip_recent, floor)]
 
     def _recall_by_words(self, query: str, limit: int, skip_recent: int) -> list[str]:
@@ -481,11 +483,11 @@ class Memory:
                  "Do not mention memory unless it naturally helps answer the current message.",
                  now_line()]
         if facts:
-            lines.append("Known facts the user explicitly asked me to remember:")
+            lines.append(f"Known facts {prompts.OWNER} explicitly asked me to remember:")
             lines.extend(f"- {text}" for _, text in facts)
         if recalled:
-            lines.append("Things the user has said before that may be relevant:")
-            lines.extend(f"- the user: {user_text}" for user_text in recalled)
+            lines.append(f"Things {prompts.OWNER} has said before that may be relevant:")
+            lines.extend(f"- {prompts.OWNER}: {user_text}" for user_text in recalled)
         return "\n".join(lines)[:5000]
 
     def close(self) -> None:

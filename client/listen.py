@@ -10,7 +10,7 @@ word with nothing to train, which no small off-the-shelf model offers for
 changes and this is the piece to replace.
 
 Nothing leaves the LAN: the audio goes over the same SSH tunnel as everything
-else, and is transcribed on the user's own machine.
+else, and is transcribed on the owner's own machine.
 """
 
 import argparse
@@ -49,7 +49,7 @@ FLOOR_MINIMUM = 0.004
 # handoff feels immediate. At 0.55s every turn had a conspicuous half-second
 # pause before transcription could even begin — but that was before early
 # transcription, which now overlaps most of the wait. At 0.40s, in the second
-# real session (2026-09-16), he kept answering before the user had finished:
+# real session (2026-09-16), he kept answering before the owner had finished:
 # a pause after a complete-sounding phrase ended the turn, and since he does not
 # listen while he talks, the rest of the sentence was simply lost. Being cut off
 # is worse than 0.2s more wait. Tune with --hangover rather than editing this.
@@ -281,7 +281,7 @@ def is_dismissal(prompt: str) -> bool:
 def strip_wake_word(text: str) -> str | None:
     """The prompt with his name removed, or None if he was not addressed.
 
-    Returns bare lowercase words, which looks lossy and is not: the user types to
+    Returns bare lowercase words, which looks lossy and is not: the owner types to
     him in lowercase without punctuation, and examples.md is deliberately written
     in that same register because tidied-up exemplars made him correct correct
     usage. Speech arriving as "Why does my first layer lift?" would be the odd

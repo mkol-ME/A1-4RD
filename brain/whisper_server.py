@@ -24,6 +24,7 @@ from pathlib import Path
 from faster_whisper import WhisperModel, decode_audio
 
 import audio_archive
+import prompts
 
 # The client says which language it is listening in: "en" (the default) or "pt".
 #
@@ -34,7 +35,7 @@ import audio_archive
 # Guessing the language on every turn was tried first (2026-09-17): English
 # first, and a multilingual second pass when the English model scored its own
 # tokens badly. It caught 32/32 Portuguese test clips, but in real use switching
-# back and forth was unreliable, and the user asked for an explicit command.
+# back and forth was unreliable, and the owner asked for an explicit command.
 MODEL = "small.en"
 MULTILINGUAL_MODEL = "small"
 MODES = ("en", "pt")
@@ -60,8 +61,11 @@ ARCHIVE = None
 # git ignores, rather than here. Skipping timestamps (-26ms) and the VAD (-5ms)
 # were measured too and not taken: both added errors, and the VAD is what keeps
 # a keyboard click from being transcribed as a sentence.
+# His name and the owner's lead the list. The owner's is private, so it comes
+# from persona/prompts.json with the rest of his wording.
+NAMES = f"Alfred. {prompts.OWNER}."
 VOCABULARY = (
-    "Alfred. the user. Bambu P1S, PETG, ABS, PLA, TPU, filament, nozzle, extruder, "
+    f"{NAMES} Bambu P1S, PETG, ABS, PLA, TPU, filament, nozzle, extruder, "
     "retraction, brim, raft, first layer, bed adhesion, warping, gcode, slicer, "
     "Klipper, Marlin, infill, elephant foot, Ollama, Qwen, git, commit, repository."
 )
@@ -75,11 +79,11 @@ if LOCAL_VOCABULARY.exists():
 # "Tiago" into one spelling, and left "o chão está molhado" alone. Friends'
 # names are personal, so they live in persona/people.local.txt, one per line.
 LOCAL_PEOPLE = Path(__file__).resolve().parent.parent / "persona" / "people.local.txt"
-PEOPLE = "Alfred. the user."
+PEOPLE = NAMES
 if LOCAL_PEOPLE.exists():
     PEOPLE += " " + " ".join(f"{name.strip()}." for name in LOCAL_PEOPLE.read_text(encoding="utf-8").splitlines()
                              if name.strip())
-VOCABULARY = PEOPLE + VOCABULARY.removeprefix("Alfred. the user.")
+VOCABULARY = PEOPLE + VOCABULARY.removeprefix(NAMES)
 # Portuguese gets names only. With the printing terms too, "toca Bohemian
 # Rhapsody" came back as "toca a Bambu P1S": the prompt leaked into the words.
 PROMPTS = {"en": VOCABULARY, "pt": PEOPLE}

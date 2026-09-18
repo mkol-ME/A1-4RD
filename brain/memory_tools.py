@@ -41,7 +41,7 @@ TOOLS = [
         "function": {
             "name": "search_memory",
             "description": (
-                "Search the things the user has told me before, by meaning rather than by "
+                f"Search the things {prompts.OWNER} has told me before, by meaning rather than by "
                 "keyword. Use it when he refers to something from an earlier conversation, "
                 "when he asks what he told me, or when knowing what he has said would change "
                 "the answer. Returns his own words only, never my past replies. Returns "
@@ -71,7 +71,7 @@ TOOLS = [
         "function": {
             "name": "remember_fact",
             "description": (
-                "Write down one durable fact about the user, his machines, or his preferences — "
+                f"Write down one durable fact about {prompts.OWNER}, his machines, or his preferences — "
                 "something that will still be true next month and that I should know without "
                 "being told again. Not for passing detail: the conversation is already saved "
                 "in full, so this is only for what deserves to be surfaced every time. One "
@@ -96,7 +96,7 @@ TOOLS = [
             "name": "search_web",
             "description": (
                 "Look something up on the web when the answer is a fact I could be wrong "
-                "about and the user would be worse off if I guessed — a number, a setting, a "
+                f"about and {prompts.OWNER} would be worse off if I guessed — a number, a setting, a "
                 "date, a specification, a name, anything that changed recently. Prefer this "
                 "over answering from memory whenever being wrong would cost him a print, a "
                 "part, or an afternoon. Do not use it for opinions, for advice about his own "
@@ -235,7 +235,7 @@ TOOLS = [
         "function": {
             "name": "forget_fact",
             "description": (
-                "Delete one durable fact by id, when the user says it is wrong or no longer true. "
+                f"Delete one durable fact by id, when {prompts.OWNER} says it is wrong or no longer true. "
                 "Look the id up with list_facts first — never guess it."
             ),
             "parameters": {
@@ -342,7 +342,7 @@ def dispatch(memory, name: str, raw_arguments) -> dict:
                           else "nothing relevant was found")
                 return {"ok": True, "found": 0, "note":
                         f"The search returned nothing usable ({reason}). "
-                        f"Tell the user you do not know rather than guessing."}
+                        f"Tell {prompts.OWNER} you do not know rather than guessing."}
             return {"ok": True, "found": len(results), "results": results,
                     "problems": problems or None}
 
@@ -535,13 +535,13 @@ def consult(memory, prompt: str, model: str, server: str, timeout: int = 30,
     if history and not stands_alone(prompt):
         tail = history[-4:]
         transcript = "\n".join(
-            f"{'the user' if item.get('role') == 'user' else 'Previous assistant'}: "
+            f"{prompts.OWNER if item.get('role') == 'user' else 'Previous assistant'}: "
             f"{item.get('content', '')}" for item in tail
         )
         decision_prompt = (
             "Recent conversation is supplied only to resolve references in the current "
             "message. Previous assistant claims may be wrong and are not evidence.\n"
-            f"{transcript}\nCurrent message from the user: {prompt}"
+            f"{transcript}\nCurrent message from {prompts.OWNER}: {prompt}"
         )
     messages = [{"role": "system", "content": DECIDER_SYSTEM},
                 {"role": "user", "content": decision_prompt}]
@@ -553,7 +553,7 @@ def consult(memory, prompt: str, model: str, server: str, timeout: int = 30,
             # and nobody ever reads what it writes. Uncapped it spent 5.63s
             # composing a reply to "why does my first layer keep lifting" and
             # then called nothing, which was pure latency in front of the answer
-            # the user was waiting for. The cap cannot truncate a real call; it
+            # the owner was waiting for. The cap cannot truncate a real call; it
             # only stops it writing an essay into the bin.
             payload = {"model": model, "keep_alive": -1,
                        "messages": messages, "stream": False,
@@ -621,11 +621,11 @@ def _render(memory, searched: list, found_online: list = (), reports: list = ())
              "Do not mention memory unless it naturally helps answer the current message.",
              "Anything not written here, you do not remember. Say so rather than guessing."]
     if facts:
-        lines.append("Known facts the user explicitly asked me to remember:")
+        lines.append(f"Known facts {prompts.OWNER} explicitly asked me to remember:")
         lines.extend(f"- {text}" for _, text in facts)
     if searched:
         lines.append(
-            "Things the user has said before, retrieved for this message. These are his own "
+            f"Things {prompts.OWNER} has said before, retrieved for this message. These are his own "
             "words, not yours — what you replied at the time is deliberately not shown, "
             "because it was an inference and may have been wrong:")
         seen = set()
@@ -633,7 +633,7 @@ def _render(memory, searched: list, found_online: list = (), reports: list = ())
             if hit["user"] in seen:
                 continue
             seen.add(hit["user"])
-            lines.append(f"- the user: {hit['user']}")
+            lines.append(f"- {prompts.OWNER}: {hit['user']}")
 
     # Scores and headlines from their own feeds. Each report carries its own
     # framing: sports as current data, headlines as quotation.

@@ -75,7 +75,7 @@ class VoicePipeline:
             )
             self.rvc.set_params(f0method="rmvpe", index_rate=0.7, protect=0.33)
         # Portuguese replies get a Brazilian voice. His own was trained on English
-        # only; a different voice in Portuguese is accepted (the user, 2026-09-17).
+        # only; a different voice in Portuguese is accepted (owner, 2026-09-17).
         self.voices = {"en": self.piper}
         if PORTUGUESE_MODEL.exists():
             self.voices["pt"] = PiperVoice.load(PORTUGUESE_MODEL, use_cuda=False)

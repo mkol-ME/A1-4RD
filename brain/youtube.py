@@ -1,4 +1,4 @@
-"""What a YouTube channel has posted lately, by the name the user calls it.
+"""What a YouTube channel has posted lately, by the name the owner calls it.
 
 Only the MMA Guru was wired in, by channel id. Asked for "Money Manzell MMA's
 latest post" or "Bedtime MMA's UFC 331 predictions", the decider fell back to
@@ -20,6 +20,8 @@ import unicodedata
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
+
+import prompts
 
 MEDIA_URL = os.environ.get("ALFRED_MEDIA_URL", "http://127.0.0.1:5053").rstrip("/")
 TIMEOUT = 30
@@ -109,7 +111,7 @@ def lookup(channel: str, topic: str | None = None) -> dict:
         found = best_channel(channel, _get("/find_channel", q=channel)["channels"])
         if found is None:
             return {"ok": True, "found": 0, "note": f"No YouTube channel called anything like '{channel}' "
-                                                    f"turned up. Tell the user so; do not guess one."}
+                                                    f"turned up. Tell {prompts.OWNER} so; do not guess one."}
         uploads = _get("/channel", id=found["id"], n=UPLOADS_READ)["uploads"]
     except Exception as exc:
         return {"ok": False, "found": 0, "note": f"YouTube could not be reached ({exc}). Say so."}

@@ -6,8 +6,8 @@ terabytes free and speech is small â€” an hour of 16 kHz mono is about 115 MB â€
 the audio is kept and the transcript stored beside it.
 
 What it is for: re-transcribing old conversations when the model improves, and
-telling the user's voice from anyone else's in the room, which per-person memory
-needs before it can be enforced (the user, 2026-09-17).
+telling the owner's voice from anyone else's in the room, which per-person memory
+needs before it can be enforced (owner, 2026-09-17).
 
 Nothing leaves the box. A cap on total size keeps it from ever filling the
 array: when the archive grows past it, the oldest clips go first.

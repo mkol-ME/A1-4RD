@@ -120,7 +120,7 @@ def named_place(prompt: str) -> str | None:
 
 
 def home() -> tuple[str, float, float] | None:
-    """Where the user is, from the git-ignored local file."""
+    """Where the owner is, from the git-ignored local file."""
     raw = os.environ.get("ALFRED_LOCATION", "")
     if not raw and LOCAL_LOCATION.exists():
         raw = LOCAL_LOCATION.read_text(encoding="utf-8").strip()
