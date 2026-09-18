@@ -1,7 +1,7 @@
 # A1-4RD — "Alfred"
 
-A 3D-printed desk companion with a moving jaw and a voice, in the spirit of Alfred Pennyworth from
-*Batman: The Animated Series*: dry, warm, terse, and genuinely useful. Not a smart speaker.
+A 3D-printed desk companion with a moving jaw and a voice, written in the manner of an old-fashioned
+butler: dry, warm, terse, and genuinely useful. Not a smart speaker.
 
 Everything runs locally. A laptop (later a Raspberry Pi inside the printed body) is the face: microphone,
 speaker, wake word. A headless Ubuntu box on the LAN is the brain: speech recognition, memory, web lookup,
