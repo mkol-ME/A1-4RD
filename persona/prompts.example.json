@@ -1,15 +1,95 @@
 {
   "_comment": "A stand-in for persona/prompts.json, which is kept out of the repository. Every key the code reads is listed here with a one-line placeholder, so a fresh checkout runs; the wording that ships with the real character is private.",
-
   "owner_name": "the user",
-
   "spoken_delivery": "Placeholder. Travels with every turn: the reply is spoken aloud, so keep it to a sentence or two and use no markup.",
-
   "portuguese_instruction": "Placeholder. Added to the turn when the user has asked for another language: answer in that language, in the same character.",
-
   "decider_system": "Placeholder. A separate, non-answering pass that decides what to look up or remember first; it is given the tool list at runtime and calls nothing for ordinary chat.",
-
   "tests": [
-    ["what the check is called", ["A stand-in prompt.", "An optional second turn."]]
-  ]
+    [
+      "what the check is called",
+      [
+        "A stand-in prompt.",
+        "An optional second turn."
+      ]
+    ]
+  ],
+  "lines": {
+    "ready": {
+      "en": "Ready."
+    },
+    "holding": {
+      "en": [
+        "One moment.",
+        "Let me look.",
+        "A moment.",
+        "Checking."
+      ],
+      "pt": [
+        "Um momento.",
+        "Deixa eu ver.",
+        "Só um instante.",
+        "Verificando."
+      ]
+    },
+    "media_announce": {
+      "en": [
+        "{title}.",
+        "Putting on {title}."
+      ],
+      "pt": [
+        "{title}.",
+        "Colocando {title}."
+      ]
+    },
+    "clock": {
+      "en": "{clock}.",
+      "pt": "São {clock}."
+    },
+    "clock_instruction": {
+      "en": "Current local date and time: {date}. This is current and correct. If {owner} asks only for the time, reply only: '{clock}' and nothing else."
+    },
+    "guru_here": {
+      "en": "Here it is.",
+      "pt": "Aqui está."
+    },
+    "guru_not_found": {
+      "en": "I can't find him talking about that.",
+      "pt": "Não encontrei ele falando sobre isso."
+    },
+    "guru_unreachable": {
+      "en": "I can't reach his videos just now.",
+      "pt": "Não consigo acessar os vídeos dele agora."
+    },
+    "guru_section": {
+      "en": "{commentator} on {title}.",
+      "pt": "{commentator} sobre {title}."
+    },
+    "guru_latest": {
+      "en": "{commentator}'s latest.",
+      "pt": "O mais recente do {commentator}."
+    },
+    "media_no_match": {
+      "en": "I couldn't find anything by that name.",
+      "pt": "Não encontrei nada com esse nome."
+    },
+    "media_last": {
+      "en": "That was the last of them.",
+      "pt": "Esse era o último."
+    },
+    "media_only_n": {
+      "en": "There were only {count}.",
+      "pt": "Só havia {count}."
+    },
+    "youtube_unreachable": {
+      "en": "I can't reach YouTube just now.",
+      "pt": "Não consigo acessar o YouTube agora."
+    },
+    "language_english": {
+      "en": "English."
+    },
+    "language_portuguese": {
+      "pt": "Português.",
+      "en": "Português."
+    }
+  }
 }

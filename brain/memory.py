@@ -92,8 +92,9 @@ def local_time_reply(language: str = "en") -> str:
     except Exception:
         stamp = datetime.now()
     if language == "pt":
-        return f"São {stamp.hour}:{stamp.minute:02d}, senhor."      # Brazil says the time in 24-hour form
-    return f"{(stamp.hour % 12 or 12)}:{stamp.minute:02d} {stamp.strftime('%p')}, sir."
+        # Brazil says the time in 24-hour form
+        return prompts.line("clock", "pt", clock=f"{stamp.hour}:{stamp.minute:02d}")
+    return prompts.line("clock", clock=f"{(stamp.hour % 12 or 12)}:{stamp.minute:02d} {stamp.strftime('%p')}")
 
 
 def now_line() -> str:
@@ -118,11 +119,8 @@ def now_line() -> str:
     except Exception:
         stamp = datetime.now()
     clock = f"{(stamp.hour % 12 or 12)}:{stamp.minute:02d} {stamp.strftime('%p')}"
-    return (f"Current local date and time: {stamp.strftime('%A, %B')} "
-            f"{stamp.day}, {stamp.year}, {clock}. This is current and correct. "
-            f"If {prompts.OWNER} asks only for the time, reply only: '{clock}, sir.' "
-            "Use that normal numeric format; do not translate it into phrases such as "
-            "'minutes to', and do not add commentary or describe how you know it.")
+    date = f"{stamp.strftime('%A, %B')} {stamp.day}, {stamp.year}, {clock}"
+    return prompts.line("clock_instruction", owner=prompts.OWNER, date=date, clock=clock)
 
 
 _UNITS = ("twelve", "one", "two", "three", "four", "five", "six", "seven", "eight",

@@ -18,6 +18,7 @@ import base64
 import collections
 import io
 import json
+import os
 import queue
 import re
 import socket
@@ -29,12 +30,31 @@ import urllib.error
 import urllib.request
 import wave
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 import numpy as np
 import sounddevice as sd
 
 import talk
 from music import MusicPlayer, control as music_control
+
+# The two confirmations the client says on its own. They are his wording, so
+# they come from the private file rather than living here; ALFRED_PERSONA_DIR
+# points at it on a machine that keeps it elsewhere.
+_PERSONA = Path(os.environ.get("ALFRED_PERSONA_DIR")
+                or Path(__file__).resolve().parent.parent / "persona")
+_EXAMPLES = Path(__file__).resolve().parent.parent / "persona"
+
+
+def _wording() -> dict:
+    for candidate in (_PERSONA / "prompts.json", _EXAMPLES / "prompts.example.json"):
+        if candidate.exists():
+            return json.loads(candidate.read_text(encoding="utf-8"))["lines"]
+    return {"language_english": {"en": "English."}, "language_portuguese": {"pt": "Português."}}
+
+
+WORDING = _wording()
+
 
 RATE = 16000            # what Whisper wants; resampling anywhere else is wasted work
 FRAME = 480             # 30ms
@@ -527,7 +547,7 @@ def main() -> None:
         if wanted is None:
             return False
         LISTEN_LANGUAGE[0] = wanted
-        line = "Português, senhor." if wanted == "pt" else "English, sir."
+        line = WORDING["language_portuguese"]["pt"] if wanted == "pt" else WORDING["language_english"]["en"]
         print(f"You: {prompt}   [language: {'Portuguese' if wanted == 'pt' else 'English'}]")
         microphone.deaf = True
         try:

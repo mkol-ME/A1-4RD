@@ -11,11 +11,12 @@ work instantly and while music is playing; see client/media.py.
 
 import json
 import os
-import random
 import re
 import unicodedata
 import urllib.parse
 import urllib.request
+
+import prompts
 
 MEDIA_URL = os.environ.get("ALFRED_MEDIA_URL", "http://127.0.0.1:5053").rstrip("/")
 TIMEOUT = 15
@@ -104,9 +105,7 @@ def spoken_duration(seconds) -> str:
 
 def announce(result: dict, language: str = "en") -> str:
     title = spoken_title(result)
-    if language == "pt":
-        return random.choice((f"{title}, senhor.", f"Colocando {title}.", f"{title}. Muito bem, senhor."))
-    return random.choice((f"{title}, sir.", f"Putting on {title}.", f"{title}. Very good, sir."))
+    return prompts.line("media_announce", language, title=title)
 
 
 def search(query: str, count: int = 5) -> list[dict]:

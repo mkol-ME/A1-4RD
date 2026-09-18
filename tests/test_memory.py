@@ -16,7 +16,7 @@ class MemoryTests(unittest.TestCase):
         self.assertIn("normal numeric format", line)
 
     def test_fast_clock_reply_is_short_and_numeric(self):
-        self.assertRegex(local_time_reply(), r"^(?:1[0-2]|[1-9]):[0-5][0-9] [AP]M, sir\.$")
+        self.assertRegex(local_time_reply(), r"^(?:1[0-2]|[1-9]):[0-5][0-9] [AP]M\b")
 
     def setUp(self):
         self.tempdir = tempfile.TemporaryDirectory()
@@ -47,14 +47,14 @@ class MemoryTests(unittest.TestCase):
 
     def test_recent_drops_a_stale_conversation(self):
         """Last night is not this morning's conversation."""
-        self.memory.record("what time is it", "It is past midnight, sir.")
+        self.memory.record("what time is it", "It is past midnight.")
         self.memory.db.execute(
             "UPDATE exchanges SET created_at = datetime('now', '-10 hours')")
         self.memory.db.commit()
         self.assertEqual(self.memory.recent(), [])
-        self.memory.record("morning alfred", "Good morning, sir.")
+        self.memory.record("morning alfred", "Morning to you.")
         self.assertEqual([m["content"] for m in self.memory.recent()],
-                         ["morning alfred", "Good morning, sir."])
+                         ["morning alfred", "Morning to you."])
 
     def test_recent_is_chronological(self):
         for number in range(8):
@@ -63,7 +63,7 @@ class MemoryTests(unittest.TestCase):
         self.assertEqual([message["content"] for message in recent], ["question 6", "answer 6", "question 7", "answer 7"])
 
     def test_recall_skips_recent_and_finds_what_the_owner_said(self):
-        self.memory.record("My Voron uses ABS filament", "A sensible pairing, sir.")
+        self.memory.record("My Voron uses ABS filament", "A sensible pairing.")
         for number in range(6):
             self.memory.record(f"unrelated message {number}", "Quite.")
         recalled = self.memory.recall("What filament does my Voron use?")
@@ -71,7 +71,7 @@ class MemoryTests(unittest.TestCase):
 
     def test_his_own_replies_are_never_recalled(self):
         """The loop this closes: a wrong answer must not become its own evidence."""
-        self.memory.record("what time is it", "It is past midnight, sir.")
+        self.memory.record("what time is it", "It is past midnight.")
         for number in range(6):
             self.memory.record(f"unrelated message {number}", "Quite.")
         for query in ("is it past midnight", "what time is it", "midnight"):
@@ -80,10 +80,10 @@ class MemoryTests(unittest.TestCase):
 
     def test_replies_are_still_stored_in_full(self):
         """Unsearchable is not the same as discarded — the record stays complete."""
-        self.memory.record("my printer is a bambu", "Noted, sir.")
+        self.memory.record("my printer is a bambu", "Noted.")
         stored = self.memory.db.execute(
             "SELECT assistant_text FROM exchanges ORDER BY id DESC LIMIT 1").fetchone()
-        self.assertEqual(stored[0], "Noted, sir.")
+        self.assertEqual(stored[0], "Noted.")
 
 
 class ToolGateTests(unittest.TestCase):

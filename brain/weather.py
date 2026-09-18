@@ -26,11 +26,13 @@ import urllib.request
 from datetime import datetime
 from pathlib import Path
 
+import prompts
+
 TIMEOUT = 4
 CACHE_SECONDS = 600
 FOLLOW_UP_TURNS = 3
 FORECAST_DAYS = 7
-LOCAL_LOCATION = Path(__file__).resolve().parent.parent / "persona" / "location.local.txt"
+LOCAL_LOCATION = prompts.PERSONA_DIR / "location.local.txt"
 
 # WMO weather interpretation codes, as Open-Meteo reports them.
 CONDITIONS = {

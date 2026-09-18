@@ -21,6 +21,7 @@ import soundfile as sf
 from scipy.signal import resample_poly
 
 import alfred
+import prompts
 import guru
 import memory
 import media
@@ -45,15 +46,9 @@ OUTPUT_RATE = 48000
 PORTUGUESE_MODEL = Path(os.environ.get(
     "ALFRED_PIPER_PT_MODEL", ROOT / "tts-models" / "piper" / "pt_BR-faber-medium.onnx"))
 
-# His fixed lines, in Brazilian Portuguese for a turn spoken in Portuguese.
-PORTUGUESE_LINES = {
-    "Here it is, sir.": "Aqui está, senhor.",
-    "I can't find him talking about that.": "Não encontrei ele falando sobre isso, senhor.",
-    "I can't reach his videos just now.": "Não consigo acessar os vídeos dele agora, senhor.",
-    "I couldn't find anything by that name.": "Não encontrei nada com esse nome, senhor.",
-    "That was the last of them.": "Esse era o último, senhor.",
-    "I can't reach YouTube just now.": "Não consigo acessar o YouTube agora, senhor.",
-}
+# What he says instead when the turn is being spoken in Portuguese. The lines
+# themselves are his, so they come from the private wording.
+PORTUGUESE_LINES = prompts.TRANSLATIONS
 
 
 def local(line: str, language: str) -> str:
@@ -82,7 +77,7 @@ class VoicePipeline:
         self.temp = tempfile.TemporaryDirectory(prefix="alfred-voice-")
         # Force lazy CUDA kernels and RVC feature models to load before the
         # first real request.
-        self.create("Ready, sir.")
+        self.create(prompts.line("ready"))
 
     def create(self, text: str, language: str = "en") -> tuple[bytes, float, float]:
         source = Path(self.temp.name) / "source.wav"
@@ -230,18 +225,8 @@ def keep_warm() -> None:
 
 # Short enough that the search is usually still running when he finishes saying
 # it, which is the point — he should not be waiting on his own courtesy.
-HOLDING_LINES = (
-    "One moment, sir.",
-    "Let me look, sir.",
-    "A moment.",
-    "Checking, sir.",
-)
-HOLDING_LINES_PT = (
-    "Um momento, senhor.",
-    "Deixa eu ver, senhor.",
-    "Só um instante.",
-    "Verificando, senhor.",
-)
+HOLDING_LINES = tuple(prompts.LINES["holding"]["en"])
+HOLDING_LINES_PT = tuple(prompts.LINES["holding"]["pt"])
 
 class SentenceBuffer:
     """Cut the stream into whole sentences and nothing smaller.
@@ -448,29 +433,29 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 if guru_request["action"] == "play_last":
                     play = GURU_LAST[0]
-                    direct_reply = "Here it is, sir."
+                    direct_reply = prompts.line("guru_here")
                 else:
                     if guru_request["action"] == "ask":
                         announce()
                     found = guru.find_section(guru_request)
                     if found is None:
-                        direct_reply = "I can't find him talking about that."
+                        direct_reply = prompts.line("guru_not_found")
                     else:
                         GURU_LAST[:] = [guru.clip(found)]
                         if guru_request["action"] == "play":
                             play = GURU_LAST[0]
                             section = found["section"]
                             if language == "pt":
-                                direct_reply = (f"{found['commentator']} sobre {section['title']}, senhor." if section
-                                                else f"O mais recente do {found['commentator']}, senhor.")
+                                direct_reply = (prompts.line("guru_section", "pt", commentator=found['commentator'], title=section['title']) if section
+                                                else prompts.line("guru_latest", "pt", commentator=found['commentator']))
                             else:
-                                direct_reply = (f"{found['commentator']} on {section['title']}, sir." if section
-                                                else f"{found['commentator']}'s latest, sir.")
+                                direct_reply = (prompts.line("guru_section", commentator=found['commentator'], title=section['title']) if section
+                                                else prompts.line("guru_latest", commentator=found['commentator']))
                         else:
                             commentary = guru.context(found, guru_request.get("subject") or "")
             except Exception as exc:
                 print(f"guru failed: {exc}", flush=True)
-                direct_reply = "I can't reach his videos just now."
+                direct_reply = prompts.line("guru_unreachable")
             print(f"memory guru {guru_request['action']}", flush=True)
         media_request = (None if direct_reply is not None or commentary is not None
                          else media.parse(prompt, bool(MEDIA_RESULTS)))
@@ -480,7 +465,7 @@ class Handler(BaseHTTPRequestHandler):
                 if kind in ("play", "search"):
                     results = media.search(value)
                     if not results:
-                        direct_reply = "I couldn't find anything by that name."
+                        direct_reply = prompts.line("media_no_match")
                     elif kind == "play":
                         MEDIA_RESULTS[:] = results
                         play = media.best(results)
@@ -493,17 +478,16 @@ class Handler(BaseHTTPRequestHandler):
                     if 0 <= index < len(MEDIA_RESULTS):
                         play = MEDIA_RESULTS[index]
                     else:
-                        direct_reply = (f"Só havia {len(MEDIA_RESULTS)}, senhor." if language == "pt"
-                                        else f"There were only {len(MEDIA_RESULTS)}, sir.")
+                        direct_reply = prompts.line("media_only_n", language, count=len(MEDIA_RESULTS))
                 elif kind == "next":
                     index = MEDIA_POSITION[0] + 1
                     if index < len(MEDIA_RESULTS):
                         play = MEDIA_RESULTS[index]
                     else:
-                        direct_reply = "That was the last of them."
+                        direct_reply = prompts.line("media_last")
             except Exception as exc:
                 print(f"media failed: {exc}", flush=True)
-                direct_reply = "I can't reach YouTube just now."
+                direct_reply = prompts.line("youtube_unreachable")
             if play is not None and guru_request is None:
                 MEDIA_POSITION[0] = MEDIA_RESULTS.index(play) if play in MEDIA_RESULTS else 0
                 direct_reply = media.announce(play, language)

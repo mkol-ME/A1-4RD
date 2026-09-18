@@ -28,11 +28,11 @@ class WeatherRoutingTests(unittest.TestCase):
     def test_other_temperatures_are_not_weather(self):
         for prompt in ("what temperature should i run petg at",
                        "what temperature does water boil at in fahrenheit",
-                       "my nozzle is too hot", "thanks alfred", "what time is it"):
+                       "my nozzle is too hot", "cheers alfred", "what time is it"):
             self.assertFalse(weather.asks_about_weather(prompt), prompt)
 
     def test_follow_ups_stay_on_the_weather(self):
-        history = said(("user", "whats the weather like"), ("assistant", "Seventy-eight, sir."))
+        history = said(("user", "whats the weather like"), ("assistant", "Seventy-eight."))
         for prompt in ("its 92 degrees where did you pull 78 from", "and tomorrow",
                        "what about saturday"):
             self.assertTrue(weather.asks_about_weather(prompt, history), prompt)
@@ -40,12 +40,12 @@ class WeatherRoutingTests(unittest.TestCase):
     def test_phrasings_from_the_first_voice_session(self):
         self.assertTrue(weather.asks_about_weather("what's the temp in santa fe"))
         self.assertEqual(weather.named_place("what's the temp in santa fe"), "santa fe")
-        history = said(("user", "what's the weather like"), ("assistant", "Seventy-eight, sir."))
+        history = said(("user", "what's the weather like"), ("assistant", "Seventy-eight."))
         self.assertTrue(weather.asks_about_weather("as of when alfred i have it as 92", history))
         self.assertFalse(weather.asks_about_weather("whats the temperature in my enclosure"))
 
     def test_a_new_weather_question_does_not_inherit_the_place(self):
-        history = said(("user", "whats the weather in chicago"), ("assistant", "Seventy, sir."))
+        history = said(("user", "whats the weather in chicago"), ("assistant", "Seventy."))
         calls = []
         saved = weather.geocode, weather.home, weather.forecast, weather.render
         weather.geocode = lambda place: calls.append(place) or ("There", 1.0, 2.0)
@@ -60,13 +60,13 @@ class WeatherRoutingTests(unittest.TestCase):
             weather.geocode, weather.home, weather.forecast, weather.render = saved
 
     def test_follow_up_survives_a_correction_in_between(self):
-        history = said(("user", "whats the weather like"), ("assistant", "Seventy-eight, sir."),
+        history = said(("user", "whats the weather like"), ("assistant", "Seventy-eight."),
                        ("user", "its 92 degrees where did you pull 78 from"),
-                       ("assistant", "From the forecast, sir."))
+                       ("assistant", "From the forecast."))
         self.assertTrue(weather.asks_about_weather("and tomorrow", history))
 
     def test_follow_up_needs_a_weather_question_before_it(self):
-        history = said(("user", "how long should a steak rest"), ("assistant", "Five minutes, sir."))
+        history = said(("user", "how long should a steak rest"), ("assistant", "Five minutes."))
         self.assertFalse(weather.asks_about_weather("and tomorrow", history))
 
     def test_named_places(self):
