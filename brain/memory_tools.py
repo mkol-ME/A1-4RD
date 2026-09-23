@@ -24,6 +24,7 @@ import machine
 import markets
 import memory as memory_module
 import news
+import private_tools
 import sports
 import prompts
 import web
@@ -249,6 +250,12 @@ TOOLS = [
     },
 ]
 
+# Tools kept on the array rather than in the repository (see private_tools.py).
+# They are offered to the decider after the built-ins and may not reuse a
+# built-in's name, so nothing measured above changes because one was added.
+PRIVATE = private_tools.load(reserved={tool["function"]["name"] for tool in TOOLS})
+TOOLS = TOOLS + PRIVATE.schemas()
+
 TOOL_NAMES = [tool["function"]["name"] for tool in TOOLS]
 
 
@@ -309,13 +316,22 @@ def _settles(name: str, result: dict) -> bool:
     if name in ("search_memory", "search_web", "get_sports", "get_news", "get_odds", "get_server_status",
                 "get_youtube"):
         return bool(result.get("found"))
-    return name in ("remember_fact", "forget_fact")
+    # A private tool that answered has answered; a second round would only
+    # ask it the same thing again.
+    return name in ("remember_fact", "forget_fact") or PRIVATE.owns(name)
 
 
-def dispatch(memory, name: str, raw_arguments) -> dict:
-    """Run one tool call. Always returns a dict; never raises."""
+def dispatch(memory, name: str, raw_arguments, prompt: str = "") -> dict:
+    """Run one tool call. Always returns a dict; never raises.
+
+    `prompt` is the owner's message for the turn, passed through to private
+    tools so they act on what he said rather than on the decider's retelling.
+    """
     try:
         arguments = _coerce_arguments(raw_arguments)
+
+        if PRIVATE.owns(name):
+            return PRIVATE.dispatch(name, arguments, prompt)
 
         if name == "search_memory":
             query = _as_text(arguments, "query", "text", "q", limit=MAX_QUERY_CHARS)
@@ -516,9 +532,10 @@ def consult(memory, prompt: str, model: str, server: str, timeout: int = 30,
             on_search=None, history: list | None = None) -> dict:
     """Decide what memory this turn needs, fetch it, and phrase it for the answerer.
 
-    Returns {"context": str, "calls": [...], "failed": bool}. A failure here is
-    never fatal — the caller falls back to automatic retrieval, which is what
-    happened on every turn before tools existed.
+    Returns {"context": str, "calls": [...], "failed": bool, "direct": str | None}.
+    A failure here is never fatal — the caller falls back to automatic retrieval,
+    which is what happened on every turn before tools existed. "direct" is set
+    when a private tool's answer is meant to be spoken exactly as written.
 
     on_search fires once, just before the first web request goes out. The voice
     server uses it to say something out loud: a searched turn takes seconds
@@ -546,6 +563,7 @@ def consult(memory, prompt: str, model: str, server: str, timeout: int = 30,
     messages = [{"role": "system", "content": DECIDER_SYSTEM},
                 {"role": "user", "content": decision_prompt}]
     calls, searched, found_online, reports = [], [], [], []
+    direct = None
     try:
         for _ in range(MAX_TOOL_ROUNDS):
             # A tool call is a few dozen tokens. Anything longer is prose, and
@@ -578,15 +596,17 @@ def consult(memory, prompt: str, model: str, server: str, timeout: int = 30,
                     except Exception:
                         pass          # a courtesy is never worth failing a turn for
                     on_search = None  # once per turn, however many searches it runs
-                result = dispatch(memory, name, function.get("arguments"))
+                result = dispatch(memory, name, function.get("arguments"), prompt)
                 calls.append({"tool": name, "ok": result.get("ok")})
                 if name == "search_memory":
                     searched.extend(result.get("results", []))
                 if name == "search_web":
                     found_online.extend(result.get("results", []))
-                if name in ("get_sports", "get_news", "get_odds", "get_server_status",
-                            "get_youtube") and result.get("report"):
+                if (name in ("get_sports", "get_news", "get_odds", "get_server_status",
+                             "get_youtube") or PRIVATE.owns(name)) and result.get("report"):
                     reports.append(result["report"])
+                if PRIVATE.owns(name) and result.get("direct") and direct is None:
+                    direct = result["direct"]
                 messages.append({"role": "tool", "tool_name": name,
                                  "content": json.dumps(result)})
                 settled = settled and _settles(name, result)
@@ -598,9 +618,10 @@ def consult(memory, prompt: str, model: str, server: str, timeout: int = 30,
             if settled:
                 break
     except Exception:
-        return {"context": "", "calls": calls, "failed": True}
+        return {"context": "", "calls": calls, "failed": True, "direct": direct}
 
-    return {"context": _render(memory, searched, found_online, reports), "calls": calls, "failed": False}
+    return {"context": _render(memory, searched, found_online, reports), "calls": calls,
+            "failed": False, "direct": direct}
 
 
 def _render(memory, searched: list, found_online: list = (), reports: list = ()) -> str:

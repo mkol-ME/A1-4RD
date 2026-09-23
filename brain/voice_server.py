@@ -527,6 +527,10 @@ class Handler(BaseHTTPRequestHandler):
             consulted = memory_tools.consult(MEMORY, prompt, alfred.DEFAULT_MODEL,
                                              alfred.SERVER, on_search=announce,
                                              history=history)
+            # A private tool whose answer is its exact wording - a list to be
+            # read out in order - is spoken as written, like the media lines.
+            if consulted.get("direct"):
+                direct_reply = consulted["direct"]
         # Ordinary conversation, nothing fetched: the one case where he used to have
         # no past in front of him at all.
         if (not consulted["calls"] and not consulted["failed"] and direct_reply is None
