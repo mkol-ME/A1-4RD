@@ -346,6 +346,9 @@ class Handler(BaseHTTPRequestHandler):
             # Which language he spoke, as Whisper heard it. Anything but
             # Portuguese is English, which is also what a typed turn is.
             language = "pt" if body.get("language") == "pt" else "en"
+            # A text client reads the reply rather than hearing it, so it gets
+            # the same turn with the voice left out: no synthesis, text frames only.
+            voiced = body.get("voice", True) is not False
         except Exception as exc:
             self.send_error(400, str(exc))
             return
@@ -360,6 +363,7 @@ class Handler(BaseHTTPRequestHandler):
         BUSY.acquire()
         work = queue.Queue(maxsize=4)
         worker_error = []
+        listing = [False]
 
         def convert_sentences() -> None:
             while True:
@@ -371,6 +375,19 @@ class Handler(BaseHTTPRequestHandler):
                     # to play, kept in order with the sentences around it.
                     try:
                         self.wfile.write(json.dumps(sentence).encode("utf-8") + b"\n")
+                        self.wfile.flush()
+                    except Exception as exc:
+                        worker_error.append(exc)
+                        return
+                    continue
+                if not voiced:
+                    frame = {"text": sentence}
+                    # A reply given as written, such as a list, reads one
+                    # sentence to a line on screen.
+                    if listing[0]:
+                        frame["line"] = True
+                    try:
+                        self.wfile.write(json.dumps(frame).encode("utf-8") + b"\n")
                         self.wfile.flush()
                     except Exception as exc:
                         worker_error.append(exc)
@@ -422,7 +439,12 @@ class Handler(BaseHTTPRequestHandler):
         # front of it instead of six seconds of nothing. Rotated because a
         # butler who says the identical four words every time is a doorbell.
         def announce() -> None:
-            emit(random.choice(HOLDING_LINES_PT if language == "pt" else HOLDING_LINES))
+            line = random.choice(HOLDING_LINES_PT if language == "pt" else HOLDING_LINES)
+            if voiced:
+                emit(line)
+            else:
+                # On screen it is a status line, not part of the answer.
+                work.put({"holding": ration.apply(line)})
 
         # The weather comes from a forecast service, never from the web search:
         # search snippets said 78 on a 92-degree afternoon. A forecast turn also
@@ -564,6 +586,7 @@ class Handler(BaseHTTPRequestHandler):
         sentences = SentenceBuffer(say)
         try:
             if direct_reply is not None:
+                listing[0] = True
                 reply = local(direct_reply, language)
                 sentences.add(reply)
             else:

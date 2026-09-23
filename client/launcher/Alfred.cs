@@ -1,6 +1,8 @@
-// Double-click launcher for client/listen.py, so talking to Alfred does not
-// start with a PowerShell prompt. Built by build.ps1 with the stock .NET
-// Framework compiler that ships with Windows; nothing to install.
+// Double-click launcher for a client script (client/listen.py to talk,
+// client/chat.py to type), so reaching Alfred does not start with a PowerShell
+// prompt. Built by build.ps1 with the stock .NET Framework compiler that ships
+// with Windows; nothing to install. The script and window title are baked in
+// at build time, so this one source makes both exes.
 //
 // Finds the project from the path baked in at build time, or failing that by
 // walking up from wherever the exe sits, then runs the project's own venv in
@@ -27,7 +29,7 @@ static class Alfred
     static bool IsProject(string dir)
     {
         return !string.IsNullOrEmpty(dir)
-            && File.Exists(Path.Combine(dir, "client", "listen.py"))
+            && File.Exists(Path.Combine(dir, BuildInfo.Script))
             && File.Exists(Path.Combine(dir, ".venv-tts", "Scripts", "python.exe"));
     }
 
@@ -49,43 +51,44 @@ static class Alfred
 
     static int Main(string[] args)
     {
-        Console.Title = "Alfred";
+        Console.Title = BuildInfo.Title;
+        string script = Path.GetFileName(BuildInfo.Script);
         string project = FindProject();
         if (project == null)
-            return Fail("Could not find the A1-4RD project (client\\listen.py and .venv-tts).\n"
+            return Fail("Could not find the A1-4RD project (" + BuildInfo.Script + " and .venv-tts).\n"
                       + "Rebuild with client\\launcher\\build.ps1 if the folder has moved.");
 
         var start = new ProcessStartInfo
         {
             FileName = Path.Combine(project, ".venv-tts", "Scripts", "python.exe"),
-            Arguments = string.Join(" ", new[] { "client\\listen.py" }.Concat(args.Select(Quote))),
+            Arguments = string.Join(" ", new[] { BuildInfo.Script }.Concat(args.Select(Quote))),
             WorkingDirectory = project,
             UseShellExecute = false,   // share this console, so Ctrl+C and output behave normally
         };
-        // Ctrl+C reaches listen.py too. Stay alive until it has shut down cleanly
+        // Ctrl+C reaches the script too. Stay alive until it has shut down cleanly
         // (tunnels closed), instead of vanishing and leaving it half-stopped.
         Console.CancelKeyPress += (sender, e) => e.Cancel = true;
 
         try
         {
-            using (var listen = Process.Start(start))
+            using (var client = Process.Start(start))
             {
-                listen.WaitForExit();
+                client.WaitForExit();
                 // 0 is a normal goodbye; Ctrl+C in Python exits with 0xC000013A.
-                if (listen.ExitCode == 0 || listen.ExitCode == unchecked((int)0xC000013A))
+                if (client.ExitCode == 0 || client.ExitCode == unchecked((int)0xC000013A))
                     return 0;
                 // Anything else has already said its piece on this console -- its own
                 // message, or a traceback. Hold the window open so it can be read
                 // instead of talking over it in red.
                 Console.WriteLine();
-                Console.WriteLine("listen.py stopped (exit code " + listen.ExitCode + "). Press Enter to close.");
+                Console.WriteLine(script + " stopped (exit code " + client.ExitCode + "). Press Enter to close.");
                 Console.ReadLine();
-                return listen.ExitCode;
+                return client.ExitCode;
             }
         }
         catch (Exception error)
         {
-            return Fail("Could not start listen.py: " + error.Message);
+            return Fail("Could not start " + script + ": " + error.Message);
         }
     }
 }
