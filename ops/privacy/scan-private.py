@@ -98,6 +98,17 @@ def needles() -> dict[str, set[str]]:
             if len(token.strip()) >= 4:
                 add(label, token.strip())
 
+    # Subjects that are to have no presence here at all, one per line. Read
+    # whole rather than split into tokens, and with no length floor: the point
+    # is to catch a short name wherever it appears, and a false stop costs one
+    # look while a miss costs a push that cannot be taken back. Comments and
+    # blank lines are skipped so the file can say what it is for.
+    text = read_private("topics.local.txt")
+    for line_ in (text or "").splitlines():
+        phrase = line_.strip()
+        if phrase and not phrase.startswith("#"):
+            add("a private subject", phrase)
+
     return found
 
 
