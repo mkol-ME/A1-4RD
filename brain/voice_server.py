@@ -28,6 +28,7 @@ import media
 import memory_tools
 import spoken
 import spotify
+import voice_eq
 import weather
 from memory import Memory
 import random
@@ -94,6 +95,9 @@ class VoicePipeline:
             if rate != OUTPUT_RATE:
                 divisor = np.gcd(rate, OUTPUT_RATE)
                 samples = resample_poly(samples, OUTPUT_RATE // divisor, rate // divisor)
+            # His own voice came out dull and boomy (see voice_eq); the Portuguese one did not.
+            if voice is self.piper and voice_eq.ENABLED:
+                samples = voice_eq.apply(samples, OUTPUT_RATE)
             # Piper normalises to full scale and resampling overshoots it slightly.
             sf.write(converted, np.clip(samples, -1.0, 1.0), OUTPUT_RATE, subtype="PCM_16")
         else:
