@@ -63,9 +63,17 @@ class Address(unittest.TestCase):
                               ("use male responses", "sir"), ("me chame de senhora", "ma'am")):
             self.assertEqual(spoken.address_command(prompt), title, prompt)
 
+    def test_the_bare_title(self):
+        # What he actually said, 2026-09-24: none of these had "responses" after them.
+        for prompt, title in (("alfred use maam", "ma'am"), ("use maam", "ma'am"), ("switch to maam", "ma'am"),
+                              ("switch back to sir", "sir"), ("Use ma'am, please.", "ma'am"),
+                              ("go back to sir", "sir"), ("use madam instead", "madam")):
+            self.assertEqual(spoken.address_command(prompt), title, prompt)
+
     def test_mentions_are_not_commands(self):
         for prompt in ("the sir responses were funny", "why do you call me sir", "use the printer",
-                       "call me later", "what does ma'am mean", "use sensible responses"):
+                       "call me later", "what does ma'am mean", "use sensible responses",
+                       "use female", "switch to spotify", "go to madame tussauds", "use maam when my mom visits"):
             self.assertIsNone(spoken.address_command(prompt), prompt)
 
     def test_every_position_takes_the_title(self):

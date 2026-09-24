@@ -87,6 +87,10 @@ _GENDER_WORDS = {"male": "sir", "man": "sir", "men": "sir", "mens": "sir",
 _MODE_COMMAND = re.compile(r"^(?:please )?(?:use |switch to |go to |give me )?(?:the )?([a-z]+) "
                            r"(?:responses|replies|answers|mode)(?: please)?$")
 _CALL_COMMAND = re.compile(r"^(?:please )?(?:call|address) me (?:as )?([a-z]+)(?: please| instead| from now on)*$")
+# "Use ma'am", "switch back to sir": the bare title, no "responses" after it. Title
+# words only - "use female" on its own is not something anyone says.
+_BARE_COMMAND = re.compile(r"^(?:please )?(?:use|say|switch(?: back)? to|go(?: back)? to|change(?: back)? to|back to) "
+                           r"(?:the )?([a-z]+)(?: again| instead| now| please| from now on)*$")
 _CHAME_COMMAND = re.compile(r"^(?:me )?(?:chame|chama|chamar)(?: me)? de (?:o |a )?(senhora?)(?: por favor)?$")
 
 
@@ -99,7 +103,7 @@ def address_command(prompt: str) -> str | None:
     mode = _MODE_COMMAND.match(text)
     if mode:
         return _TITLE_WORDS.get(mode.group(1)) or _GENDER_WORDS.get(mode.group(1))
-    call = _CALL_COMMAND.match(text) or _CHAME_COMMAND.match(text)
+    call = _CALL_COMMAND.match(text) or _BARE_COMMAND.match(text) or _CHAME_COMMAND.match(text)
     if call:
         return _TITLE_WORDS.get(call.group(1))
     return None
