@@ -70,6 +70,14 @@ class Address(unittest.TestCase):
                               ("go back to sir", "sir"), ("use madam instead", "madam")):
             self.assertEqual(spoken.address_command(prompt), title, prompt)
 
+    def test_back_and_lead_ins(self):
+        # Also what he said, 2026-09-24: the first and last were answered "Ma'am it is".
+        for prompt, title in (("switch back, have sir be the default", "sir"), ("no, switch to sir mode", "sir"),
+                              ("switch back", "sir"), ("ok, use maam", "ma'am"), ("back to normal", "sir"),
+                              ("actually switch back to maam", "ma'am")):
+            self.assertEqual(spoken.address_command(prompt), title, prompt)
+        self.assertIsNone(spoken.address_command("switch back to the other song"))
+
     def test_mentions_are_not_commands(self):
         for prompt in ("the sir responses were funny", "why do you call me sir", "use the printer",
                        "call me later", "what does ma'am mean", "use sensible responses",

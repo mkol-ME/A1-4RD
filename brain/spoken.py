@@ -91,6 +91,11 @@ _CALL_COMMAND = re.compile(r"^(?:please )?(?:call|address) me (?:as )?([a-z]+)(?
 # words only - "use female" on its own is not something anyone says.
 _BARE_COMMAND = re.compile(r"^(?:please )?(?:use|say|switch(?: back)? to|go(?: back)? to|change(?: back)? to|back to) "
                            r"(?:the )?([a-z]+)(?: again| instead| now| please| from now on)*$")
+# "Switch back", "back to normal": the default title, whatever is in use now.
+_BACK_COMMAND = re.compile(r"^(?:(?:switch|go|change|put it|set it) back|back to (?:normal|default|the default)"
+                           r"|(?:normal|default) mode|reset (?:it|that|the title))\b")
+# Said before a command without changing it: "no, switch to sir mode", "ok use ma'am".
+_LEAD_IN = re.compile(r"^(?:(?:no|nope|ok|okay|alright|actually|yes|yeah|and|now|so|hey|um|uh|wait)\s+)+")
 _CHAME_COMMAND = re.compile(r"^(?:me )?(?:chame|chama|chamar)(?: me)? de (?:o |a )?(senhora?)(?: por favor)?$")
 
 
@@ -100,6 +105,16 @@ def address_command(prompt: str) -> str | None:
     text = text.encode("ascii", "ignore").decode()
     text = " ".join(word for word in re.findall(r"[a-z]+", text) if word != "alfred")
     text = re.sub(r"\bma am\b", "maam", text)
+    text = _LEAD_IN.sub("", text)
+    back = _BACK_COMMAND.match(text)
+    if back:
+        # "switch back, have sir be the default": the rest may name the title, but
+        # only as the default - anything else named there is a different request.
+        rest = text[back.end():].split()
+        named = {_TITLE_WORDS[w] for w in rest if w in _TITLE_WORDS}
+        if rest and not named and not {"default", "normal", "please"} & set(rest):
+            return None            # "switch back to the other song" is not about him
+        return DEFAULT_TITLE if named <= {DEFAULT_TITLE} else next(iter(named)) if len(named) == 1 else None
     mode = _MODE_COMMAND.match(text)
     if mode:
         return _TITLE_WORDS.get(mode.group(1)) or _GENDER_WORDS.get(mode.group(1))
