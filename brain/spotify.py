@@ -8,8 +8,8 @@ that app later without changing any of this.
 Sign-in happens once, on the server, with the browser on the laptop:
 
   1. Make an app at developer.spotify.com/dashboard. Redirect URI
-     http://127.0.0.1:8888/callback, API "Web API". Copy its Client ID.
-  2. ssh -L 8888:127.0.0.1:8888 <server> \
+     http://127.0.0.1:8765/callback, API "Web API". Copy its Client ID.
+  2. ssh -L 8765:127.0.0.1:8765 <server> \
          "cd ~/a1-4rd && .venv-rvc/bin/python brain/spotify.py login CLIENT_ID"
   3. Open the link it prints on the laptop and agree. The redirect comes back
      through the tunnel and the server keeps a refresh token.
@@ -36,7 +36,7 @@ import urllib.request
 from pathlib import Path
 
 CONFIG = Path(os.environ.get("ALFRED_SPOTIFY_CONFIG", "~/.config/a1-4rd/spotify.json")).expanduser()
-PORT = int(os.environ.get("ALFRED_SPOTIFY_PORT", "8888"))
+PORT = int(os.environ.get("ALFRED_SPOTIFY_PORT", "8765"))
 REDIRECT = f"http://127.0.0.1:{PORT}/callback"
 SCOPES = ("user-read-playback-state user-modify-playback-state user-read-currently-playing "
           "user-library-read playlist-read-private playlist-read-collaborative")
