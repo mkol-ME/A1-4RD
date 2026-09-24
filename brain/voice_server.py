@@ -27,6 +27,7 @@ import memory
 import media
 import memory_tools
 import spoken
+import spotify
 import weather
 from memory import Memory
 import random
@@ -110,6 +111,10 @@ MEDIA_RESULTS: list = []
 MEDIA_POSITION = [-1]
 # The last commentator section talked about, so "play that part" can follow it.
 GURU_LAST: list = []
+# "Play X" with no service named, once Spotify is signed in, is answered with
+# "Spotify or YouTube?"; this holds X (and when it was asked) for the answer.
+PENDING_PLAY: list = []
+PENDING_SECONDS = 90
 # What he calls whoever is talking: "sir" until someone says "use ma'am responses".
 # Not saved, so a restart (and the nightly reboot) puts it back to the default.
 ADDRESS = [spoken.DEFAULT_TITLE]
@@ -315,6 +320,9 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/chat":
             self.chat()
             return
+        if self.path == "/spotify":
+            self.spotify()
+            return
         if self.path != "/speak":
             self.send_error(404)
             return
@@ -518,6 +526,35 @@ class Handler(BaseHTTPRequestHandler):
             print(f"memory guru {guru_request['action']}", flush=True)
         media_request = (None if direct_reply is not None or commentary is not None
                          else media.parse(prompt, bool(MEDIA_RESULTS)))
+        service = None
+        if media_request is not None:
+            service = media.service_of(prompt)
+            PENDING_PLAY.clear()
+        elif PENDING_PLAY and direct_reply is None and commentary is None:
+            # The answer to "Spotify or YouTube?" - or anything else, which drops the question.
+            query, asked = PENDING_PLAY.pop()
+            service = media.service_answer(prompt)
+            if service and time.monotonic() - asked < PENDING_SECONDS:
+                media_request = ("play", query)
+        if media_request is not None and media_request[0] == "play" and service != "youtube"                 and spotify.configured():
+            query = media_request[1]
+            if service is None and spotify.wants_spotify(query):
+                service = "spotify"
+            if service is None:
+                PENDING_PLAY[:] = [(query, time.monotonic())]
+                direct_reply = prompts.line("music_which", language)
+                print("memory media asked which service", flush=True)
+            else:
+                try:
+                    play = spotify.play(query)
+                    direct_reply = media.announce(play, language)
+                except spotify.SpotifyError as exc:
+                    print(f"spotify failed: {exc}", flush=True)
+                    direct_reply = prompts.line({"no_match": "media_no_match", "no_device": "spotify_no_device",
+                                                 "premium": "spotify_unreachable"}.get(exc.code, "spotify_unreachable"),
+                                                language)
+                print(f"memory spotify play{'' if play else ' FAILED'}", flush=True)
+            media_request = None
         if media_request is not None:
             kind, value = media_request
             try:
@@ -630,7 +667,8 @@ class Handler(BaseHTTPRequestHandler):
                 )
             sentences.flush()
             if play is not None:
-                work.put({"media": {key: play.get(key) for key in ("id", "title", "channel", "duration", "start", "end")
+                work.put({"media": {key: play.get(key) for key in ("id", "title", "channel", "duration", "start", "end",
+                                                                   "source", "device")
                                     if play.get(key) is not None}})
             work.put(None)
             worker.join()
@@ -649,6 +687,27 @@ class Handler(BaseHTTPRequestHandler):
         finally:
             mark_activity()
             BUSY.release()
+
+    def spotify(self):
+        """Pause, skip, volume and ducking for Spotify, sent by the client while it plays.
+
+        Not behind BUSY: these must work while a reply is being spoken (ducking
+        happens exactly then), and none of them touches the model.
+        """
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            action = json.loads(self.rfile.read(length)).get("action", "")
+            result = spotify.control(action)
+        except spotify.SpotifyError as exc:
+            result = {"ok": False, "error": exc.code}
+        except Exception as exc:
+            result = {"ok": False, "error": str(exc)}
+        body = json.dumps(result).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def log_message(self, format, *args):
         return

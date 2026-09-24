@@ -140,6 +140,11 @@ class Screen:
         elif "media" in frame:
             # Nothing plays here; the link is the part a screen can use.
             media = frame["media"]
+            if media.get("source") == "spotify":
+                self._close()
+                where = f" on {media['device']}" if media.get("device") else ""
+                self.write(self._style(f"{self.INDENT}> Spotify{where}: {media.get('title') or ''}", DIM) + "\n")
+                return
             link = f"https://youtu.be/{media['id']}" if media.get("id") else ""
             if link and media.get("start"):
                 link += f"?t={int(media['start'])}"

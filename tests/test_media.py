@@ -20,6 +20,22 @@ class MediaParseTests(unittest.TestCase):
         for prompt, query in cases.items():
             self.assertEqual(media.parse(prompt), ("play", query), prompt)
 
+    def test_which_service(self):
+        self.assertEqual(media.parse("play drake on spotify"), ("play", "drake"))
+        self.assertEqual(media.service_of("play drake on spotify"), "spotify")
+        self.assertEqual(media.service_of("Play Mr. Brightside on YouTube, please."), "youtube")
+        self.assertEqual(media.service_of("toca drake no spotify"), "spotify")
+        self.assertIsNone(media.service_of("play drake"))
+        self.assertIsNone(media.service_of("play spotify wrapped songs"))
+
+    def test_the_answer_to_which(self):
+        for prompt, service in (("Spotify.", "spotify"), ("on youtube please", "youtube"), ("you tube", "youtube"),
+                                ("either", "spotify"), ("doesn't matter", "spotify"), ("use spotify", "spotify"),
+                                ("tanto faz", "spotify")):
+            self.assertEqual(media.service_answer(prompt), service, prompt)
+        for prompt in ("what's on youtube", "spotify is expensive", "play drake"):
+            self.assertIsNone(media.service_answer(prompt), prompt)
+
     def test_search_requests(self):
         cases = {
             "find videos of cats falling off tables": "cats falling off tables",

@@ -36,7 +36,7 @@ import numpy as np
 import sounddevice as sd
 
 import talk
-from music import MusicPlayer, control as music_control
+from music import Jukebox, MusicPlayer, SpotifyRemote
 
 # The two confirmations the client says on its own. They are his wording, which
 # lives on his server and nowhere else, so they are fetched from it rather than
@@ -529,7 +529,7 @@ def main() -> None:
     addressed_until = 0.0          # his name alone was heard over music
     early = EarlyTranscript()
     archive = ThreadPoolExecutor(max_workers=1)
-    music = MusicPlayer()
+    music = Jukebox(MusicPlayer(), SpotifyRemote(talk.VOICE_URL))
 
     def reply(prompt: str) -> None:
         microphone.deaf = True                 # he does not listen while he talks
@@ -598,7 +598,7 @@ def main() -> None:
                     addressed_until = 0.0
                 if switch_language(prompt):
                     continue
-                action = music_control(prompt)
+                action = music.control(prompt)
                 if action is not None:
                     print(f"You: {prompt}   [music: {action}]")
                     music.apply(action)
@@ -640,7 +640,7 @@ def main() -> None:
     except KeyboardInterrupt:
         print()
     finally:
-        music.stop()
+        music.player.stop()        # Spotify plays in its own app; closing this leaves it be
         microphone.close()
         player.close()
         tunnel.terminate()

@@ -1,11 +1,17 @@
 """Music through Alfred's speaker: the stream from the media service, and its controls.
 
+Spotify is the other source: it plays in the owner's own Spotify app, and
+SpotifyRemote passes the same controls to the voice server, which tells Spotify.
+Jukebox puts the two behind one face so the listening loop needs no idea which
+is on.
+
 The server decodes, so this only plays raw 48 kHz stereo PCM — the same job a
 Pi Zero will do later. Controls are decided here rather than on the server:
 "pause" has to work instantly and while the music is loud, and none of them
 needs the model.
 """
 
+import json
 import re
 import threading
 import unicodedata
@@ -39,15 +45,28 @@ CONTROLS = {
                 "abaixa o volume", "diminui o volume"),
 }
 _LOOKUP = {phrase: action for action, phrases in CONTROLS.items() for phrase in phrases}
+# Only Spotify can do these; over a YouTube video "next" means the next search result,
+# which the server keeps, so they are not intercepted then.
+SPOTIFY_CONTROLS = {
+    "next": ("next", "skip", "skip it", "skip this", "skip this one", "skip this song", "next song",
+             "next track", "next one", "proxima", "pula", "pula essa", "proxima musica"),
+    "previous": ("previous", "go back", "back", "last song", "previous song", "play the last one",
+                 "the one before", "anterior", "volta", "musica anterior"),
+}
+_SPOTIFY_LOOKUP = {phrase: action for action, phrases in SPOTIFY_CONTROLS.items() for phrase in phrases}
 
 
-def control(prompt: str) -> str | None:
-    """pause, resume, stop, louder, quieter — or None if this is not a music control."""
+def _control_text(prompt: str) -> str:
     text = unicodedata.normalize("NFKD", prompt.lower()).encode("ascii", "ignore").decode()
     text = " ".join(re.findall(r"[a-z']+", text))
     text = re.sub(r"^(?:please |can you |could you |okay |ok |hey |pode |por favor |ei )+", "", text)
-    text = re.sub(r"(?: please| for me| a bit| a little| por favor| um pouco)+$", "", text)
-    return _LOOKUP.get(text)
+    return re.sub(r"(?: please| for me| a bit| a little| por favor| um pouco)+$", "", text)
+
+
+def control(prompt: str, spotify: bool = False) -> str | None:
+    """pause, resume, stop, louder, quieter (and next, previous on Spotify) — or None."""
+    text = _control_text(prompt)
+    return _LOOKUP.get(text) or (_SPOTIFY_LOOKUP.get(text) if spotify else None)
 
 
 def open_output() -> sd.OutputStream:
@@ -166,3 +185,134 @@ class MusicPlayer:
                     response.close()
                 except Exception:
                     pass
+
+
+class SpotifyRemote:
+    """Spotify playing in his own app, steered through the voice server.
+
+    It only knows what it started: once the server says Spotify is playing, it
+    counts as the music in the room until "stop". Each control is a short HTTP
+    call, sent on a thread so ducking never holds up his voice.
+    """
+
+    def __init__(self, voice_url: str = "http://127.0.0.1:5051", send=None):
+        self.voice_url = voice_url
+        self.send = send or self._post
+        self.title = None
+        self._active = False
+        self._paused = False
+        self._ducks = 0
+
+    @property
+    def active(self) -> bool:
+        return self._active
+
+    @property
+    def paused(self) -> bool:
+        return self._active and self._paused
+
+    def _post(self, action: str) -> None:
+        request = urllib.request.Request(f"{self.voice_url}/spotify", data=json.dumps({"action": action}).encode(),
+                                         headers={"Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(request, timeout=8) as response:
+                result = json.loads(response.read() or b"{}")
+            if not result.get("ok", True):
+                print(f"  spotify {action}: {result.get('error')}")
+        except Exception as exc:
+            print(f"  spotify {action} failed: {exc}")
+
+    def _later(self, action: str) -> None:
+        threading.Thread(target=self.send, args=(action,), daemon=True).start()
+
+    def play(self, info: dict) -> None:
+        """The server has already started it; this only takes note."""
+        self.title = info.get("title")
+        self._active, self._paused = True, False
+
+    def pause(self) -> None:
+        self._paused = True
+        self._later("pause")
+
+    def resume(self) -> None:
+        self._paused = False
+        self._later("resume")
+
+    def stop(self) -> None:
+        if self._active:
+            self._later("pause")
+        self._active, self._paused, self.title = False, False, None
+
+    def louder(self) -> None:
+        self._later("louder")
+
+    def quieter(self) -> None:
+        self._later("quieter")
+
+    def next(self) -> None:
+        self._later("next")
+
+    def previous(self) -> None:
+        self._later("previous")
+
+    def apply(self, action: str) -> None:
+        getattr(self, action)()
+
+    def duck(self) -> None:
+        self._ducks += 1
+        if self._ducks == 1 and self._active and not self._paused:
+            self._later("duck")
+
+    def unduck(self) -> None:
+        if self._ducks == 0:
+            return
+        self._ducks -= 1
+        if self._ducks == 0 and self._active and not self._paused:
+            self._later("unduck")
+
+
+class Jukebox:
+    """The YouTube player and the Spotify remote as one: whichever started last is the music."""
+
+    def __init__(self, player: MusicPlayer, spotify: SpotifyRemote):
+        self.player = player
+        self.spotify = spotify
+
+    @property
+    def current(self):
+        return self.spotify if self.spotify.active else self.player
+
+    @property
+    def active(self) -> bool:
+        return self.player.active or self.spotify.active
+
+    @property
+    def paused(self) -> bool:
+        return self.current.paused
+
+    def play(self, info: dict) -> None:
+        if info.get("source") == "spotify":
+            self.player.stop()
+            self.spotify.play(info)
+        else:
+            self.spotify.stop()
+            self.player.play(info)
+
+    def control(self, prompt: str) -> str | None:
+        return control(prompt, spotify=self.spotify.active)
+
+    def apply(self, action: str) -> None:
+        self.current.apply(action)
+
+    def stop(self) -> None:
+        self.player.stop()
+        self.spotify.stop()
+
+    # Ducking goes to both: the remote only sends anything while Spotify is on.
+    def duck(self) -> None:
+        self.player.duck()
+        self.spotify.duck()
+
+    def unduck(self) -> None:
+        self.player.unduck()
+        self.spotify.unduck()

@@ -133,3 +133,51 @@ class PlayerTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SpotifyRemoteTests(unittest.TestCase):
+    def make(self):
+        sent = []
+        remote = music.SpotifyRemote(send=sent.append)
+        remote._later = remote.send          # synchronous, for the test
+        return remote, sent
+
+    def test_ducking_only_while_playing_and_nested(self):
+        remote, sent = self.make()
+        remote.duck(); remote.unduck()
+        self.assertEqual(sent, [])           # nothing on, nothing sent
+        remote.play({"source": "spotify", "title": "x"})
+        remote.duck(); remote.duck(); remote.unduck(); remote.unduck()
+        self.assertEqual(sent, ["duck", "unduck"])
+
+    def test_controls_go_to_the_server(self):
+        remote, sent = self.make()
+        remote.play({"source": "spotify"})
+        for action in ("pause", "resume", "next", "louder", "stop"):
+            remote.apply(action)
+        self.assertEqual(sent, ["pause", "resume", "next", "louder", "pause"])
+        self.assertFalse(remote.active)
+
+    def test_next_is_only_a_control_on_spotify(self):
+        self.assertIsNone(music.control("skip this song"))
+        self.assertEqual(music.control("skip this song", spotify=True), "next")
+
+
+class JukeboxTests(unittest.TestCase):
+    def test_one_source_at_a_time(self):
+        output = FakeOutput()
+        player = music.MusicPlayer(opener=lambda url: SlowStream(b"\0" * 400000), output=lambda: output)
+        sent = []
+        remote = music.SpotifyRemote(send=sent.append)
+        remote._later = remote.send
+        box = music.Jukebox(player, remote)
+        box.play({"id": "abc", "title": "video"})
+        self.assertTrue(player.active)
+        box.play({"source": "spotify", "title": "song"})
+        self.assertFalse(player.active)
+        self.assertIs(box.current, remote)
+        self.assertEqual(box.control("next"), "next")
+        box.play({"id": "abc", "title": "video"})
+        self.assertEqual(sent, ["pause"])    # Spotify paused when YouTube took over
+        self.assertFalse(remote.active)
+        box.stop()

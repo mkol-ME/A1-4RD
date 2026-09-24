@@ -34,7 +34,7 @@ POLITE = (r"(?:(?:hey |ok |okay |so |and |now |ei |oi )?"
 PLAY = re.compile(
     rf"^{POLITE}(?:play|put on|throw on|queue up|start playing|blast|toca|tocar|toque|coloca|colocar|bota|poe)"
     r"(?: me)?(?: some| um pouco de| uma| um)? (?P<query>.+?)"
-    r"(?: (?:on|from|off|no) youtube)?(?: for me| pra mim| para mim)?(?: please| por favor)?$")
+    r"(?: (?:on|from|off|no|in) (?:youtube|spotify))?(?: for me| pra mim| para mim)?(?: please| por favor)?$")
 SEARCH = re.compile(
     rf"^{POLITE}(?:search|look up|find|show me|pull up|get me|procura|procure|busca|busque|mostra|acha)(?: me)?"
     r"(?: (?:some|a few|a|the|uns|umas|alguns|algumas))? (?:(?:youtube )?videos?|youtube)"
@@ -51,6 +51,33 @@ NEXT = re.compile(rf"^{POLITE}(?:play )?(?:the )?(?:next|skip|skip (?:it|this|th
 CLUTTER = re.compile(
     r"\s*[\(\[][^\)\]]*(?:official|video|audio|lyric|lyrics|visuali[sz]er|hd|hq|4k|remaster|"
     r"explicit|clean|m/v|mv)[^\)\]]*[\)\]]", re.I)
+
+
+# Where he said to play it, if he said: "play drake on spotify", "no youtube".
+SERVICE = re.compile(r" (?:on|from|off|no|in|using|through) (youtube|spotify)(?: for me| pra mim| para mim)?"
+                     r"(?: please| por favor)?$")
+# The answer to "Spotify or YouTube?": the name alone, or "either".
+ANSWER = re.compile(rf"^{POLITE}(?:(?:on|use|no|from|through|try) )?(?:the )?(youtube|spotify|either|either one"
+                    r"|whichever|doesnt matter|dont care|tanto faz|qualquer um)(?: one)?(?: please| por favor)?$")
+
+
+def _plain(prompt: str) -> str:
+    text = unicodedata.normalize("NFKD", prompt.lower()).encode("ascii", "ignore").decode()
+    return " ".join(re.findall(r"[a-z0-9']+", text.replace("you tube", "youtube")))
+
+
+def service_of(prompt: str) -> str | None:
+    """"spotify" or "youtube" if the request named one, else None."""
+    found = SERVICE.search(_plain(prompt))
+    return found.group(1) if found else None
+
+
+def service_answer(prompt: str) -> str | None:
+    """"spotify" or "youtube" when this turn answers which to use; "either" picks Spotify."""
+    found = ANSWER.match(_plain(prompt).replace("'", ""))
+    if not found:
+        return None
+    return found.group(1) if found.group(1) in ("youtube", "spotify") else "spotify"
 
 
 def parse(prompt: str, have_results: bool = False) -> tuple[str, object] | None:

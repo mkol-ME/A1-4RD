@@ -84,6 +84,18 @@
       "en": "I can't reach YouTube just now.",
       "pt": "Não consigo acessar o YouTube agora."
     },
+    "music_which": {
+      "en": "Spotify or YouTube?",
+      "pt": "Spotify ou YouTube?"
+    },
+    "spotify_no_device": {
+      "en": "Spotify isn't open anywhere. Open it on the laptop and ask again.",
+      "pt": "O Spotify não está aberto em lugar nenhum. Abra no notebook e peça de novo."
+    },
+    "spotify_unreachable": {
+      "en": "I can't reach Spotify just now.",
+      "pt": "Não consigo acessar o Spotify agora."
+    },
     "address": {
       "en": "Very well, sir.",
       "pt": "Pois não, senhor."
