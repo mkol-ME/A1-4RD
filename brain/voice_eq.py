@@ -7,19 +7,44 @@ of it sat under 150 Hz. The owner heard it as "underwater" (2026-09-24). Five
 loudness-matched versions were put in front of him and he chose the strongest:
 a high-pass at 120 Hz and a +12 dB shelf from 900 Hz.
 
-Applied per sentence after resampling, so it costs a millisecond or two. Set
-ALFRED_VOICE_EQ=off to hear the voice as the model makes it.
+Live it was worse than in the audition: the voice's own clicks came up with the
+treble and he heard it as "super crackly" (2026-09-24). So the chain is no
+longer fixed in code. It is read from ALFRED_VOICE_EQ_FILE, a small JSON file,
+whenever that file changes - {"chain": [["highpass", 120, 0], ["highshelf", 900,
+6]]} - and tuned while he listens, without restarting the server. No file, or
+an empty chain, means the voice exactly as the model makes it.
 """
 
+import json
 import os
+from pathlib import Path
 
 import numpy as np
 from scipy.signal import lfilter
 
-# (kind, frequency in Hz, gain in dB)
-CHAIN = (("highpass", 120.0, 0.0), ("highshelf", 900.0, 12.0))
-ENABLED = os.environ.get("ALFRED_VOICE_EQ", "on").lower() not in ("off", "0", "false", "no")
+# The one he chose from the audition, kept for reference: (kind, Hz, dB).
+CHOSEN = (("highpass", 120.0, 0.0), ("highshelf", 900.0, 12.0))
+SETTINGS = Path(os.environ.get("ALFRED_VOICE_EQ_FILE", "/srv/storage/alfred/voice_eq.json"))
 PEAK = 0.95
+_cache = {"mtime": None, "chain": ()}
+
+
+def current() -> tuple:
+    """The chain in the settings file, re-read only when the file changes."""
+    try:
+        mtime = SETTINGS.stat().st_mtime
+    except OSError:
+        return ()
+    if mtime != _cache["mtime"]:
+        try:
+            raw = json.loads(SETTINGS.read_text(encoding="utf-8")).get("chain") or []
+            chain = tuple((str(k), float(f), float(g)) for k, f, g in raw)
+            for kind, freq, gain in chain:
+                biquad(kind, freq, gain, 48000)          # reject a bad entry now, not mid-sentence
+        except (OSError, ValueError, TypeError):
+            chain = ()                                   # a broken file means no EQ, never no voice
+        _cache.update(mtime=mtime, chain=chain)
+    return _cache["chain"]
 
 
 def biquad(kind: str, freq: float, gain_db: float, rate: int, q: float = 0.707):
@@ -43,7 +68,7 @@ def biquad(kind: str, freq: float, gain_db: float, rate: int, q: float = 0.707):
     return np.array(b) / a[0], np.array(a) / a[0]
 
 
-def apply(samples: np.ndarray, rate: int, chain=CHAIN) -> np.ndarray:
+def apply(samples: np.ndarray, rate: int, chain=CHOSEN) -> np.ndarray:
     """The samples through the chain, as loud as they came in, peaks kept under PEAK."""
     samples = np.asarray(samples, dtype=np.float64)
     if samples.size == 0 or not chain:

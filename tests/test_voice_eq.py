@@ -46,5 +46,37 @@ class VoiceEqTests(unittest.TestCase):
         np.testing.assert_array_equal(voice_eq.apply(x, RATE, chain=()), x)
 
 
+class SettingsFileTests(unittest.TestCase):
+    def setUp(self):
+        import tempfile
+        self.folder = tempfile.mkdtemp()
+        self.saved = voice_eq.SETTINGS
+        voice_eq.SETTINGS = Path(self.folder) / "voice_eq.json"
+        voice_eq._cache.update(mtime=None, chain=())
+
+    def tearDown(self):
+        voice_eq.SETTINGS = self.saved
+
+    def write(self, text, bump):
+        import os
+        voice_eq.SETTINGS.write_text(text, encoding="utf-8")
+        os.utime(voice_eq.SETTINGS, (bump, bump))          # a distinct mtime per write
+
+    def test_no_file_means_no_eq(self):
+        self.assertEqual(voice_eq.current(), ())
+
+    def test_read_and_changed(self):
+        self.write('{"chain": [["highpass", 100, 0], ["highshelf", 1000, 6]]}', 1000)
+        self.assertEqual(voice_eq.current(), (("highpass", 100.0, 0.0), ("highshelf", 1000.0, 6.0)))
+        self.write('{"chain": []}', 2000)
+        self.assertEqual(voice_eq.current(), ())
+
+    def test_a_broken_file_means_no_eq(self):
+        for text, bump in (("not json", 1000), ('{"chain": [["lowpass", 100, 0]]}', 2000),
+                           ('{"chain": [["highpass"]]}', 3000)):
+            self.write(text, bump)
+            self.assertEqual(voice_eq.current(), (), text)
+
+
 if __name__ == "__main__":
     unittest.main()
