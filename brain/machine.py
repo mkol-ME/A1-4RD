@@ -8,6 +8,7 @@ written, and nothing controls the fan: that stays with mi50-fan.service.
     python3 brain/machine.py     # the report the answerer sees
 """
 
+import calendar
 import glob
 import json
 import os
@@ -128,6 +129,34 @@ def raid() -> list[str]:
             health = "healthy" if "_" not in state else "DEGRADED"
             arrays.append(f"{name} {state} {health}{', checking' if syncing else ''}")
     return arrays
+
+
+ALERTS = os.environ.get("ALFRED_SERVER_ALERTS", "/var/lib/a1-4rd/alerts.jsonl")
+ALERT_DAYS = 30
+
+
+def alerts(now: float | None = None) -> list[str] | None:
+    """Disk and RAID warnings from the last month, newest first; None if nothing records them.
+
+    mdadm and smartd write one JSON line per problem to ALERTS (see the server's
+    alert handler). Test messages are left out.
+    """
+    try:
+        lines = open(ALERTS, encoding="utf-8").read().splitlines()
+    except OSError:
+        return None
+    since = (now or time.time()) - ALERT_DAYS * 86400
+    found = []
+    for line in lines:
+        try:
+            entry = json.loads(line)
+            when = calendar.timegm(time.strptime(entry["time"], "%Y-%m-%dT%H:%M:%SZ"))
+        except (ValueError, KeyError, TypeError):
+            continue
+        if entry.get("test") or when < since:
+            continue
+        found.append(f"{time.strftime('%b %d', time.gmtime(when))}: {entry.get('message', entry.get('event'))}")
+    return found[::-1]
 
 
 def disks() -> list[str]:
@@ -259,6 +288,11 @@ def report() -> str:
     storage = disks()
     if storage:
         lines.append("- Disks: " + "; ".join(storage))
+    warnings = alerts()
+    if warnings:
+        lines.append(f"- Disk and RAID alerts in the last {ALERT_DAYS} days: " + "; ".join(warnings[:5]))
+    elif warnings is not None:
+        lines.append(f"- Disk health monitor: no disk or RAID alerts in the last {ALERT_DAYS} days")
     # "the server you run on" came back as "You're running an i7-8700, sir":
     # he mirrored the second person onto the owner. Say whose hardware it is.
     lines.append(f"Hardware of the server that is your brain. It is YOUR hardware, not {prompts.OWNER}'s: say "
