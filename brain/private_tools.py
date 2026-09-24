@@ -29,6 +29,19 @@ Besides "ok", the result may carry:
 "direct" is for answers whose wording is the answer - a list meant to be read
 out in order, which a model would shorten, merge or reorder in the retelling.
 
+It may also provide:
+
+    follow_up(prompt, last_reply)       -> the same kind of dict, or None
+
+offered each turn before anything else, so a tool can carry on with what it just
+said: "next", "go back", "one at a time" name nothing the decider could route,
+and routed anyway they only fetch the same whole answer again. `last_reply` is
+what Alfred said on the turn before; a tool claims the turn only when that was
+its own answer, and returns None otherwise. A result with "direct" is spoken as
+written; one with "report" instead is handed to the answerer, for a turn that
+needs a reply rather than a reading - he argued with an answer and was read the
+same explanation back.
+
 A module that fails to load, or a dispatch that raises, costs that one tool and
 never the turn. Alfred with a broken private tool is still Alfred.
 """
@@ -82,6 +95,22 @@ class Registry:
         if not isinstance(result, dict):
             return {"ok": False, "error": f"{name} returned {type(result).__name__}, not a dict"}
         return result
+
+    def follow_up(self, prompt: str, last_reply: str) -> dict | None:
+        """The first tool to claim this turn as the continuation of its last answer."""
+        asked = []
+        for module, _ in self.modules.values():
+            if module in asked or not callable(getattr(module, "follow_up", None)):
+                continue
+            asked.append(module)
+            try:
+                result = module.follow_up(prompt, last_reply)
+            except Exception as exc:
+                print(f"private tool follow-up failed: {exc}", file=sys.stderr, flush=True)
+                continue
+            if isinstance(result, dict) and (result.get("direct") or result.get("report")):
+                return result
+        return None
 
 
 def load(reserved=()) -> Registry:

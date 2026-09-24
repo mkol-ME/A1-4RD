@@ -433,6 +433,7 @@ class Handler(BaseHTTPRequestHandler):
 
         bare_prompt = " ".join(re.findall(r"[^\W_]+", prompt.lower()))
         direct_reply = None
+        follow_report = None
         if bare_prompt in {
             "what time is it", "what is the time", "whats the time",
             "tell me the time", "current time", "time please",
@@ -441,6 +442,19 @@ class Handler(BaseHTTPRequestHandler):
             direct_reply = memory.local_time_reply(language)
         elif title is not None:
             direct_reply = prompts.line("address", language)
+        else:
+            # A private tool carrying on with what it just said - "next", "go
+            # back" - names nothing the decider could route, and routed anyway it
+            # only fetched the same whole answer again: asked for a list one item
+            # at a time, he heard the whole list three times over. Offered the turn first.
+            last_reply = next((m["content"] for m in reversed(history) if m["role"] == "assistant"), "")
+            followed = memory_tools.PRIVATE.follow_up(prompt, last_reply)
+            if followed and followed.get("direct"):
+                direct_reply = followed["direct"]
+                print("memory private follow-up", flush=True)
+            elif followed:
+                follow_report = followed["report"]
+                print("memory private follow-up, answered", flush=True)
         # Pass one decides what to look up, with no persona and no examples in
         # front of it. Pass two — the one below, which actually answers — never
         # sees a tool definition. If the decider fails for any reason we fall
@@ -547,6 +561,10 @@ class Handler(BaseHTTPRequestHandler):
             print("memory weather", flush=True)
             consulted = {"context": memory_tools._render(MEMORY, [], []),
                          "calls": [], "failed": False}
+        elif follow_report is not None:
+            # A private tool's facts, for him to answer from in his own words.
+            consulted = {"context": memory_tools._render(MEMORY, [], [], [follow_report]),
+                         "calls": [], "failed": False}
         elif direct_reply is not None or not memory_tools.may_need_tools(prompt):
             consulted = {"context": memory_tools._render(MEMORY, [], []),
                          "calls": [], "failed": False}
@@ -566,6 +584,7 @@ class Handler(BaseHTTPRequestHandler):
         # Ordinary conversation, nothing fetched: the one case where he used to have
         # no past in front of him at all.
         if (not consulted["calls"] and not consulted["failed"] and direct_reply is None
+                and follow_report is None
                 and forecast is None and videos is None and commentary is None and play is None
                 and memory_tools.worth_recalling(prompt)):
             try:
