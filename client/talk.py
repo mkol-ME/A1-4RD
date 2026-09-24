@@ -143,6 +143,8 @@ class Player(threading.Thread):
         self.queue: queue.Queue = queue.Queue()
         self.pause_scale = pause_scale
         self.deadline = 0.0
+        # Bumped by interrupt(): anything queued or playing from before it is dropped.
+        self.generation = 0
         # Times the device ran dry in the middle of a sentence. A dropout is heard
         # as a crackle, and this is the only way to tell one from a bad voice.
         self.dropouts = 0
@@ -153,7 +155,14 @@ class Player(threading.Thread):
         self.start()
 
     def submit(self, audio: bytes, sentence: str) -> None:
-        self.queue.put((audio, sentence))
+        self.queue.put((self.generation, audio, sentence))
+
+    def interrupt(self) -> None:
+        """Stop talking now: the sentence playing ends within a few milliseconds
+        and nothing already queued is played. He was saying his name over a whole
+        card being read out and had to close the program to stop it (2026-09-24)."""
+        self.generation += 1
+        self.deadline = time.perf_counter()
 
     def drain(self) -> None:
         """Block until everything queued has actually finished playing."""
@@ -182,7 +191,9 @@ class Player(threading.Thread):
         self.stream.stop()
         self.stream.close()
 
-    def _play(self, audio: bytes, sentence: str) -> None:
+    def _play(self, generation: int, audio: bytes, sentence: str) -> None:
+        if generation != self.generation:
+            return                          # queued before an interrupt
         samples, rate = decode(audio)
         if rate != SAMPLE_RATE:
             raise RuntimeError(f"expected {SAMPLE_RATE}Hz from the voice server, got {rate}Hz")
@@ -197,6 +208,8 @@ class Player(threading.Thread):
         piece = int(0.02 * rate)
         dropouts, slowest, started = 0, 0.0, time.perf_counter()
         for index, start in enumerate(range(0, block.size, piece)):
+            if generation != self.generation:
+                break                       # interrupted mid-sentence
             before = time.perf_counter()
             if self.stream.write(block[start:start + piece]) and index > 0:
                 dropouts += 1
@@ -219,7 +232,12 @@ def run(command: list[str], **kwargs) -> subprocess.CompletedProcess:
     return subprocess.run(command, check=True, text=True, **kwargs)
 
 
-def chat(prompt: str, player, on_media=None, language: str = "en") -> tuple[float, float, float]:
+def chat(prompt: str, player, on_media=None, language: str = "en", cancel=None) -> tuple[float, float, float]:
+    """One turn: send the prompt, play each sentence as it arrives.
+
+    `cancel`, a threading.Event, stops reading the reply once set - he said his
+    name over it. The player is interrupted by whoever sets it.
+    """
     request = urllib.request.Request(
         f"{VOICE_URL}/chat",
         data=json.dumps({"text": prompt, "language": language}).encode("utf-8"),
@@ -233,6 +251,8 @@ def chat(prompt: str, player, on_media=None, language: str = "en") -> tuple[floa
     print("Alfred: ", end="", flush=True)
     with urllib.request.urlopen(request, timeout=180) as response:
         for raw in response:
+            if cancel is not None and cancel.is_set():
+                break
             frame = json.loads(raw)
             if frame.get("done"):
                 break

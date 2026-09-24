@@ -24,6 +24,7 @@ import re
 import socket
 import subprocess
 import sys
+import threading
 import time
 import unicodedata
 import urllib.error
@@ -123,6 +124,15 @@ MAX_UTTERANCE = 15.0
 # command after it is heard cleanly.
 MUSIC_UTTERANCE = 3.0
 INSTANCE_PORT = 5049      # held while listen.py runs, so a second copy refuses to start
+# While he is talking the laptop still listens, in windows this long, for his
+# name and nothing else: "Alfred" over a reply stops it. A whole card read out at
+# once could not be stopped except by closing the program (2026-09-24). His own
+# voice from the speakers is heard too, but it never says his name.
+BARGE_WINDOW = 2.5
+# Said after his name to stop him, rather than to ask something new.
+STOP_WORDS = {"stop", "stop it", "stop talking", "ok", "okay", "enough", "thats enough", "that's enough",
+              "quiet", "shush", "shut up", "hold on", "wait", "hang on", "pause", "cancel", "never mind",
+              "nevermind", "thanks", "thank you", "got it", "alright"}
 # After his name alone while music plays, how long the next words count as
 # addressed to him without saying it again.
 MUSIC_ADDRESS_SECONDS = 8.0
@@ -378,7 +388,7 @@ class Microphone:
         self.deaf = False
 
     def next_utterance(self, timeout: float = 2.0, on_pause=None, unfinished=None,
-                       max_length: float = MAX_UTTERANCE) -> np.ndarray | None:
+                       max_length: float = MAX_UTTERANCE, stop=None) -> np.ndarray | None:
         """Collect from the first loud block until the pause after it.
 
         Returns None if the microphone stops producing. A live stream never
@@ -395,6 +405,9 @@ class Microphone:
         SILENCE_HANGOVER. If it says the words so far trail off, the pause may
         run to UNFINISHED_HANGOVER before the utterance is called over, and
         `bridged` counts how many times that let him carry on.
+
+        stop, if given, is asked after every block; once it says so, None comes
+        back straight away (the reply being listened over has finished).
         """
         threshold = self.floor * SPEECH_MARGIN
         collected, silence, started = [], 0.0, False
@@ -404,6 +417,8 @@ class Microphone:
             try:
                 block = self.blocks.get(timeout=timeout)
             except queue.Empty:
+                return None
+            if stop is not None and stop():
                 return None
             level = rms(block)
             if not started:
@@ -531,16 +546,55 @@ def main() -> None:
     archive = ThreadPoolExecutor(max_workers=1)
     music = Jukebox(MusicPlayer(), SpotifyRemote(talk.VOICE_URL))
 
-    def reply(prompt: str) -> None:
-        microphone.deaf = True                 # he does not listen while he talks
+    def listen_for_name(done: threading.Event, cancel: threading.Event, after: list) -> None:
+        """While he talks: stop him if his name is heard, keeping what followed it."""
+        while not done.is_set():
+            audio = microphone.next_utterance(timeout=0.5, max_length=BARGE_WINDOW, stop=done.is_set)
+            if audio is None or done.is_set():
+                continue
+            try:
+                heard = transcribe(audio)[0]
+            except Exception:
+                continue
+            rest = strip_wake_word(heard or "")
+            if rest is None:
+                continue                          # his own voice, or the room
+            after.append(rest)
+            cancel.set()
+            player.interrupt()
+            return
+
+    def reply(prompt: str) -> str | None:
+        """Answer one prompt. If he says "Alfred" over the answer it stops there, and
+        whatever he said after the name comes back as the next prompt."""
         music.duck()
+        done, cancel, after = threading.Event(), threading.Event(), []
+        microphone.flush()
+        microphone.deaf = False                # listening only for his name, see BARGE_WINDOW
+        watcher = threading.Thread(target=listen_for_name, args=(done, cancel, after), daemon=True)
+        watcher.start()
         try:
-            talk.chat(prompt, player, on_media=music.play, language=LISTEN_LANGUAGE[0])
+            talk.chat(prompt, player, on_media=music.play, language=LISTEN_LANGUAGE[0], cancel=cancel)
         except Exception as exc:
             print(f"  reply failed: {exc}", file=sys.stderr)
         finally:
+            done.set()
+            watcher.join(timeout=5)
+            microphone.deaf = True
             music.unduck()
             microphone.settle()
+        if not cancel.is_set():
+            return None
+        rest = (after[0] if after else "").strip()
+        print(talk_dim("interrupted"))
+        return rest if rest and rest not in STOP_WORDS else None
+
+    def converse(prompt: str) -> None:
+        """A reply, and another for whatever he says over it, until one runs its course."""
+        while prompt:
+            prompt = reply(prompt)
+            if prompt:
+                print(f"You: {prompt}   [over him]")
 
     def switch_language(prompt: str) -> bool:
         """"Speak Portuguese" / "speak English": change language, say so, and stop there."""
@@ -604,7 +658,7 @@ def main() -> None:
                     music.apply(action)
                     continue
                 print(f"You: {prompt}   [over music]")
-                reply(prompt)
+                converse(prompt)
                 continue
             if addressed_until:                     # the music ended while he was addressed
                 music.unduck()
@@ -634,7 +688,7 @@ def main() -> None:
             print(f"You: {prompt}   [{len(audio) / RATE:.1f}s audio, {seconds:.2f}s to transcribe, "
                   f"longest pause {microphone.longest_pause:.2f}s of {SILENCE_HANGOVER:.2f}s allowed"
                   f"{f', waited through {microphone.bridged} unfinished pause(s)' if microphone.bridged else ''}]")
-            reply(prompt)
+            converse(prompt)
             if not args.open:
                 attentive_until = time.monotonic() + args.attention
     except KeyboardInterrupt:
