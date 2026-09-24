@@ -29,6 +29,34 @@ RED = "\033[31m"
 RESET = "\033[0m"
 
 
+def pending(wait: float = 0.05) -> bool:
+    """Whether more input is already waiting: the rest of a paste arrives at once,
+    where a person typing takes far longer than this to start another line."""
+    deadline = time.monotonic() + wait
+    while True:
+        if os.name == "nt":
+            import msvcrt
+            if msvcrt.kbhit():
+                return True
+        else:
+            import select
+            if select.select([sys.stdin], [], [], 0)[0]:
+                return True
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(0.01)
+
+
+def read_prompt(marker: str) -> str:
+    """One turn's text. A pasted block is one message: pasted a page of eleven
+    lines, he got eleven turns, and one of those scraps was saved to memory as a
+    fact about him."""
+    lines = [input(marker)]
+    while pending():
+        lines.append(input())
+    return "\n".join(lines).strip()
+
+
 def enable_colour() -> bool:
     """Turn on ANSI escapes in a Windows console; say whether they are safe to use."""
     if not sys.stdout.isatty() or os.environ.get("NO_COLOR"):
@@ -208,7 +236,7 @@ def main() -> int:
         print("Type to Alfred. /quit or Ctrl+C to leave.\n")
         while True:
             try:
-                prompt = input(f"{BOLD}>{RESET} " if colour else "> ").strip()
+                prompt = read_prompt(f"{BOLD}>{RESET} " if colour else "> ")
             except (EOFError, KeyboardInterrupt):
                 print()
                 return 0
