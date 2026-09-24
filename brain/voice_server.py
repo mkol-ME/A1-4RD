@@ -110,6 +110,9 @@ MEDIA_RESULTS: list = []
 MEDIA_POSITION = [-1]
 # The last commentator section talked about, so "play that part" can follow it.
 GURU_LAST: list = []
+# What he calls whoever is talking: "sir" until someone says "use ma'am responses".
+# Not saved, so a restart (and the nightly reboot) puts it back to the default.
+ADDRESS = [spoken.DEFAULT_TITLE]
 
 # What he is handed about the past on a turn that looked nothing up: at most two
 # lines, above a bar set by measurement rather than by taste. brain/recall_eval.py
@@ -412,7 +415,12 @@ class Handler(BaseHTTPRequestHandler):
         worker.start()
 
         history = MEMORY.recent()
-        ration = spoken.TitleRation([m["content"] for m in history if m["role"] == "assistant"])
+        title = spoken.address_command(prompt)
+        if title is not None:
+            ADDRESS[0] = title
+        # A title just asked for is said straight back, whatever the last two replies held.
+        ration = spoken.TitleRation([] if title else [m["content"] for m in history if m["role"] == "assistant"],
+                                    ADDRESS[0])
         said = []   # the reply as actually spoken, which is what memory keeps
 
         def emit(sentence: str) -> None:
@@ -431,6 +439,8 @@ class Handler(BaseHTTPRequestHandler):
             "que horas são", "que horas sao", "que hora é", "que hora e", "me diz a hora",
         }:
             direct_reply = memory.local_time_reply(language)
+        elif title is not None:
+            direct_reply = prompts.line("address", language)
         # Pass one decides what to look up, with no persona and no examples in
         # front of it. Pass two — the one below, which actually answers — never
         # sees a tool definition. If the decider fails for any reason we fall

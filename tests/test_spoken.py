@@ -54,5 +54,47 @@ class TitleRation(unittest.TestCase):
         self.assertEqual(spoken.TitleRation([]).apply("Evening, sir."), "Evening, sir.")
 
 
+class Address(unittest.TestCase):
+    def test_the_commands(self):
+        for prompt, title in (("use ma'am responses", "ma'am"), ("Alfred, use ma’am responses.", "ma'am"),
+                              ("use maam responses", "ma'am"), ("use madam responses", "madam"),
+                              ("use sir responses", "sir"), ("sir mode", "sir"), ("call me ma'am", "ma'am"),
+                              ("address me as madam please", "madam"), ("use female responses", "ma'am"),
+                              ("use male responses", "sir"), ("me chame de senhora", "ma'am")):
+            self.assertEqual(spoken.address_command(prompt), title, prompt)
+
+    def test_mentions_are_not_commands(self):
+        for prompt in ("the sir responses were funny", "why do you call me sir", "use the printer",
+                       "call me later", "what does ma'am mean", "use sensible responses"):
+            self.assertIsNone(spoken.address_command(prompt), prompt)
+
+    def test_every_position_takes_the_title(self):
+        ration = spoken.TitleRation([], "ma'am")
+        self.assertEqual(ration.apply("Sir."), "Ma'am.")
+        self.assertEqual(ration.apply("That's a myth, sir."), "That's a myth, ma'am.")
+        self.assertEqual(spoken.TitleRation([], "madam").apply("Sir, you should see a doctor."),
+                         "Madam, you should see a doctor.")
+
+    def test_the_ration_counts_any_title(self):
+        self.assertEqual(spoken.TitleRation(["They aren't, ma'am."], "ma'am").apply("Fine, sir."), "Fine.")
+        self.assertEqual(spoken.TitleRation(["Dogs.", "Cats."], "ma'am").apply("Fine, ma'am."), "Fine, ma'am.")
+
+    def test_switching_back_undoes_the_old_title(self):
+        # The history he imitates still says "ma'am" for a turn or two after the switch.
+        self.assertEqual(spoken.TitleRation([], "sir").apply("Fine, ma'am."), "Fine, sir.")
+        self.assertEqual(spoken.TitleRation([], "sir").apply("A senhora já decidiu."), "O senhor já decidiu.")
+
+    def test_portuguese_articles_agree(self):
+        ration = spoken.TitleRation(["Não."], "ma'am")
+        self.assertEqual(ration.apply("O senhor já decidiu."), "A senhora já decidiu.")
+        self.assertEqual(ration.apply("Isso é do senhor, e eu disse ao senhor."), "Isso é da senhora, e eu disse à senhora.")
+        self.assertEqual(spoken.TitleRation([], "ma'am").apply("Entendido, senhor."), "Entendido, senhora.")
+
+    def test_names_are_left_alone(self):
+        ration = spoken.TitleRation([], "ma'am")
+        self.assertEqual(ration.apply("Sir Isaac Newton said so, sir."), "Sir Isaac Newton said so, ma'am.")
+        self.assertEqual(spoken.TitleRation([], "sir").apply("Madam Curie."), "Madam Curie.")
+
+
 if __name__ == "__main__":
     unittest.main()
