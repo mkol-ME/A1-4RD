@@ -1,5 +1,8 @@
 # A1-4RD — "Alfred"
 
+[![tests](https://github.com/mkol-ME/A1-4RD/actions/workflows/tests.yml/badge.svg)](https://github.com/mkol-ME/A1-4RD/actions/workflows/tests.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A 3D-printed desk companion with a moving jaw and a voice, written in the manner of an old-fashioned
 butler: dry, warm, terse, and genuinely useful. Not a smart speaker.
 
@@ -72,18 +75,17 @@ every revision.
  microphone, 16 kHz
    → speech detection against the room's
      measured noise floor
-   → at 0.20 s of silence, send audio ────────→ Whisper small.en on the GTX 1060        (:5052)
+   → at 0.20 s of silence, send audio ────────→ Whisper small.en on the GTX 1060
    → at 0.40 s, end the turn — or wait up to
      1.0 s if the words so far trail off
    → wake word / attention window
-   → text ────────────────────────────────────→ voice server                            (:5051)
+   → text ────────────────────────────────────→ voice server
                                                   → tool gate: does this need a lookup?
-                                                  → decider: search memory / search web /
-                                                    sports scores (ESPN) / news (Google News) /
-                                                    odds (Polymarket)
-                                                    (SearXNG :8888, Wikipedia) / remember
+                                                  → decider: search memory / search web
+                                                    (SearXNG, Wikipedia) / sports scores
+                                                    (ESPN) / news (Google News) / remember
                                                     weather goes to Open-Meteo instead
-                                                  → gemma4 26B on the MI50 via Ollama   (:11434)
+                                                  → gemma4 26B on the MI50 via Ollama
                                                   → cut the stream into whole sentences
                                                   → Alfred's distilled Piper voice (CPU)
  speaker (WASAPI) ←──── one WAV per sentence ─── ← streamed as NDJSON
@@ -105,19 +107,20 @@ debugged on its own.
 
 ## Hardware
 
-**Server** (headless Ubuntu 24.04, `ssh a1-4rd`, see [docs/SSH.md](docs/SSH.md))
+**Server** (headless Ubuntu 24.04; setup and operation in [docs/server.md](docs/server.md))
 
 | Part | Role |
 |---|---|
 | i7-8700 · 48 GB DDR4 · MSI MPG Z390 Gaming Plus | host |
 | **AMD Radeon Instinct MI50 32 GB** | the language model (Ollama, Vulkan backend) |
 | **NVIDIA GTX 1060 6 GB** | Whisper |
-| 500 GB NVMe · 3×2 TB RAID 5 (`/srv/storage`) · 1.5 TB (`/srv/extra`) | OS and models · Alfred's memory database · spare |
+| 500 GB NVMe · 3×2 TB RAID 5 · 1.5 TB | OS and models · Alfred's memory database · spare |
 
-MI50 notes, all handled already: it needed its stock VBIOS reflashed, *Above 4G Decoding* in the BIOS, and
-`pci=realloc` on the kernel command line. It is passively cooled, so a server fan on motherboard header 7 is
-driven from the card's temperature by [`ops/fan`](ops/fan). The board boots in legacy (CSM) mode — do not
-disable CSM.
+The MI50 is a secondhand datacenter card. Getting it working in a consumer board took a VBIOS reflash,
+*Above 4G Decoding* in the BIOS and `pci=realloc` on the kernel command line. It has no fan of its own, so a
+server fan is driven from the card's temperature by [`ops/fan`](ops/fan). Two driver settings keep the whole
+model in video memory; without them half of it silently spilled into system RAM, at 4 tokens a second
+instead of 40 ([why each setting is there](docs/server.md#ollama-settings)).
 
 **Client:** any Windows laptop with a microphone. Later: a Raspberry Pi in the printed body, with a servo jaw
 and a neck servo — see [The physical build](#the-physical-build).
@@ -157,7 +160,7 @@ A1-4RD/
 │   ├── talk.py               type to him, hear him answer; also the audio player
 │   ├── music.py              plays YouTube audio; pause, stop, volume, ducking under his voice
 │   └── launcher/             builds Alfred.exe, a double-click launcher
-├── scripts/                  server launch scripts; voice-test-server.sh runs a scratch copy on :5061
+├── scripts/                  server launch scripts, and a scratch copy of the voice server for testing
 ├── voice-training/           how his voice was made: auditions, RVC, distillation into Piper
 ├── tests/                    unit tests for memory, tool gate and the listening loop
 ├── ops/                      server setup, version-controlled
@@ -168,95 +171,24 @@ A1-4RD/
 │   └── remote-access/        key-only SSH and Tailscale
 ├── requirements/             pinned environments (client TTS, Whisper, RVC, Qwen-TTS)
 ├── hardware/                 CAD (STEP/STL), KiCad PCB and bring-up notes for the body
-└── docs/                     SSH access
+└── docs/                     running the server, and reaching it
 ```
-
-Large assets are **not** in git and live at the project root on the server: the virtual environments
-(`.venv-rvc`, `.venv-whisper`), `voice-audition-distilled/` (his current voice), `tts-models/`,
-`rvc-model/`, and the training data under `voice-distill/` and `piper-training/`.
 
 ---
 
 ## Talking to Alfred
 
-From the project root on the laptop, in PowerShell. The client starts any server services that are not
-running and opens the SSH tunnels itself.
-
-```powershell
-.venv-tts\Scripts\python.exe client\listen.py            # speak: say "Alfred, ..."
-.venv-tts\Scripts\python.exe client\listen.py --open     # no wake word
-.venv-tts\Scripts\python.exe client\talk.py              # type instead of speaking
-```
-
 - Say **"Alfred, …"** to start. He then stays attentive for three minutes without needing his name.
-- **"That'll be all"** dismisses him. **Ctrl+C** quits.
-- **"Play …"** plays it from YouTube through his speaker; **"find videos of …"** reads out the top results, then
-  **"play the second one"** or **"next"**. While music plays, say his name first: **"Alfred, pause / resume / stop /
-  louder / quieter"**. The music drops while he talks.
-- **"Who does the Guru pick in Pantoja–Van?"** or **"what did the Guru say about …"** summarises The MMA Guru's
-  predictions or recap video on that fight; **"play the Guru's breakdown of …"** or **"play that part"** plays just
-  that section, found from his chapters or, failing those, from the captions.
-- Each turn prints what was heard, how long transcription took, and the longest pause you left inside the
-  sentence — the data for tuning when a turn is considered over.
+  **"That'll be all"** dismisses him.
+- Say his name while he is talking and he stops, so you can cut in.
+- **"Play …"** asks whether you want Spotify or YouTube, then plays it through his speaker. **"Find videos
+  of …"** reads out the top results. While music plays, **"Alfred, pause / resume / stop / louder / quieter"** works, and the
+  music drops whenever he talks.
+- Ask about the weather, last night's game, the news, or something you told him last week. He decides
+  on his own when a question needs a lookup.
+- Typing works too: the same conversation and memory, without the audio.
 
-Everything said is remembered, exactly as in normal use.
-
-Terminal chat directly on the server (no audio):
-
-```bash
-ssh a1-4rd "cd ~/a1-4rd && .venv-rvc/bin/python brain/alfred.py"
-```
-
----
-
-## The server
-
-### Services
-
-| Port | Service | Started by |
-|---|---|---|
-| 11434 | Ollama — `gemma4:26b-a4b-it-q8_0` on the MI50 | systemd (`ollama`) |
-| 5051 | voice server (`brain/voice_server.py`) | systemd (`alfred-voice`) |
-| 5052 | Whisper (`brain/whisper_server.py`) | systemd (`alfred-whisper`) |
-| 8888 | SearXNG metasearch, localhost only | systemd (`alfred-searx`) |
-| 5053 | media service (`brain/media_server.py`), YouTube search and audio | systemd (`alfred-media`) |
-
-All bind to `127.0.0.1`; the laptop reaches them through SSH port forwarding, over the LAN or Tailscale.
-`client/listen.py` still starts any that are not running. Install the units with
-`sudo bash ops/services/install.sh`.
-
-### Installed system pieces ([`ops/`](ops))
-
-| Unit | What it does |
-|---|---|
-| `mi50-fan.service` | fan speed from MI50 junction/memory temperature; full speed if the sensor is lost |
-| `a1-4rd-nightly-reboot.timer` | 3 a.m. Eastern: reboots only if up ≥ 60 h and idle (no RAID check, downloads, updates, SSH activity or GPU load). Opt out: `sudo touch /etc/a1-4rd-no-auto-reboot` |
-| `alfred-voice`, `alfred-whisper`, `alfred-searx` | Alfred's services, up at boot and restarted if they crash ([`ops/services`](ops/services)) |
-| `01-keys-only.conf`, `tailscaled` | SSH by key only; reachable from any network through Tailscale, no open router port ([`ops/remote-access`](ops/remote-access)) |
-| `alfred-ollama-warm.service` | loads Alfred's model at boot so the first reply is not a 20 s load |
-| `ollama.service.d/override.conf` | see below |
-
-Why each Ollama setting is there ([`ops/ollama/override.conf`](ops/ollama/override.conf)):
-
-| Setting | Reason |
-|---|---|
-| `GGML_VK_DISABLE_HOST_VISIBLE_VIDMEM=1`, `RADV_PERFTEST=nogttspill` | the MI50 exposes only 16 GB to the CPU; without these half the model silently lands in system RAM (4 tok/s instead of 40) |
-| `OLLAMA_NUM_PARALLEL=2` | the tool decider and Alfred's persona each keep their own cached prompt |
-| `LLAMA_ARG_SWA_FULL=1`, `LLAMA_ARG_CTX_CHECKPOINTS=0`, `LLAMA_ARG_CACHE_RAM=0` | stop llama.cpp copying ~100 MB of cache off the card every request (−0.47 s per turn) |
-| `OLLAMA_MAX_LOADED_MODELS=2` | Alfred + the embedder; anything extra evicts instead of spilling into RAM |
-| `OLLAMA_KEEP_ALIVE=-1` | the model never unloads |
-
-VRAM is ~31 of 32.75 GB in use. Loading another model onto the MI50 alongside Alfred will slow him down.
-
-### Useful checks
-
-```bash
-ollama ps                                                    # model loaded, 100% GPU
-cat /sys/bus/pci/devices/0000:03:00.0/mem_info_gtt_used      # should stay under ~1 GB
-sensors amdgpu-pci-0300                                      # MI50 temperatures and power
-journalctl -u mi50-fan -n 5                                  # fan curve decisions
-systemctl list-timers a1-4rd-nightly-reboot.timer
-```
+Running the client and the server is covered in [docs/server.md](docs/server.md).
 
 ---
 
@@ -290,14 +222,13 @@ the gap. `gemma4:31b` is the alternative if character ever matters more than spe
 
 ## Testing
 
-```bash
-# memory, tool gate and decider history rules (on the server)
-ssh a1-4rd "cd ~/a1-4rd && .venv-rvc/bin/python -m unittest discover -s tests -p 'test_memory.py'"
-```
+The unit tests cover memory, the tool gate, the listening loop (segmentation, wake word, unfinished
+sentences), the spoken-reply rules, the voice EQ and each lookup's parsing. They need no GPU or model, and
+[run on every push](https://github.com/mkol-ME/A1-4RD/actions/workflows/tests.yml):
 
-```powershell
-# listening loop: segmentation, wake word, early transcription, unfinished sentences (on the laptop)
-.venv-tts\Scripts\python.exe -m unittest discover -s tests -p "test_listen.py"
+```bash
+pip install numpy scipy sounddevice
+python -m unittest discover -s tests
 ```
 
 The character, conversation and routing evaluations are built on the private persona and real
@@ -307,19 +238,33 @@ conversations, so they are kept out of this repository along with it.
 
 ## Status and roadmap
 
-**Done:** persona (phase 1); the full voice pipeline — text, memory, voice, ears (phase 2); MI50 bring-up and
-latency work; services that start at boot; remote access over Tailscale; live weather; handling spoken
-corrections.
+**Done**
+- The persona, and the full voice pipeline: ears, memory, lookups, voice
+- MI50 bring-up and latency work; services that start at boot; remote access over Tailscale
+- Live weather, sports, news and web search; spoken corrections
+- Music from YouTube or Spotify, ducked under his voice; cutting in by saying his name
+- A typed client sharing the same conversation and memory
+- Optional tools loaded from outside the repository, which can report back when a long job finishes
+- The printed body and the carrier PCB, designed in CAD
 
 **Next**
 - Recognising who is speaking, with separate memory per person (enforced in SQL, never in the prompt)
 - Small character faults — through example curation, not more rules
+- A bench prototype of the electronics ([plan](hardware/bringup-plan.md))
 
-**Later:** Raspberry Pi client, servo jaw and neck, printed enclosure; Tapology, then Spotify.
+**Later:** the Raspberry Pi client inside the printed body, with the servo jaw and neck; timers and alarms
+that still ring when the network is down.
 
 ---
 
 ## Further reading
 
+- [docs/server.md](docs/server.md) — running the client and the server
 - [docs/SSH.md](docs/SSH.md) — reaching the server
 - [hardware/](hardware) — the physical build
+
+## License
+
+The code is released under the [MIT License](LICENSE). The Adafruit board files in
+[`hardware/cad/mechanical/modules-rev-a/source/board-sources`](hardware/cad/mechanical/modules-rev-a/source/board-sources)
+keep their own CC BY-SA licence.

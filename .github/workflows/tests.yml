@@ -1,0 +1,24 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      # No LFS: the tests never read the CAD files.
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # The listening and music tests import sounddevice, which needs PortAudio
+      # present even though no test opens a device.
+      - name: Install PortAudio
+        run: sudo apt-get update && sudo apt-get install -y libportaudio2
+      - name: Install test dependencies
+        run: pip install numpy scipy sounddevice
+      - name: Run the unit tests
+        run: python -m unittest discover -s tests -v
