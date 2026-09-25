@@ -8,7 +8,6 @@ tts-samples/
 .venv-qwen-tts/
 tts-samples-qwen/
 .venv-rvc/
-AlfredPennyworth_465e_8835s/
 rvc-model/
 rvc-output/
 __pycache__/

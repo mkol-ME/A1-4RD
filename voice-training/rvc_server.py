@@ -14,7 +14,7 @@ RVC_DIR = ROOT / "rvc-model"
 
 class Pipeline:
     def __init__(self):
-        self.rvc = RVCInference(device="cuda:0", model_path=str(RVC_DIR / "AlfredPennyworth_465e_8835s.pth"), index_path=str(RVC_DIR / "AlfredPennyworth.index"), version="v2")
+        self.rvc = RVCInference(device="cuda:0", model_path=str(RVC_DIR / "alfred.pth"), index_path=str(RVC_DIR / "alfred.index"), version="v2")
         self.rvc.set_params(f0method="rmvpe", index_rate=0.7, protect=0.33)
         self.temp = tempfile.TemporaryDirectory(prefix="alfred-rvc-")
 

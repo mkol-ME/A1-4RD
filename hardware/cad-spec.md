@@ -60,7 +60,7 @@ for sliding fits, 0.1 mm for press fits, holes drawn 0.2 mm oversize — because
 otherwise you will get generic advice you already know.
 
 **6. Aesthetic intent.** This is the part people leave out and it is the whole
-project. Say it in plain language: he is Alfred Pennyworth at six inches — dry,
+project. Say it in plain language: he is a classic English butler at six inches — dry,
 warm, formal. The base should read as a butler's stand, not a gadget. "A1-4RD"
 is a visual pun that goes on the base as a nameplate. Screws should not be
 visible from the front. Give the AI the reference and the feeling; it will push
@@ -86,7 +86,7 @@ will do it well. Ask it to "design the jaw" and it will write you a paragraph.
 ---
 
 I am designing the 3D-printed base for a six-inch desk companion figure called
-A1-4RD ("Alfred") — a character modeled on Alfred Pennyworth, dry and formal, not
+A1-4RD ("Alfred") — a butler character, dry and formal, not
 a consumer gadget. The base houses a Raspberry Pi Zero 2 W on a custom carrier
 PCB, a speaker, a microphone, a button, and the wiring up to two servos in the
 figure (jaw and neck nod). I am fluent in CAD and printing, so I do not need

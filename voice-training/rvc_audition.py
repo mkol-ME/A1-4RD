@@ -60,8 +60,8 @@ def main() -> None:
 
     rvc = RVCInference(
         device="cuda:0",
-        model_path=str(RVC_DIR / "AlfredPennyworth_465e_8835s.pth"),
-        index_path=str(RVC_DIR / "AlfredPennyworth.index"),
+        model_path=str(RVC_DIR / "alfred.pth"),
+        index_path=str(RVC_DIR / "alfred.index"),
         version="v2",
     )
 
