@@ -315,6 +315,18 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
+        if self.path == "/pending":
+            # Work a tool finished after the turn that asked for it, said when
+            # he is next quiet. Handed out once: whichever client asks first says it.
+            ration = spoken.TitleRation([], ADDRESS[0])
+            body = json.dumps({"lines": [ration.apply(line)
+                                         for line in memory_tools.PRIVATE.pending()]}).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if self.path != "/health":
             self.send_error(404)
             return

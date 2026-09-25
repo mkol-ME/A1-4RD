@@ -388,7 +388,7 @@ class Microphone:
         self.deaf = False
 
     def next_utterance(self, timeout: float = 2.0, on_pause=None, unfinished=None,
-                       max_length: float = MAX_UTTERANCE, stop=None) -> np.ndarray | None:
+                       max_length: float = MAX_UTTERANCE, stop=None, idle=None) -> np.ndarray | None:
         """Collect from the first loud block until the pause after it.
 
         Returns None if the microphone stops producing. A live stream never
@@ -408,6 +408,9 @@ class Microphone:
 
         stop, if given, is asked after every block; once it says so, None comes
         back straight away (the reply being listened over has finished).
+
+        idle, if given, is asked the same way but only while nobody is talking,
+        so something waiting to be said never cuts into his sentence.
         """
         threshold = self.floor * SPEECH_MARGIN
         collected, silence, started = [], 0.0, False
@@ -422,6 +425,8 @@ class Microphone:
                 return None
             level = rms(block)
             if not started:
+                if idle is not None and idle():
+                    return None
                 if level < threshold:
                     self.preroll.append(block)
                     continue
@@ -493,6 +498,30 @@ def start_tunnels() -> subprocess.Popen:
     return tunnel
 
 
+PENDING_EVERY = 8.0       # seconds between asks for something finished while he was away
+
+
+def watch_pending(waiting: queue.Queue) -> None:
+    """Ask the server, now and then, whether a tool has finished something to say.
+
+    The server answers one request at a time, so this can sit behind a whole turn.
+    It waits that out rather than timing out: a line is handed out only once,
+    and one sent to a request that had already given up would be lost.
+    """
+    while True:
+        try:
+            with urllib.request.urlopen(f"{talk.VOICE_URL}/pending", timeout=600) as response:
+                for line in json.loads(response.read()).get("lines", []):
+                    waiting.put(line)
+        except (OSError, ValueError):
+            pass
+        time.sleep(PENDING_EVERY)
+
+
+def sentences_of(text: str) -> list[str]:
+    return [part for part in re.split(r"(?<=[.!?])\s+", text.strip()) if part]
+
+
 def main() -> None:
     global SILENCE_HANGOVER, UNFINISHED_HANGOVER
     parser = argparse.ArgumentParser(description=__doc__)
@@ -545,6 +574,30 @@ def main() -> None:
     early = EarlyTranscript()
     archive = ThreadPoolExecutor(max_workers=1)
     music = Jukebox(MusicPlayer(), SpotifyRemote(talk.VOICE_URL))
+    waiting = queue.Queue()
+    threading.Thread(target=watch_pending, args=(waiting,), daemon=True).start()
+
+    def say_waiting() -> bool:
+        """Say whatever finished while he was quiet. True if anything was said."""
+        lines = []
+        while not waiting.empty():
+            lines.append(waiting.get())
+        if not lines:
+            return False
+        microphone.deaf = True
+        music.duck()
+        try:
+            for line in lines:
+                print(f"Alfred: {line}   [unasked]")
+                for sentence in sentences_of(line):
+                    player.submit(talk.speak(sentence), sentence)   # tools report in English
+            player.drain()
+        except Exception as exc:
+            print(f"  (could not say it: {exc})", file=sys.stderr)
+        finally:
+            music.unduck()
+            microphone.settle()
+        return True
 
     def listen_for_name(done: threading.Event, cancel: threading.Event, after: list) -> None:
         """While he talks: stop him if his name is heard, keeping what followed it."""
@@ -620,9 +673,12 @@ def main() -> None:
         while True:
             audio = microphone.next_utterance(
                 on_pause=early.start, unfinished=lambda: sounds_unfinished(early.peek()),
-                max_length=MUSIC_UTTERANCE if music.active else MAX_UTTERANCE)
+                max_length=MUSIC_UTTERANCE if music.active else MAX_UTTERANCE,
+                idle=lambda: not waiting.empty())
             if audio is None:
                 early.pending = None
+                if say_waiting() and not args.open:
+                    attentive_until = time.monotonic() + args.attention   # so he can answer it
                 continue
             heard, seconds, *_ = early.take(audio, microphone.ended_by_silence)
             if not heard:

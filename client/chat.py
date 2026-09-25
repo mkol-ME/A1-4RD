@@ -16,6 +16,7 @@ import os
 import socket
 import subprocess
 import sys
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -191,6 +192,27 @@ def ask(url: str, prompt: str, screen: Screen, timeout: float = 300) -> float:
     return first or 0.0
 
 
+PENDING_EVERY = 8.0       # seconds between asks for something finished while he was away
+
+
+def watch_pending(url: str, show, busy: threading.Lock) -> None:
+    """Print anything a tool finished after the turn that asked for it.
+
+    Waits behind a turn in progress rather than timing out: the server hands a
+    line out only once, so a request that gave up early would lose it.
+    """
+    while True:
+        try:
+            with urllib.request.urlopen(f"{url}/pending", timeout=600) as response:
+                lines = json.loads(response.read()).get("lines", [])
+        except (OSError, ValueError):
+            lines = []
+        if lines:
+            with busy:
+                show(lines)
+        time.sleep(PENDING_EVERY)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("prompt", nargs="*", help="ask this one thing, print the answer and exit")
@@ -225,9 +247,22 @@ def main() -> int:
             return 1
         url = f"http://127.0.0.1:{port}"
 
+    busy = threading.Lock()      # a turn on screen, or an unasked line being printed
+    marker = f"{BOLD}>{RESET} " if colour else "> "
+
+    def show_unasked(lines: list) -> None:
+        # Printed over the empty prompt he is sitting at, which is then put back.
+        sys.stdout.write("\r\033[K" if colour else "\n")
+        for line in lines:
+            screen.show({"text": line, "line": True})
+        screen.finish()
+        sys.stdout.write("\n" + marker)
+        sys.stdout.flush()
+
     def turn(prompt: str) -> bool:
         try:
-            first = ask(url, prompt, screen)
+            with busy:
+                first = ask(url, prompt, screen)
         except (OSError, urllib.error.URLError, RuntimeError, ValueError) as exc:
             complain(f"That turn failed: {exc}")
             return False
@@ -239,9 +274,10 @@ def main() -> int:
         if one_shot:
             return 0 if turn(one_shot) else 1
         print("Type to Alfred. /quit or Ctrl+C to leave.\n")
+        threading.Thread(target=watch_pending, args=(url, show_unasked, busy), daemon=True).start()
         while True:
             try:
-                prompt = read_prompt(f"{BOLD}>{RESET} " if colour else "> ")
+                prompt = read_prompt(marker)
             except (EOFError, KeyboardInterrupt):
                 print()
                 return 0

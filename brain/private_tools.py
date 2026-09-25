@@ -42,7 +42,15 @@ written; one with "report" instead is handed to the answerer, for a turn that
 needs a reply rather than a reading - he argued with an answer and was read the
 same explanation back.
 
-A module that fails to load, or a dispatch that raises, costs that one tool and
+And:
+
+    pending()                           -> list of lines to say now, unasked
+
+for work that finishes after the turn that started it. The client asks while
+he is not talking; a line comes back once, and the module forgets it.
+
+A module with no TOOLS at all - one reached only through follow_up - still
+loads. A module that fails to load, or a dispatch that raises, costs that one tool and
 never the turn. Alfred with a broken private tool is still Alfred.
 """
 
@@ -57,6 +65,7 @@ DIRECTORY = Path(os.environ.get("ALFRED_PRIVATE_TOOLS") or "/srv/storage/alfred/
 class Registry:
     def __init__(self, directory: Path, reserved=()):
         self.modules = {}          # tool name -> the module that serves it
+        self.loaded = []           # every module, including those with no tool for the decider
         self.problems = []         # (file, reason), for the start-up log
         if not directory.is_dir():
             return
@@ -71,6 +80,7 @@ class Registry:
             except Exception as exc:
                 self.problems.append((path.name, f"{type(exc).__name__}: {exc}"))
                 continue
+            self.loaded.append(module)
             for schema in schemas:
                 name = schema.get("function", {}).get("name")
                 # A private tool may never take over a built-in one: the
@@ -98,11 +108,9 @@ class Registry:
 
     def follow_up(self, prompt: str, last_reply: str) -> dict | None:
         """The first tool to claim this turn as the continuation of its last answer."""
-        asked = []
-        for module, _ in self.modules.values():
-            if module in asked or not callable(getattr(module, "follow_up", None)):
+        for module in self.loaded:
+            if not callable(getattr(module, "follow_up", None)):
                 continue
-            asked.append(module)
             try:
                 result = module.follow_up(prompt, last_reply)
             except Exception as exc:
@@ -111,6 +119,18 @@ class Registry:
             if isinstance(result, dict) and (result.get("direct") or result.get("report")):
                 return result
         return None
+
+    def pending(self) -> list[str]:
+        """Every line a tool has waiting to be said, handed over once."""
+        lines = []
+        for module in self.loaded:
+            if not callable(getattr(module, "pending", None)):
+                continue
+            try:
+                lines.extend(str(line) for line in (module.pending() or []) if line)
+            except Exception as exc:
+                print(f"private tool pending failed: {exc}", file=sys.stderr, flush=True)
+        return lines
 
 
 def load(reserved=()) -> Registry:
