@@ -8,6 +8,9 @@ training_dir="$project_dir/piper-training"
 dataset_dir="${DATASET_DIR:-$project_dir/voice-distill}"
 output_dir="${OUTPUT_DIR:-$training_dir/output}"
 epochs="${EPOCHS:-20}"
+# Where training starts from: the stock voice by default, or an earlier Alfred
+# checkpoint to carry on from (the first run stopped at 20 epochs still improving).
+warmstart="${WARMSTART:-}"
 checkpoint="$training_dir/en_GB-alan-medium.ckpt"
 checkpoint_url="https://huggingface.co/datasets/rhasspy/piper-checkpoints/resolve/main/en/en_GB/alan/medium/epoch%3D6339-step%3D1647790.ckpt?download=true"
 
@@ -67,4 +70,4 @@ cd "$output_dir"
     --trainer.accelerator gpu \
     --trainer.devices 1 \
     --trainer.precision 32-true \
-    --model.warmstart_ckpt "$checkpoint"
+    --model.warmstart_ckpt "${warmstart:-$checkpoint}"
