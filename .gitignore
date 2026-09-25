@@ -42,3 +42,6 @@ brain/routing_eval.py
 tests/test_decider.py
 docs/DESIGN-NOTES.md
 legacy/
+
+# Scratch renders and one-off scripts
+tmp/
