@@ -1,0 +1,114 @@
+[
+  {
+    "part": "01_Plinth",
+    "watertight": true,
+    "consistent_winding": true,
+    "volume_mm3": 115284.512,
+    "face_connected_components": 1
+  },
+  {
+    "part": "02_Bottom_cover",
+    "watertight": true,
+    "consistent_winding": true,
+    "volume_mm3": 44647.439,
+    "face_connected_components": 1
+  },
+  {
+    "part": "03_Speaker_mount",
+    "watertight": true,
+    "consistent_winding": true,
+    "volume_mm3": 10488.0,
+    "face_connected_components": 1
+  },
+  {
+    "part": "04_Speaker_lid",
+    "watertight": true,
+    "consistent_winding": true,
+    "volume_mm3": 3997.6,
+    "face_connected_components": 1
+  },
+  {
+    "part": "05_Microphone_duct",
+    "watertight": true,
+    "consistent_winding": true,
+    "volume_mm3": 377.8,
+    "face_connected_components": 1
+  },
+  {
+    "part": "06_Microphone_duct_lid",
+    "watertight": true,
+    "consistent_winding": true,
+    "volume_mm3": 36.66,
+    "face_connected_components": 1
+  },
+  {
+    "part": "07_Button_stem",
+    "watertight": true,
+    "consistent_winding": true,
+    "volume_mm3": 1884.93,
+    "face_connected_components": 1
+  },
+  {
+    "part": "08_Torso",
+    "watertight": true,
+    "consistent_winding": true,
+    "volume_mm3": 100488.583,
+    "face_connected_components": 1
+  },
+  {
+    "part": "09_Alfred_head",
+    "watertight": true,
+    "consistent_winding": true,
+    "volume_mm3": 55726.855,
+    "face_connected_components": 1
+  },
+  {
+    "part": "10_Moving_jaw",
+    "watertight": true,
+    "consistent_winding": true,
+    "volume_mm3": 6714.001,
+    "face_connected_components": 1
+  },
+  {
+    "part": "11_Name_plaque",
+    "watertight": true,
+    "consistent_winding": true,
+    "volume_mm3": 1174.876,
+    "face_connected_components": 1
+  },
+  {
+    "part": "12_Servo_cradle",
+    "watertight": true,
+    "consistent_winding": true,
+    "volume_mm3": 4107.473,
+    "face_connected_components": 1
+  },
+  {
+    "part": "13_Drive_link",
+    "watertight": true,
+    "consistent_winding": true,
+    "volume_mm3": 476.164,
+    "face_connected_components": 1
+  },
+  {
+    "part": "14_Rear_cover",
+    "watertight": true,
+    "consistent_winding": true,
+    "volume_mm3": 3810.564,
+    "face_connected_components": 1
+  },
+  {
+    "part": "15_Fit_coupon",
+    "watertight": true,
+    "consistent_winding": true,
+    "volume_mm3": 4274.441,
+    "face_connected_components": 1
+  },
+  {
+    "part": "16_Button_cap",
+    "watertight": true,
+    "consistent_winding": true,
+    "volume_mm3": 146.993,
+    "face_connected_components": 1
+  }
+]

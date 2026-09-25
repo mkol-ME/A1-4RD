@@ -1,0 +1,110 @@
+[
+  {
+    "file": "01_Plinth_modules.STL",
+    "watertight": true,
+    "winding": true,
+    "positive_volume": true
+  },
+  {
+    "file": "02_Bottom_cover.STL",
+    "watertight": true,
+    "winding": true,
+    "positive_volume": true
+  },
+  {
+    "file": "03_Speaker_mount_modules.STL",
+    "watertight": true,
+    "winding": true,
+    "positive_volume": true
+  },
+  {
+    "file": "04_Speaker_lid.STL",
+    "watertight": true,
+    "winding": true,
+    "positive_volume": true
+  },
+  {
+    "file": "05_Microphone_duct.STL",
+    "watertight": true,
+    "winding": true,
+    "positive_volume": true
+  },
+  {
+    "file": "06_Microphone_duct_lid.STL",
+    "watertight": true,
+    "winding": true,
+    "positive_volume": true
+  },
+  {
+    "file": "07_Button_stem_modules.STL",
+    "watertight": true,
+    "winding": true,
+    "positive_volume": true
+  },
+  {
+    "file": "08_Torso.STL",
+    "watertight": true,
+    "winding": true,
+    "positive_volume": true
+  },
+  {
+    "file": "09_Alfred_head.STL",
+    "watertight": true,
+    "winding": true,
+    "positive_volume": true
+  },
+  {
+    "file": "10_Moving_jaw.STL",
+    "watertight": true,
+    "winding": true,
+    "positive_volume": true
+  },
+  {
+    "file": "11_Name_plaque.STL",
+    "watertight": true,
+    "winding": true,
+    "positive_volume": true
+  },
+  {
+    "file": "12_Servo_cradle.STL",
+    "watertight": true,
+    "winding": true,
+    "positive_volume": true
+  },
+  {
+    "file": "13_Drive_link.STL",
+    "watertight": true,
+    "winding": true,
+    "positive_volume": true
+  },
+  {
+    "file": "14_Rear_cover.STL",
+    "watertight": true,
+    "winding": true,
+    "positive_volume": true
+  },
+  {
+    "file": "15_Fit_coupon.STL",
+    "watertight": true,
+    "winding": true,
+    "positive_volume": true
+  },
+  {
+    "file": "16_Button_cap.STL",
+    "watertight": true,
+    "winding": true,
+    "positive_volume": true
+  },
+  {
+    "file": "17_Electronics_tray.STL",
+    "watertight": true,
+    "winding": true,
+    "positive_volume": true
+  },
+  {
+    "file": "18_Switch_carrier.STL",
+    "watertight": true,
+    "winding": true,
+    "positive_volume": true
+  }
+]

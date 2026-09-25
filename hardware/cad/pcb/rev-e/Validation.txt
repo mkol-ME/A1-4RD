@@ -1,0 +1,18 @@
+Alfred revision D - 2026-09-12 - KiCad 10.0.6
+DRC: 0 violations, 0 unconnected items, 0 schematic parity issues.
+ERC: 0 errors, 0 warnings.
+All-track errors and all DRC severities (including exclusions) requested.
+Inherited ignored categories remain recorded in the reports; no new exclusions added.
+Fresh schematic netlist to PCB pad entries: 368; 0 mismatches.
+BOM values, MPNs, footprint IDs and DNP status: match PCB.
+R304: DNP and no F.Paste layer on either pad.
+Connectors and mounting holes: positions and rotations match revision C.
+Stackup: four layers, 35 um copper each; outline centerline 120 x 94 mm.
+Manufacturing files: all 9 Gerber layers and both drill files freshly exported.
+Logic model: all 65,536 eight-event command/fault sequences pass.
+PDFs: all 11 pages rendered and visually inspected; changed latch detail inspected.
+Audio tone: stereo S32_LE 48 kHz, duration and -30 dBFS amplitude checked.
+Grouped fitted BOM allowance: $43.71; not a supplier quotation.
+
+No analog simulation, physical board test, target overlay compile or acoustic test.
+Static and transient operating limits and required tests: Design-notes.md.

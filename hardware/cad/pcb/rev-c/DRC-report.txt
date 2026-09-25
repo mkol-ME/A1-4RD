@@ -1,0 +1,2 @@
+Revision C: 0 DRC violations; 0 unconnected items; 0 schematic parity issues.
+See DRC-report.json for full settings and results.

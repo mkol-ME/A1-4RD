@@ -1,0 +1,130 @@
+[
+  {
+    "part": "01_Plinth",
+    "solid_count": 1,
+    "kernel_checks": [
+      0
+    ],
+    "triangles": 2078
+  },
+  {
+    "part": "02_Bottom_cover",
+    "solid_count": 1,
+    "kernel_checks": [
+      0
+    ],
+    "triangles": 1564
+  },
+  {
+    "part": "03_Speaker_mount",
+    "solid_count": 1,
+    "kernel_checks": [
+      0
+    ],
+    "triangles": 28
+  },
+  {
+    "part": "04_Speaker_lid",
+    "solid_count": 1,
+    "kernel_checks": [
+      0
+    ],
+    "triangles": 20
+  },
+  {
+    "part": "05_Microphone_duct",
+    "solid_count": 1,
+    "kernel_checks": [
+      0
+    ],
+    "triangles": 28
+  },
+  {
+    "part": "06_Microphone_duct_lid",
+    "solid_count": 1,
+    "kernel_checks": [
+      0
+    ],
+    "triangles": 264
+  },
+  {
+    "part": "07_Button_stem",
+    "solid_count": 1,
+    "kernel_checks": [
+      0
+    ],
+    "triangles": 432
+  },
+  {
+    "part": "08_Torso",
+    "solid_count": 1,
+    "kernel_checks": [
+      0
+    ],
+    "triangles": 9182
+  },
+  {
+    "part": "09_Alfred_head",
+    "solid_count": 1,
+    "kernel_checks": [
+      0
+    ],
+    "triangles": 12374
+  },
+  {
+    "part": "10_Moving_jaw",
+    "solid_count": 1,
+    "kernel_checks": [
+      0
+    ],
+    "triangles": 2596
+  },
+  {
+    "part": "11_Name_plaque",
+    "solid_count": 1,
+    "kernel_checks": [
+      0
+    ],
+    "triangles": 344
+  },
+  {
+    "part": "12_Servo_cradle",
+    "solid_count": 1,
+    "kernel_checks": [
+      0
+    ],
+    "triangles": 316
+  },
+  {
+    "part": "13_Drive_link",
+    "solid_count": 1,
+    "kernel_checks": [
+      0
+    ],
+    "triangles": 412
+  },
+  {
+    "part": "14_Rear_cover",
+    "solid_count": 1,
+    "kernel_checks": [
+      0
+    ],
+    "triangles": 1454
+  },
+  {
+    "part": "15_Fit_coupon",
+    "solid_count": 1,
+    "kernel_checks": [
+      0
+    ],
+    "triangles": 344
+  },
+  {
+    "part": "16_Button_cap",
+    "solid_count": 1,
+    "kernel_checks": [
+      0
+    ],
+    "triangles": 400
+  }
+]

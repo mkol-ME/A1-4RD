@@ -1,0 +1,4 @@
+(sym_lib_table
+ (version 7)
+ (lib (name "Alfred") (type "KiCad") (uri "${KIPRJMOD}/Alfred.kicad_sym") (options "") (descr "Alfred pinned symbols"))
+)

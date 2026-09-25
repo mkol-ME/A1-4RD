@@ -1,0 +1,260 @@
+{
+  "parts": [
+    {
+      "part": "01_Plinth",
+      "solids": 1,
+      "body_checks": [
+        0
+      ],
+      "boxes_mm": [
+        [
+          -5.0,
+          -5.0,
+          3.0,
+          132.0,
+          106.6,
+          56.8
+        ]
+      ]
+    },
+    {
+      "part": "02_Bottom_cover",
+      "solids": 1,
+      "body_checks": [
+        0
+      ],
+      "boxes_mm": [
+        [
+          -4.0,
+          -4.0,
+          0.0,
+          131.0,
+          105.6,
+          9.0
+        ]
+      ]
+    },
+    {
+      "part": "03_Speaker_mount",
+      "solids": 1,
+      "body_checks": [
+        0
+      ],
+      "boxes_mm": [
+        [
+          25.5,
+          0.0,
+          14.0,
+          101.5,
+          21.0,
+          48.0
+        ]
+      ]
+    },
+    {
+      "part": "04_Speaker_lid",
+      "solids": 1,
+      "body_checks": [
+        0
+      ],
+      "boxes_mm": [
+        [
+          25.5,
+          0.0,
+          45.0,
+          101.5,
+          23.3,
+          50.0
+        ]
+      ]
+    },
+    {
+      "part": "05_Microphone_duct",
+      "solids": 1,
+      "body_checks": [
+        0
+      ],
+      "boxes_mm": [
+        [
+          11.3,
+          0.0,
+          3.0,
+          16.5,
+          15.0,
+          8.5
+        ]
+      ]
+    },
+    {
+      "part": "06_Microphone_duct_lid",
+      "solids": 1,
+      "body_checks": [
+        0
+      ],
+      "boxes_mm": [
+        [
+          11.3,
+          0.0,
+          8.5,
+          16.5,
+          15.0,
+          9.0
+        ]
+      ]
+    },
+    {
+      "part": "07_Button_stem",
+      "solids": 1,
+      "body_checks": [
+        0
+      ],
+      "boxes_mm": [
+        [
+          106.75,
+          8.55,
+          15.1,
+          116.75,
+          18.55,
+          59.25
+        ]
+      ]
+    },
+    {
+      "part": "08_Torso",
+      "solids": 1,
+      "body_checks": [
+        0
+      ],
+      "boxes_mm": [
+        [
+          5.84,
+          24.7,
+          56.728,
+          121.16,
+          78.558,
+          122.099
+        ]
+      ]
+    },
+    {
+      "part": "09_Alfred_head",
+      "solids": 1,
+      "body_checks": [
+        0
+      ],
+      "boxes_mm": [
+        [
+          34.931,
+          17.287,
+          117.0,
+          92.364,
+          81.853,
+          202.034
+        ]
+      ]
+    },
+    {
+      "part": "10_Moving_jaw",
+      "solids": 1,
+      "body_checks": [
+        0
+      ],
+      "boxes_mm": [
+        [
+          43.805,
+          26.803,
+          123.955,
+          84.95,
+          65.0,
+          147.0
+        ]
+      ]
+    },
+    {
+      "part": "11_Name_plaque",
+      "solids": 1,
+      "body_checks": [
+        0
+      ],
+      "boxes_mm": [
+        [
+          31.0,
+          -5.3,
+          7.5,
+          96.0,
+          -3.0,
+          18.5
+        ]
+      ]
+    },
+    {
+      "part": "12_Servo_cradle",
+      "solids": 1,
+      "body_checks": [
+        0
+      ],
+      "boxes_mm": [
+        [
+          49.5,
+          49.5,
+          147.0,
+          76.1,
+          67.0,
+          179.0
+        ]
+      ]
+    },
+    {
+      "part": "13_Drive_link",
+      "solids": 1,
+      "body_checks": [
+        0
+      ],
+      "boxes_mm": [
+        [
+          79.5,
+          47.0,
+          140.0,
+          81.9,
+          65.0,
+          179.0
+        ]
+      ]
+    },
+    {
+      "part": "14_Rear_cover",
+      "solids": 1,
+      "body_checks": [
+        0
+      ],
+      "boxes_mm": [
+        [
+          45.671,
+          65.0,
+          147.224,
+          82.393,
+          79.513,
+          187.761
+        ]
+      ]
+    },
+    {
+      "part": "16_Button_cap",
+      "solids": 1,
+      "body_checks": [
+        0
+      ],
+      "boxes_mm": [
+        [
+          106.75,
+          8.55,
+          57.25,
+          116.75,
+          18.55,
+          60.25
+        ]
+      ]
+    }
+  ],
+  "interferences": []
+}

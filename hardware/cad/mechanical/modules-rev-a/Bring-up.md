@@ -1,0 +1,14 @@
+# Bench qualification before final printing
+
+No physical test has been performed yet. Record observations, actual part revisions and loaded voltages as the build progresses.
+
+1. **Mechanical coupon:** test the actual servo and the 3 mm axle fit. The existing cradle/shaft/horn geometry remains provisional. Do not commit to the full head print until this is resolved.
+2. **Power only:** with everything disconnected, configure the HUSB238 for 5 V / 3 A. Inspect jumpers and polarity; confirm output remains in the intended 5 V range. Test with a suitable dummy load before adding the Pi. Never use a higher PD voltage directly.
+3. **Pi alone:** install Raspberry Pi OS Lite, reconnect the existing client to the local server via its established SSH configuration, and confirm restart/reconnect behavior. Keep private keys and server credentials out of this hardware package.
+4. **Audio:** follow software/README.md. Confirm both streams enumerate; record clear speech, play a quiet test tone, then run actual server replies. Verify channel selection, sample conversion and streaming buffer behavior. Do not run the smoke test concurrently with the Alfred client.
+5. **Servo separately:** MOTOR link removed and mechanism detached. Verify OE starts HIGH; initialize pulses, then enable motor power deliberately. Establish conservative physical limits around the actual installed horn. A nominal 1500 us pulse is only a centering starting point, not Alfred's guaranteed closed position.
+6. **Jaw:** verify shaft placement, 8 mm horn radius and 35.114 mm link. Move by hand with power disconnected before testing a small powered range. Increase only within free motion; target jaw travel remains 0–20 degrees. Confirm the cable and rear cover remain clear throughout motion.
+7. **Combined load:** play the intended loudest speech while cycling the jaw. Measure voltage at the Pi and servo, preferably with an oscilloscope to catch fast dips/spikes. Target Pi rail at least 4.85 V during this test, within its permitted maximum; investigate any undervoltage flags or resets. Check servo supply against the actual FS90's 4.8–6 V rating. Test startup with the reservoir capacitor fitted; repeated fuse opening means investigate inrush or faults, not simply increase fuse size.
+8. **Enclosed run:** secure the harness and repeat a 30-minute conversation/motion session with the base closed. Check temperatures, noise pickup, Wi-Fi reliability, microphone response and jaw looseness afterward. Verify restart and application-error behavior. This test is supervised because the module prototype does not provide independent fault power cutoff.
+
+Proceed to final cosmetic printing and normal assembly only after the physical fit, power and audio tests pass. Purchasing can then use the selected module list with any measured changes incorporated.

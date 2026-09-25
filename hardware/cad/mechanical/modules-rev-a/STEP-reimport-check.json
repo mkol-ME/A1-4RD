@@ -1,0 +1,38 @@
+[
+  {
+    "file": "01_Plinth_modules.STEP",
+    "valid": true,
+    "solid_count": 1,
+    "volume": 114719.13072648832
+  },
+  {
+    "file": "03_Speaker_mount_modules.STEP",
+    "valid": true,
+    "solid_count": 1,
+    "volume": 10392.000000000004
+  },
+  {
+    "file": "07_Button_stem_modules.STEP",
+    "valid": true,
+    "solid_count": 1,
+    "volume": 1602.5629336108234
+  },
+  {
+    "file": "17_Electronics_tray.STEP",
+    "valid": true,
+    "solid_count": 1,
+    "volume": 28501.826020637418
+  },
+  {
+    "file": "18_Switch_carrier.STEP",
+    "valid": true,
+    "solid_count": 1,
+    "volume": 678.1471362344557
+  },
+  {
+    "file": "Alfred_module_assembly.STEP",
+    "valid": true,
+    "solid_count": 48,
+    "volume": 536599.4965109564
+  }
+]

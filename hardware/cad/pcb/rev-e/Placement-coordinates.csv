@@ -1,0 +1,126 @@
+﻿Ref,Value,PCB_X_mm,PCB_Y_mm,KiCad_rotation_deg,Side,Footprint,Assembly
+C1,1u,24.0,84.0,90.0,Top,Capacitor_SMD:C_0805_2012Metric,FIT
+C101,10n,61.0,74.0,90.0,Top,Capacitor_SMD:C_0805_2012Metric,FIT
+C102,4.7n,38.0,62.0,90.0,Top,Capacitor_SMD:C_0805_2012Metric,FIT
+C103,100n,55.0,82.0,180.0,Top,Capacitor_SMD:C_0805_2012Metric,FIT
+C104,100n,32.0,70.0,180.0,Top,Capacitor_SMD:C_0805_2012Metric,FIT
+C105,2200u 10V,68.0,80.0,0.0,Top,Capacitor_THT:CP_Radial_D10.0mm_P5.00mm,FIT
+C106,1000u 10V,15.0,64.0,0.0,Top,Capacitor_THT:CP_Radial_D8.0mm_P3.50mm,FIT
+C107,10u,64.0,84.0,90.0,Top,Capacitor_SMD:C_1206_3216Metric,FIT
+C108,10u,24.0,61.0,90.0,Top,Capacitor_SMD:C_1206_3216Metric,FIT
+C109,100n,51.0,59.0,0.0,Top,Capacitor_SMD:C_0805_2012Metric,FIT
+C110,100n,43.0,62.0,0.0,Top,Capacitor_SMD:C_0805_2012Metric,FIT
+C111,100n,56.0,61.0,90.0,Top,Capacitor_SMD:C_0805_2012Metric,FIT
+C112,100n,71.0,22.0,0.0,Top,Capacitor_SMD:C_0805_2012Metric,FIT
+C2,1u,35.0,80.0,90.0,Top,Capacitor_SMD:C_0805_2012Metric,FIT
+C3,100n,36.0,76.0,0.0,Top,Capacitor_SMD:C_0805_2012Metric,FIT
+C301,1u,15.0,12.0,0.0,Top,Capacitor_SMD:C_0805_2012Metric,FIT
+C302,100n,14.0,9.0,90.0,Top,Capacitor_SMD:C_0805_2012Metric,FIT
+C303,100n,59.0,44.0,0.0,Top,Capacitor_SMD:C_0805_2012Metric,FIT
+C304,10u,55.0,44.0,0.0,Top,Capacitor_SMD:C_1206_3216Metric,FIT
+C305,100u 10V,69.0,46.0,0.0,Top,Capacitor_THT:CP_Radial_D5.0mm_P2.00mm,FIT
+C306,220n,58.0,33.5,0.0,Top,Capacitor_SMD:C_0805_2012Metric,FIT
+C307,1n,49.0,32.0,90.0,Top,Capacitor_SMD:C_0805_2012Metric,FIT
+C308,1n,67.0,32.0,90.0,Top,Capacitor_SMD:C_0805_2012Metric,FIT
+C4,100n,26.0,79.0,90.0,Top,Capacitor_SMD:C_0805_2012Metric,FIT
+C401,100n,26.0,57.0,0.0,Top,Capacitor_SMD:C_0805_2012Metric,FIT
+C402,100n,110.0,20.0,90.0,Top,Capacitor_SMD:C_0805_2012Metric,FIT
+C403,100n,106.0,15.0,0.0,Top,Capacitor_SMD:C_0805_2012Metric,FIT
+C5,1u,33.0,83.0,0.0,Top,Capacitor_SMD:C_0805_2012Metric,FIT
+C6,1u,28.0,70.0,0.0,Top,Capacitor_SMD:C_0805_2012Metric,FIT
+D1,10V gate zener,49.0,78.0,0.0,Top,Diode_SMD:D_SOD-123,FIT
+D101,5.1V EN clamp,78.0,68.0,0.0,Top,Diode_SMD:D_SOD-123,FIT
+D2,15V transient suppressor,20.0,89.0,90.0,Top,Diode_SMD:D_SMA,FIT
+D3,Green status LED,99.5,8.0,0.0,Top,LED_THT:LED_D3.0mm,FIT
+H1,MountingHole_3.2mm_M3,4.0,4.0,0.0,Top,MountingHole_3.2mm_M3,PCB feature
+H2,MountingHole_3.2mm_M3,116.0,4.0,0.0,Top,MountingHole_3.2mm_M3,PCB feature
+H3,MountingHole_3.2mm_M3,4.0,90.0,0.0,Top,MountingHole_3.2mm_M3,PCB feature
+H4,MountingHole_3.2mm_M3,116.0,90.0,0.0,Top,MountingHole_3.2mm_M3,PCB feature
+H5,MountingHole_2.7mm_M2.5,83.5,90.5,0.0,Top,MountingHole_2.7mm_M2.5,PCB feature
+H6,MountingHole_2.7mm_M2.5,106.5,90.5,0.0,Top,MountingHole_2.7mm_M2.5,PCB feature
+H7,MountingHole_2.7mm_M2.5,83.5,32.5,0.0,Top,MountingHole_2.7mm_M2.5,PCB feature
+H8,MountingHole_2.7mm_M2.5,106.5,32.5,0.0,Top,MountingHole_2.7mm_M2.5,PCB feature
+J1,USB-C 5V/5A PD,30.0,90.8,180.0,Top,Connector_USB:USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal,FIT
+J2,Pi Zero 2 W carrier socket,84.77,85.63,0.0,Top,Connector_PinSocket_2.54mm:PinSocket_2x20_P2.54mm_Vertical,FIT
+J3,Speaker 4ohm 3W,57.0,28.0,0.0,Top,TerminalBlock_TE-Connectivity:TerminalBlock_TE_282834-2_1x02_P2.54mm_Horizontal,FIT
+J4,Jaw: GND +5V SIG,15.0,53.0,90.0,Top,Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical,FIT
+L1,10uH 3.2A,54.0,38.5,90.0,Top,Alfred:SRN6045TA_100M,FIT
+L2,10uH 3.2A,62.0,38.5,90.0,Top,Alfred:SRN6045TA_100M,FIT
+Q1,Si4459BDY,41.0,86.0,180.0,Top,Package_SO:SO-8_3.9x4.9mm_P1.27mm,FIT
+Q2,Si4459BDY,50.0,86.0,180.0,Top,Package_SO:SO-8_3.9x4.9mm_P1.27mm,FIT
+Q3,AO3401A,17.0,44.0,0.0,Top,Package_TO_SOT_SMD:SOT-23,FIT
+R1,1k 1%,38.0,79.0,0.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R101,1.65k 0.1%,61.0,78.0,90.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R102,3.32k 0.1%,38.0,66.0,90.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R103,34.0k 0.1%,51.0,75.0,0.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R104,10k 0.1%,51.0,72.0,0.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R105,34.0k 0.1%,28.0,66.0,0.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R106,10k 0.1%,28.0,63.0,0.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R107,32.0k 0.1%,47.0,69.0,0.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R108,10k 0.1%,47.0,66.0,0.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R109,2.2k 1%,55.0,68.0,0.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R110,100k 1%,39.0,55.0,0.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R111,100k 1%,43.0,54.0,0.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R112,10k 1%,64.0,68.0,0.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R113,10k 1%,64.0,71.0,0.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R114,10k 1%,68.0,68.0,0.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R115,10k 1%,73.0,68.0,0.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R2,100k 1%,44.0,79.0,0.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R201,33 1%,78.0,73.0,0.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R202,33 1%,78.0,42.0,0.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R203,33 1%,90.0,33.0,90.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R3,49.9k 1%,29.0,73.0,0.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R301,47 1%,17.0,16.0,90.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R302,33 1%,10.0,14.0,90.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R303,100k 1%,7.0,16.0,90.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R304,100k 1%,52.0,48.0,90.0,Top,Alfred:R_0805_DNP_NoPaste,DO NOT FIT
+R305,1k 1%,52.0,52.0,0.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R306,100k 1%,57.0,53.0,90.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R4,10k 1%,18.0,81.0,90.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R401,100k 1%,31.0,54.0,90.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R402,4.7k 1%,27.0,50.0,0.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R403,1k 1%,23.0,54.0,90.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R404,12.4k 0.1%,24.0,42.0,90.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R405,10k 0.1%,28.0,44.0,90.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R406,2.2k 1%,17.0,48.0,0.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R407,100 1%,13.0,44.0,90.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R408,10ohm 5W,14.0,35.0,0.0,Top,Resistor_THT:R_Axial_Power_L25.0mm_W9.0mm_P30.48mm,FIT
+R409,1k 1%,102.0,23.0,0.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R410,100k 1%,108.0,23.0,0.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+R411,680 1%,98.0,13.0,90.0,Top,Resistor_SMD:R_0805_2012Metric,FIT
+SW1,Momentary button,105.0,12.0,0.0,Top,Button_Switch_THT:SW_PUSH_6mm_H4.3mm,FIT
+TP1,VBUS,38.0,90.0,0.0,Top,TestPoint:TestPoint_Pad_D1.5mm,PCB feature
+TP101,PI_5V,75.0,89.0,0.0,Top,TestPoint:TestPoint_Pad_D1.5mm,PCB feature
+TP102,SERVO_5V,14.0,70.0,0.0,Top,TestPoint:TestPoint_Pad_D1.5mm,PCB feature
+TP103,SUPPLY_OK,58.0,65.0,0.0,Top,TestPoint:TestPoint_Pad_D1.5mm,PCB feature
+TP104,SERVO_ILM,42.0,68.0,0.0,Top,TestPoint:TestPoint_Pad_D1.5mm,PCB feature
+TP105,PI_FAULT_N,65.0,75.0,0.0,Top,TestPoint:TestPoint_Pad_D1.5mm,PCB feature
+TP106,GND,60.0,88.0,0.0,Top,TestPoint:TestPoint_Pad_D1.5mm,PCB feature
+TP2,PD_5V,55.0,88.0,0.0,Top,TestPoint:TestPoint_Pad_D1.5mm,PCB feature
+TP201,PI_3V3,78.0,81.0,0.0,Top,TestPoint:TestPoint_Pad_D1.5mm,PCB feature
+TP202,BCLK,74.0,73.0,0.0,Top,TestPoint:TestPoint_Pad_D1.5mm,PCB feature
+TP203,LRCLK,74.0,42.0,0.0,Top,TestPoint:TestPoint_Pad_D1.5mm,PCB feature
+TP204,MIC_DATA_PI,88.0,40.0,0.0,Top,TestPoint:TestPoint_Pad_D1.5mm,PCB feature
+TP205,GND,78.0,77.0,0.0,Top,TestPoint:TestPoint_Pad_D1.5mm,PCB feature
+TP3,PD_FAULT,25.0,72.0,0.0,Top,TestPoint:TestPoint_Pad_D1.5mm,PCB feature
+TP301,MIC_3V3,20.0,12.0,0.0,Top,TestPoint:TestPoint_Pad_D1.5mm,PCB feature
+TP302,PI_5V,69.0,52.0,0.0,Top,TestPoint:TestPoint_Pad_D1.5mm,PCB feature
+TP303,GND,69.0,38.0,0.0,Top,TestPoint:TestPoint_Pad_D1.5mm,PCB feature
+TP4,GND,16.0,84.0,0.0,Top,TestPoint:TestPoint_Pad_D1.5mm,PCB feature
+TP401,JAW_SIG,12.0,49.0,0.0,Top,TestPoint:TestPoint_Pad_D1.5mm,PCB feature
+TP402,SERVO_EN,35.0,58.0,0.0,Top,TestPoint:TestPoint_Pad_D1.5mm,PCB feature
+TP403,BUTTON_N,114.0,23.0,0.0,Top,TestPoint:TestPoint_Pad_D1.5mm,PCB feature
+TP404,GND,100.0,20.0,0.0,Top,TestPoint:TestPoint_Pad_D1.5mm,PCB feature
+TP5,PD_3V3,35.0,73.0,0.0,Top,TestPoint:TestPoint_Pad_D1.5mm,PCB feature
+TP6,PD_1V8,22.0,76.0,0.0,Top,TestPoint:TestPoint_Pad_D1.5mm,PCB feature
+U1,CYPD3177-24LQXQ,30.0,79.0,180.0,Top,Package_DFN_QFN:QFN-24-1EP_4x4mm_P0.5mm_EP2.75x2.75mm,FIT
+U10,SN74LVC1G17DBVR,106.0,19.0,0.0,Top,Package_TO_SOT_SMD:SOT-23-5,FIT
+U11,74AUP1G74DC,66.0,22.0,0.0,Top,Package_SO:VSSOP-8_2.3x2mm_P0.5mm,FIT
+U2,TPS259470LRPWR,57.0,77.0,0.0,Top,Alfred:TI_RPW0010A,FIT
+U3,TPS259470LRPWR,34.0,65.0,0.0,Top,Alfred:TI_RPW0010A,FIT
+U4,TPS389001DSET,51.0,63.0,0.0,Top,Package_SON:WSON-6_1.5x1.5mm_P0.5mm,FIT
+U5,SN74LVC1G08DBVR,43.0,59.0,0.0,Top,Package_TO_SOT_SMD:SOT-23-5,FIT
+U6,ICS-43434,10.0,8.71,0.0,Top,Sensor_Audio:InvenSense_ICS-43434-6_3.5x2.65mm,FIT
+U7,MAX98357AETE+T,58.0,47.5,0.0,Top,Package_DFN_QFN:TQFN-16-1EP_3x3mm_P0.5mm_EP1.23x1.23mm,FIT
+U8,SN74LVC1G07DBVR,26.0,54.0,0.0,Top,Package_TO_SOT_SMD:SOT-23-5,FIT
+U9,TL431AIDBZR,22.0,46.0,0.0,Top,Package_TO_SOT_SMD:SOT-23,FIT

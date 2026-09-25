@@ -11,3 +11,16 @@ tests/** text eol=lf
 voice-training/** text eol=lf
 # Never rewrite line endings inside a PDF; it corrupts the file.
 *.pdf binary
+*.STL filter=lfs diff=lfs merge=lfs -text
+*.sldprt filter=lfs diff=lfs merge=lfs -text
+*.sldasm filter=lfs diff=lfs merge=lfs -text
+*.slddrw filter=lfs diff=lfs merge=lfs -text
+*.step filter=lfs diff=lfs merge=lfs -text
+*.SLDASM filter=lfs diff=lfs merge=lfs -text
+*.STEP filter=lfs diff=lfs merge=lfs -text
+*.stl filter=lfs diff=lfs merge=lfs -text
+*.SLDPRT filter=lfs diff=lfs merge=lfs -text
+*.SLDDRW filter=lfs diff=lfs merge=lfs -text
+
+# Keep the imported CAD packages byte-for-byte intact, including their manifests.
+hardware/cad/** -text

@@ -45,3 +45,11 @@ legacy/
 
 # Scratch renders and one-off scripts
 tmp/
+
+# Native SolidWorks files stay offline; the STEP exports are in hardware/cad
+*.SLDPRT
+*.SLDASM
+*.SLDDRW
+*.sldprt
+*.sldasm
+*.slddrw

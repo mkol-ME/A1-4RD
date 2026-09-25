@@ -1,0 +1,26 @@
+Alfred rev C - 2026-09-10, KiCad 10.0.6
+DRC violations: 0
+Unconnected items: 0
+Schematic parity issues: 0
+ERC errors: 0
+ERC warnings: 0
+Fresh schematic/PCB pad-net entries compared: 358; mismatches 0
+Values and DNP status checked against design-data.json: all match
+Electrical footprints: 115 (includes test points and DNP R304)
+Board outline and fixed connector coordinates unchanged from revision B.
+No new DRC exclusions or disabled checks were added.
+Existing ignored categories are enumerated in DRC-report.json and ERC-report.txt.
+
+This validates CAD consistency and checked clearances. It does NOT establish physical
+PD startup, gate timing, brownout immunity, thermal margins, audio software behavior,
+EMC, microphone acoustics or enclosure fit. This is an unbuilt first article.
+Audio overlay source reviewed; target compile and physical tests remain necessary.
+
+Final package QA: all 11 PDF pages rendered and visually inspected.
+Assembly plot omits duplicate fabrication reference text in a plotting-only copy.
+Audio test tone format, duration, stereo duplication and -30 dBFS level checked.
+Target overlay compilation and physical audio tests remain outstanding.
+
+2026-09-11 independent self-review: fresh DRC/ERC and 358 pad comparisons pass.
+Nine Gerber layers match fresh exports excluding creation timestamps.
+See Self-review.md for unresolved servo power margin and hardware retry behavior.

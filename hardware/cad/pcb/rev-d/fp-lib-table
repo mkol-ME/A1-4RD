@@ -1,0 +1,4 @@
+(fp_lib_table
+ (version 7)
+ (lib (name "Alfred") (type "KiCad") (uri "${KIPRJMOD}/Alfred.pretty") (options "") (descr "Project custom footprints"))
+)

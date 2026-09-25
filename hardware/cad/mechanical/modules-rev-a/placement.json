@@ -1,0 +1,252 @@
+{
+  "positions": {
+    "mic": [
+      5.245,
+      3.978,
+      16
+    ],
+    "amp": [
+      7,
+      36,
+      16
+    ],
+    "servo": [
+      37,
+      29,
+      16
+    ],
+    "power": [
+      13.34,
+      77,
+      14.5
+    ],
+    "pi": [
+      52,
+      61,
+      16
+    ]
+  },
+  "boards": {
+    "mic": {
+      "file": "mic0.brd",
+      "source_sha256": "7d9e59db046d49f8e54f1896ad9cf11875e30911d32c8ab85071b79651eecd4f",
+      "size": [
+        16.51,
+        12.7
+      ],
+      "holes": [
+        [
+          2.54,
+          10.16
+        ],
+        [
+          13.97,
+          10.16
+        ]
+      ],
+      "origin": [
+        0.0,
+        0.0
+      ]
+    },
+    "amp": {
+      "file": "amp0.brd",
+      "source_sha256": "de54250dee04ac9aa117992ecf2da398a11785ee4310fdfde1480231e2b54f84",
+      "size": [
+        17.78,
+        19.05
+      ],
+      "holes": [
+        [
+          15.24,
+          16.51
+        ],
+        [
+          2.54,
+          16.51
+        ]
+      ],
+      "origin": [
+        0.0,
+        0.0
+      ]
+    },
+    "servo": {
+      "file": "servo0.brd",
+      "source_sha256": "803e6388dd025d2ef9312a7fbe731b7fd5edbd495ca3e93b6ade830a58212da0",
+      "size": [
+        62.230000000000004,
+        25.4
+      ],
+      "holes": [
+        [
+          3.175,
+          22.225
+        ],
+        [
+          3.175,
+          3.1750000000000003
+        ],
+        [
+          59.055,
+          22.225
+        ],
+        [
+          59.055,
+          3.1750000000000003
+        ]
+      ],
+      "origin": [
+        -1.905,
+        -6.477
+      ]
+    },
+    "power": {
+      "file": "power.brd",
+      "source_sha256": "5c99400328f11ad21f835db0b2ade5e4f43ff88045cffdbcf1c84359ce222794",
+      "size": [
+        20.32,
+        23.495
+      ],
+      "holes": [
+        [
+          17.653,
+          20.955
+        ],
+        [
+          2.413,
+          20.955
+        ]
+      ],
+      "origin": [
+        0.0,
+        0.0
+      ]
+    },
+    "pi": {
+      "size": [
+        65,
+        30
+      ],
+      "holes": [
+        [
+          3.5,
+          3.5
+        ],
+        [
+          61.5,
+          3.5
+        ],
+        [
+          3.5,
+          26.5
+        ],
+        [
+          61.5,
+          26.5
+        ]
+      ],
+      "source": "Raspberry Pi Zero 2 W mechanical drawing"
+    }
+  },
+  "mounts": [
+    {
+      "module": "mic",
+      "x": 7.785,
+      "y": 14.138,
+      "seat_z": 16,
+      "hole_diameter": 2.2
+    },
+    {
+      "module": "mic",
+      "x": 19.215,
+      "y": 14.138,
+      "seat_z": 16,
+      "hole_diameter": 2.2
+    },
+    {
+      "module": "amp",
+      "x": 22.240000000000002,
+      "y": 52.510000000000005,
+      "seat_z": 16,
+      "hole_diameter": 2.2
+    },
+    {
+      "module": "amp",
+      "x": 9.54,
+      "y": 52.510000000000005,
+      "seat_z": 16,
+      "hole_diameter": 2.2
+    },
+    {
+      "module": "servo",
+      "x": 40.175,
+      "y": 51.225,
+      "seat_z": 16,
+      "hole_diameter": 2.2
+    },
+    {
+      "module": "servo",
+      "x": 40.175,
+      "y": 32.175,
+      "seat_z": 16,
+      "hole_diameter": 2.2
+    },
+    {
+      "module": "servo",
+      "x": 96.055,
+      "y": 51.225,
+      "seat_z": 16,
+      "hole_diameter": 2.2
+    },
+    {
+      "module": "servo",
+      "x": 96.055,
+      "y": 32.175,
+      "seat_z": 16,
+      "hole_diameter": 2.2
+    },
+    {
+      "module": "power",
+      "x": 30.993,
+      "y": 97.955,
+      "seat_z": 14.5,
+      "hole_diameter": 2.2
+    },
+    {
+      "module": "power",
+      "x": 15.753,
+      "y": 97.955,
+      "seat_z": 14.5,
+      "hole_diameter": 2.2
+    },
+    {
+      "module": "pi",
+      "x": 55.5,
+      "y": 64.5,
+      "seat_z": 16,
+      "hole_diameter": 2.2
+    },
+    {
+      "module": "pi",
+      "x": 113.5,
+      "y": 64.5,
+      "seat_z": 16,
+      "hole_diameter": 2.2
+    },
+    {
+      "module": "pi",
+      "x": 55.5,
+      "y": 87.5,
+      "seat_z": 16,
+      "hole_diameter": 2.2
+    },
+    {
+      "module": "pi",
+      "x": 113.5,
+      "y": 87.5,
+      "seat_z": 16,
+      "hole_diameter": 2.2
+    }
+  ]
+}

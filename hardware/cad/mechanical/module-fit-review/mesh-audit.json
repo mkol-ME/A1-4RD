@@ -1,0 +1,306 @@
+[
+  {
+    "part": "01_Plinth",
+    "sha256": "d9617de859150a2ca8c4562873c36cbbadfb1bbdb5e9db32338d71ee337d2797",
+    "bounds_mm": [
+      [
+        -5.0,
+        -5.0,
+        3.0
+      ],
+      [
+        132.0,
+        106.6,
+        56.8
+      ]
+    ],
+    "watertight": true,
+    "consistent_winding": true,
+    "positive_volume": true
+  },
+  {
+    "part": "02_Bottom_cover",
+    "sha256": "fdcbd1a3b6386b76e9523b03db276cfb382618d13e3301db4420eebdb8d460ab",
+    "bounds_mm": [
+      [
+        -4.0,
+        -4.0,
+        0.0
+      ],
+      [
+        131.0,
+        105.6,
+        9.0
+      ]
+    ],
+    "watertight": true,
+    "consistent_winding": true,
+    "positive_volume": true
+  },
+  {
+    "part": "03_Speaker_mount",
+    "sha256": "1ce784e0b1d8f75947336b2d31990c424f56115e638e542c5ae650924f370642",
+    "bounds_mm": [
+      [
+        25.5,
+        0.0,
+        14.0
+      ],
+      [
+        101.5,
+        21.0,
+        48.0
+      ]
+    ],
+    "watertight": true,
+    "consistent_winding": true,
+    "positive_volume": true
+  },
+  {
+    "part": "04_Speaker_lid",
+    "sha256": "6647ea776284e45b00d7c97b9630a7671cacf8006a47b3fa1231eb9db856debe",
+    "bounds_mm": [
+      [
+        25.5,
+        0.0,
+        45.0
+      ],
+      [
+        101.5,
+        23.3,
+        50.0
+      ]
+    ],
+    "watertight": true,
+    "consistent_winding": true,
+    "positive_volume": true
+  },
+  {
+    "part": "05_Microphone_duct",
+    "sha256": "6464e2de5ab0d84370c912b19e5c61d935da59c8509d5cb474d2553232254f55",
+    "bounds_mm": [
+      [
+        11.3,
+        0.0,
+        3.0
+      ],
+      [
+        16.5,
+        15.0,
+        8.5
+      ]
+    ],
+    "watertight": true,
+    "consistent_winding": true,
+    "positive_volume": true
+  },
+  {
+    "part": "06_Microphone_duct_lid",
+    "sha256": "e375fe16482b00f00761b1e54263b774379813ee920986bb2e3ef33d9addafbc",
+    "bounds_mm": [
+      [
+        11.3,
+        0.0,
+        8.5
+      ],
+      [
+        16.5,
+        15.0,
+        9.0
+      ]
+    ],
+    "watertight": true,
+    "consistent_winding": true,
+    "positive_volume": true
+  },
+  {
+    "part": "07_Button_stem",
+    "sha256": "c18fb716dadb91916852b555d1f626fd14d065527d00296b7b115b7cb7646b7c",
+    "bounds_mm": [
+      [
+        106.75,
+        8.55,
+        15.1
+      ],
+      [
+        116.75,
+        18.55,
+        59.25
+      ]
+    ],
+    "watertight": true,
+    "consistent_winding": true,
+    "positive_volume": true
+  },
+  {
+    "part": "08_Torso",
+    "sha256": "80d12fdc3ed6a43909c8d24814d4dc5f326a13f2a470a4eba3a85e5f22d459c8",
+    "bounds_mm": [
+      [
+        7.423,
+        24.7,
+        56.8
+      ],
+      [
+        119.577,
+        78.029,
+        122.0
+      ]
+    ],
+    "watertight": true,
+    "consistent_winding": true,
+    "positive_volume": true
+  },
+  {
+    "part": "09_Alfred_head",
+    "sha256": "127eab8a8bc7397506aec062dc7fc01701228086a3c224bfe959aa6037f299ac",
+    "bounds_mm": [
+      [
+        35.671,
+        20.005,
+        117.0
+      ],
+      [
+        91.305,
+        77.513,
+        202.0
+      ]
+    ],
+    "watertight": true,
+    "consistent_winding": true,
+    "positive_volume": true
+  },
+  {
+    "part": "10_Moving_jaw",
+    "sha256": "79ec9697fdd6e7d478d2663dd43aac439ff61bca5c3b965df21f898b661ccf7a",
+    "bounds_mm": [
+      [
+        44.886,
+        27.944,
+        124.0
+      ],
+      [
+        82.114,
+        65.0,
+        147.0
+      ]
+    ],
+    "watertight": true,
+    "consistent_winding": true,
+    "positive_volume": true
+  },
+  {
+    "part": "11_Name_plaque",
+    "sha256": "f4c78ab8cce2ae380aa16b702bd295cec26615f23de87b197de57c6be82cd54e",
+    "bounds_mm": [
+      [
+        31.0,
+        -5.3,
+        7.5
+      ],
+      [
+        96.0,
+        -3.0,
+        18.5
+      ]
+    ],
+    "watertight": true,
+    "consistent_winding": true,
+    "positive_volume": true
+  },
+  {
+    "part": "12_Servo_cradle",
+    "sha256": "d79e9630e23b1d8332fe9b9cd16cce3512792b82d6537bf3dd4ee960d4cdff6d",
+    "bounds_mm": [
+      [
+        49.5,
+        49.5,
+        147.0
+      ],
+      [
+        76.1,
+        67.0,
+        179.0
+      ]
+    ],
+    "watertight": true,
+    "consistent_winding": true,
+    "positive_volume": true
+  },
+  {
+    "part": "13_Drive_link",
+    "sha256": "2da4f1fb9755e4399de83900ca1bb3cbd7ec7b54988ac3fb86fe9abf0e50dfab",
+    "bounds_mm": [
+      [
+        -2.991,
+        -3.0,
+        0.0
+      ],
+      [
+        2.991,
+        38.114,
+        2.4
+      ]
+    ],
+    "watertight": true,
+    "consistent_winding": true,
+    "positive_volume": true
+  },
+  {
+    "part": "14_Rear_cover",
+    "sha256": "295f77fd268dada9a48ac922400a671f6c5ef3c08910cde707e9cb2e86b0bed1",
+    "bounds_mm": [
+      [
+        48.0,
+        65.0,
+        147.3
+      ],
+      [
+        79.0,
+        77.391,
+        187.7
+      ]
+    ],
+    "watertight": true,
+    "consistent_winding": true,
+    "positive_volume": true
+  },
+  {
+    "part": "15_Fit_coupon",
+    "sha256": "547a3356038cadce034db5be9a2ce39b8f7b8626b9aa2a3ef344df4596bcf53e",
+    "bounds_mm": [
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        42.0,
+        28.0,
+        8.0
+      ]
+    ],
+    "watertight": true,
+    "consistent_winding": true,
+    "positive_volume": true
+  },
+  {
+    "part": "16_Button_cap",
+    "sha256": "ea074456b4ecff5fccb6cc9e4115186af1f6a37563c34fb1d376730f0bffbaaf",
+    "bounds_mm": [
+      [
+        106.75,
+        8.552,
+        57.25
+      ],
+      [
+        116.75,
+        18.548,
+        60.25
+      ]
+    ],
+    "watertight": true,
+    "consistent_winding": true,
+    "positive_volume": true
+  }
+]

@@ -1,0 +1,7 @@
+﻿Item,Quantity,Specification,Budget allowance USD,Supplier,URL
+Jaw servo,1,FEETECH FS90 / Pololu 2818,8.4,Pololu,https://www.pololu.com/product/2818
+Speaker,1,"Adafruit 4445, 4 ohm 3 W enclosed",3.95,Adafruit,https://www.adafruit.com/product/4445
+Power supply,1,"Raspberry Pi 27 W USB-C, US plug",12,Pi authorized reseller,https://www.raspberrypi.com/products/27w-power-supply/
+Pi male header,1,Samtec TSW-120-07-G-D,3,DigiKey,
+Carrier PCB,1,"120 x 94 mm, 4 layers, 1.6 mm, 35 um finished copper on ALL four layers; quote required",20,Fabricator quote required,
+Mechanical hardware and wire,1,"M3 carrier / M2.5 Pi supports, shims, wire, gasket",8,Local stock / distributor,

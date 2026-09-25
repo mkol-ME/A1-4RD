@@ -1,0 +1,9 @@
+Ref,X_mm,Y_mm,Drill_mm,Origin
+H1,4,4,3.2,"PCB front-left; X right, Y back"
+H2,116,4,3.2,"PCB front-left; X right, Y back"
+H3,4,90,3.2,"PCB front-left; X right, Y back"
+H4,116,90,3.2,"PCB front-left; X right, Y back"
+H5,83.5,90.5,2.7,"PCB front-left; X right, Y back"
+H6,106.5,90.5,2.7,"PCB front-left; X right, Y back"
+H7,83.5,32.5,2.7,"PCB front-left; X right, Y back"
+H8,106.5,32.5,2.7,"PCB front-left; X right, Y back"

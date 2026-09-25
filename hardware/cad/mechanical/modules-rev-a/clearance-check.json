@@ -1,0 +1,5 @@
+{
+  "method": "OpenCascade BRep intersections; conceptual envelopes include service volumes; physical servo/horn not yet modeled",
+  "collisions": [],
+  "between_module_envelopes": []
+}

@@ -1,0 +1,2207 @@
+[
+  {
+    "ref": "J1",
+    "value": "USB-C 5V/5A PD",
+    "pins": {
+      "A1": "GND",
+      "A12": "GND",
+      "B1": "GND",
+      "B12": "GND",
+      "SH": "GND",
+      "A4": "VBUS",
+      "A9": "VBUS",
+      "B4": "VBUS",
+      "B9": "VBUS",
+      "A5": "CC1",
+      "B5": "CC2",
+      "A6": null,
+      "A7": null,
+      "A8": null,
+      "B6": null,
+      "B7": null,
+      "B8": null
+    },
+    "fp": "Connector_USB:USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal",
+    "mpn": "USB4105-GF-A",
+    "block": 1,
+    "why": "Power-only input; integrated Rd in U1. All VBUS contacts connected.",
+    "price": 1.2,
+    "uuid": "c0fd24d2-41bf-4c45-8a6f-dd02261617f4",
+    "types": {
+      "A4": "power_out"
+    },
+    "names": {}
+  },
+  {
+    "ref": "U1",
+    "value": "CYPD3177-24LQXQ",
+    "pins": {
+      "1": "GND",
+      "2": "GND",
+      "3": "PD_GATE_DRV",
+      "4": null,
+      "5": "PD_3V3",
+      "6": "GND",
+      "7": null,
+      "8": null,
+      "9": "PD_FAULT",
+      "10": "PD_FLIP",
+      "11": "PD_5V",
+      "12": null,
+      "13": null,
+      "14": "CC2",
+      "15": "CC1",
+      "16": null,
+      "17": null,
+      "18": "VBUS",
+      "19": "GND",
+      "20": null,
+      "21": null,
+      "22": "GND",
+      "23": "PD_3V3",
+      "24": "PD_1V8",
+      "25": "GND"
+    },
+    "fp": "Package_DFN_QFN:QFN-24-1EP_4x4mm_P0.5mm_EP2.75x2.75mm",
+    "mpn": "CYPD3177-24LQXQ",
+    "block": 1,
+    "why": "5 V min=max; coarse 5 A; fine 0 A. Standalone, no NVM programming.",
+    "price": 3.5,
+    "uuid": "36e2f251-383f-46c2-ba8c-7c81f6e976eb",
+    "types": {
+      "18": "power_in",
+      "23": "power_out",
+      "24": "power_out",
+      "9": "output"
+    },
+    "names": {
+      "1": "VBUS_MIN",
+      "2": "VBUS_MAX",
+      "3": "VBUS_FET_EN",
+      "4": "SAFE_PWR_EN",
+      "5": "ISNK_COARSE",
+      "6": "ISNK_FINE",
+      "7": "HPI_INT",
+      "8": "GPIO_1",
+      "9": "FAULT",
+      "10": "FLIP",
+      "11": "VDC_OUT",
+      "12": "HPI_SDA",
+      "13": "HPI_SCL",
+      "14": "CC2",
+      "15": "CC1",
+      "16": "D-",
+      "17": "D+",
+      "18": "VBUS_IN",
+      "19": "GND",
+      "20": "DNU1",
+      "21": "DNU2",
+      "22": "VSS",
+      "23": "VDDD",
+      "24": "VCCD",
+      "25": "EP"
+    }
+  },
+  {
+    "ref": "Q1",
+    "value": "Si4459BDY",
+    "pins": {
+      "1": "PFET_SOURCE",
+      "2": "PFET_SOURCE",
+      "3": "PFET_SOURCE",
+      "4": "PFET_GATE",
+      "5": "VBUS",
+      "6": "VBUS",
+      "7": "VBUS",
+      "8": "VBUS"
+    },
+    "fp": "Package_SO:SO-8_3.9x4.9mm_P1.27mm",
+    "mpn": "SI4459BDY-T1-GE3",
+    "block": 1,
+    "why": "30V SO8 PMOS; max 8.2 milliohm at VGS=-4.5V, 25C; lower input path drop than rev C.",
+    "price": 2.06,
+    "uuid": "da8b8a53-168b-495f-9a0a-9d78b54dddb2",
+    "types": {},
+    "names": {
+      "1": "S",
+      "2": "S",
+      "3": "S",
+      "4": "G",
+      "5": "D",
+      "6": "D",
+      "7": "D",
+      "8": "D"
+    }
+  },
+  {
+    "ref": "Q2",
+    "value": "Si4459BDY",
+    "pins": {
+      "1": "PFET_SOURCE",
+      "2": "PFET_SOURCE",
+      "3": "PFET_SOURCE",
+      "4": "PFET_GATE",
+      "5": "PD_5V",
+      "6": "PD_5V",
+      "7": "PD_5V",
+      "8": "PD_5V"
+    },
+    "fp": "Package_SO:SO-8_3.9x4.9mm_P1.27mm",
+    "mpn": "SI4459BDY-T1-GE3",
+    "block": 1,
+    "why": "30V SO8 PMOS; max 8.2 milliohm at VGS=-4.5V, 25C; lower input path drop than rev C.",
+    "price": 2.06,
+    "uuid": "98cc8cc3-3f48-45bc-8fc9-e63884d0144b",
+    "types": {
+      "5": "power_out"
+    },
+    "names": {
+      "1": "S",
+      "2": "S",
+      "3": "S",
+      "4": "G",
+      "5": "D",
+      "6": "D",
+      "7": "D",
+      "8": "D"
+    }
+  },
+  {
+    "ref": "R1",
+    "value": "1k 1%",
+    "pins": {
+      "1": "PD_GATE_DRV",
+      "2": "PFET_GATE"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-071KL",
+    "block": 1,
+    "why": "Gate-driver isolation.",
+    "price": 0.05,
+    "uuid": "1425689e-0f06-47ec-9f11-ff60508391c5",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R2",
+    "value": "100k 1%",
+    "pins": {
+      "1": "PFET_SOURCE",
+      "2": "PFET_GATE"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-07100KL",
+    "block": 1,
+    "why": "Default gates off; 100k reduces loss of gate drive against driver pull-down resistance and shares an existing BOM value.",
+    "price": 0.05,
+    "uuid": "406e1f4c-1c91-4cc2-a23f-56dc8b538521",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R3",
+    "value": "49.9k 1%",
+    "pins": {
+      "1": "PD_3V3",
+      "2": "PD_FLIP"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-0749K9L",
+    "block": 1,
+    "why": "Advertise no USB data capability; 49.9k nominal 50k.",
+    "price": 0.05,
+    "uuid": "d7d609e3-30a6-4b24-a280-af8d1b61d528",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R4",
+    "value": "10k 1%",
+    "pins": {
+      "1": "VBUS",
+      "2": "GND"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-0710KL",
+    "block": 1,
+    "why": "Input discharge/bleeder as reference design.",
+    "price": 0.05,
+    "uuid": "68a3b206-e784-43ae-b0e3-4bb94782ba5a",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "D1",
+    "value": "10V gate zener",
+    "pins": {
+      "1": "PFET_SOURCE",
+      "2": "PFET_GATE"
+    },
+    "fp": "Diode_SMD:D_SOD-123",
+    "mpn": "BZT52C10-7-F",
+    "block": 1,
+    "why": "Limits magnitude of PMOS gate-source voltage.",
+    "price": 0.12,
+    "uuid": "d481f147-30c6-445f-b40e-ab5630ce9fa1",
+    "types": {},
+    "names": {
+      "1": "K",
+      "2": "A"
+    }
+  },
+  {
+    "ref": "D2",
+    "value": "15V transient suppressor",
+    "pins": {
+      "1": "VBUS",
+      "2": "GND"
+    },
+    "fp": "Diode_SMD:D_SMA",
+    "mpn": "SMAJ15A-13-F",
+    "block": 1,
+    "why": "24.4 V maximum rated pulse clamp, below 28 V eFuse absolute maximum; not a sustained overvoltage absorber.",
+    "price": 0.45,
+    "uuid": "dcaad010-fdb1-48cb-9666-69f27f9ccc9d",
+    "types": {},
+    "names": {
+      "1": "K",
+      "2": "A"
+    }
+  },
+  {
+    "ref": "C1",
+    "value": "1u",
+    "pins": {
+      "1": "VBUS",
+      "2": "GND"
+    },
+    "fp": "Capacitor_SMD:C_0805_2012Metric",
+    "mpn": "C0805C105K5RACTU",
+    "block": 1,
+    "why": "Input capacitance before controlled switch, 50 V.",
+    "price": 0.15,
+    "uuid": "162e399a-e227-43da-969b-62bbb1996382",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "C2",
+    "value": "1u",
+    "pins": {
+      "1": "PD_3V3",
+      "2": "GND"
+    },
+    "fp": "Capacitor_SMD:C_0805_2012Metric",
+    "mpn": "C0805C105K5RACTU",
+    "block": 1,
+    "why": "Local decoupling; X7R unless noted.",
+    "price": 0.15,
+    "uuid": "6e6b9594-0014-4410-a211-7dfef9cb2b3a",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "C3",
+    "value": "100n",
+    "pins": {
+      "1": "PD_3V3",
+      "2": "GND"
+    },
+    "fp": "Capacitor_SMD:C_0805_2012Metric",
+    "mpn": "C0805C104K5RACTU",
+    "block": 1,
+    "why": "Local decoupling; X7R unless noted.",
+    "price": 0.15,
+    "uuid": "22ab7e77-c4f8-44ad-8381-e9b827df2edc",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "C4",
+    "value": "100n",
+    "pins": {
+      "1": "PD_3V3",
+      "2": "GND"
+    },
+    "fp": "Capacitor_SMD:C_0805_2012Metric",
+    "mpn": "C0805C104K5RACTU",
+    "block": 1,
+    "why": "Local decoupling; X7R unless noted.",
+    "price": 0.15,
+    "uuid": "0cdb41a8-a51b-4e33-8595-30ac56d7b358",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "C5",
+    "value": "1u",
+    "pins": {
+      "1": "PD_1V8",
+      "2": "GND"
+    },
+    "fp": "Capacitor_SMD:C_0805_2012Metric",
+    "mpn": "C0805C105K5RACTU",
+    "block": 1,
+    "why": "Local decoupling; X7R unless noted.",
+    "price": 0.15,
+    "uuid": "d070b930-ec15-445e-aa19-3781afa77e9f",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "C6",
+    "value": "1u",
+    "pins": {
+      "1": "PD_5V",
+      "2": "GND"
+    },
+    "fp": "Capacitor_SMD:C_0805_2012Metric",
+    "mpn": "C0805C105K5RACTU",
+    "block": 1,
+    "why": "Decoupling after PD FETs.",
+    "price": 0.15,
+    "uuid": "85b2f604-ebac-4acd-8b26-25a6e62dbfe3",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "TP1",
+    "value": "VBUS",
+    "pins": {
+      "1": "VBUS"
+    },
+    "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+    "mpn": "PCB copper test point",
+    "block": 1,
+    "why": "Probe access; no purchased component",
+    "price": 0,
+    "uuid": "2f495d5b-d53e-4fb7-b913-034766c50e5c",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "TP2",
+    "value": "PD_5V",
+    "pins": {
+      "1": "PD_5V"
+    },
+    "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+    "mpn": "PCB copper test point",
+    "block": 1,
+    "why": "Probe access; no purchased component",
+    "price": 0,
+    "uuid": "e16568e6-70c1-46c6-ba9b-ee291145c977",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "TP3",
+    "value": "PD_FAULT",
+    "pins": {
+      "1": "PD_FAULT"
+    },
+    "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+    "mpn": "PCB copper test point",
+    "block": 1,
+    "why": "Probe access; no purchased component",
+    "price": 0,
+    "uuid": "d8dd273f-ac95-4480-a927-9b7a422a87ef",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "TP4",
+    "value": "GND",
+    "pins": {
+      "1": "GND"
+    },
+    "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+    "mpn": "PCB copper test point",
+    "block": 1,
+    "why": "Probe access; no purchased component",
+    "price": 0,
+    "uuid": "107fdc6a-db59-449a-9da7-569bc83a617a",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "TP5",
+    "value": "PD_3V3",
+    "pins": {
+      "1": "PD_3V3"
+    },
+    "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+    "mpn": "PCB copper test point",
+    "block": 1,
+    "why": "Probe access; no purchased component",
+    "price": 0,
+    "uuid": "0ad42ef2-2c7a-4e12-beb2-8c76cd96058d",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "TP6",
+    "value": "PD_1V8",
+    "pins": {
+      "1": "PD_1V8"
+    },
+    "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+    "mpn": "PCB copper test point",
+    "block": 1,
+    "why": "Probe access; no purchased component",
+    "price": 0,
+    "uuid": "fbc26e8e-cd5f-4f3c-88f3-7a6d1d8f7d75",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "U2",
+    "value": "TPS259470LRPWR",
+    "pins": {
+      "1": "PI_EN_UVLO",
+      "2": "PI_OV",
+      "3": null,
+      "4": "PI_FAULT_N",
+      "5": "PD_5V",
+      "6": "PI_5V",
+      "7": "PI_DVDT",
+      "8": "GND",
+      "9": "PI_ILM",
+      "10": null
+    },
+    "fp": "Alfred:TI_RPW0010A",
+    "mpn": "TPS259470LRPWR",
+    "block": 2,
+    "why": "Adjustable OVP, active current limit, thermal latch-off and reverse blocking; ITIMER open.",
+    "price": 1.72,
+    "uuid": "f0cad003-57e9-44dd-a0fd-bf36e8a19907",
+    "types": {
+      "5": "power_in",
+      "6": "power_out",
+      "4": "open_collector"
+    },
+    "names": {
+      "1": "EN_UVLO",
+      "2": "OVLO",
+      "3": "AUXOFF",
+      "4": "FAULT_N",
+      "5": "IN",
+      "6": "OUT",
+      "7": "DVDT",
+      "8": "GND",
+      "9": "ILM",
+      "10": "ITIMER"
+    }
+  },
+  {
+    "ref": "U3",
+    "value": "TPS259470LRPWR",
+    "pins": {
+      "1": "SERVO_EN",
+      "2": "SERVO_OV",
+      "3": null,
+      "4": "SERVO_FAULT_N",
+      "5": "PD_5V",
+      "6": "SERVO_5V",
+      "7": "SERVO_DVDT",
+      "8": "GND",
+      "9": "SERVO_ILM",
+      "10": null
+    },
+    "fp": "Alfred:TI_RPW0010A",
+    "mpn": "TPS259470LRPWR",
+    "block": 2,
+    "why": "Adjustable OVP, active current limit, thermal latch-off and reverse blocking; ITIMER open.",
+    "price": 1.72,
+    "uuid": "963fdb35-43f4-4e22-8359-71f16eb67cf7",
+    "types": {
+      "5": "power_in",
+      "6": "power_out",
+      "4": "open_collector"
+    },
+    "names": {
+      "1": "EN_UVLO",
+      "2": "OVLO",
+      "3": "AUXOFF",
+      "4": "FAULT_N",
+      "5": "IN",
+      "6": "OUT",
+      "7": "DVDT",
+      "8": "GND",
+      "9": "ILM",
+      "10": "ITIMER"
+    }
+  },
+  {
+    "ref": "R101",
+    "value": "1k 0.1%",
+    "pins": {
+      "1": "PI_ILM",
+      "2": "GND"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RT0805BRD071KL",
+    "block": 2,
+    "why": "3334/1000 = 3.334 A nominal limit; about 3.0 A minimum, Pi plus amp.",
+    "price": 0.18,
+    "uuid": "9f710c93-51e2-42e5-9137-96338a527de2",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R102",
+    "value": "3.32k 0.1%",
+    "pins": {
+      "1": "SERVO_ILM",
+      "2": "GND"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RT0805BRD073K32L",
+    "block": 2,
+    "why": "3334/3320 = 1.004 A nominal; approx 0.85-1.15 A tolerance band.",
+    "price": 0.18,
+    "uuid": "059ed09a-f7db-49ca-a05d-755d212975d4",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R103",
+    "value": "34.0k 0.1%",
+    "pins": {
+      "1": "PD_5V",
+      "2": "PI_OV"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RT0805BRD0734KL",
+    "block": 2,
+    "why": "1.2*(1+34/10)=5.28 V nominal overvoltage cutoff.",
+    "price": 0.18,
+    "uuid": "7478b4c6-9dc7-49e3-9f5b-7efb4ec40a2f",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R104",
+    "value": "10k 0.1%",
+    "pins": {
+      "1": "PI_OV",
+      "2": "GND"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RT0805BRD0710KL",
+    "block": 2,
+    "why": "Precision OVP divider bottom.",
+    "price": 0.18,
+    "uuid": "e4eb9721-749c-483a-91e4-7d2bd8e53939",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R105",
+    "value": "34.0k 0.1%",
+    "pins": {
+      "1": "PD_5V",
+      "2": "SERVO_OV"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RT0805BRD0734KL",
+    "block": 2,
+    "why": "1.2*(1+34/10)=5.28 V nominal overvoltage cutoff.",
+    "price": 0.18,
+    "uuid": "ca48b955-0167-4290-9d57-ebdaeb38449d",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R106",
+    "value": "10k 0.1%",
+    "pins": {
+      "1": "SERVO_OV",
+      "2": "GND"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RT0805BRD0710KL",
+    "block": 2,
+    "why": "Precision OVP divider bottom.",
+    "price": 0.18,
+    "uuid": "e3b0b318-692c-4910-8395-543470d45c0a",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "C101",
+    "value": "4.7n",
+    "pins": {
+      "1": "PI_DVDT",
+      "2": "GND"
+    },
+    "fp": "Capacitor_SMD:C_0805_2012Metric",
+    "mpn": "C0805C472J5GACTU",
+    "block": 2,
+    "why": "0.426 V/ms nominal slew; about 12 ms ramp. C0G.",
+    "price": 0.15,
+    "uuid": "8b35ab24-2769-4876-8142-2f5ea6160570",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "C102",
+    "value": "4.7n",
+    "pins": {
+      "1": "SERVO_DVDT",
+      "2": "GND"
+    },
+    "fp": "Capacitor_SMD:C_0805_2012Metric",
+    "mpn": "C0805C472J5GACTU",
+    "block": 2,
+    "why": "0.426 V/ms nominal slew; about 0.43 A capacitor charging current.",
+    "price": 0.15,
+    "uuid": "9e245a00-c95c-40cf-9815-b4710ab1f3d5",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "C103",
+    "value": "100n",
+    "pins": {
+      "1": "PD_5V",
+      "2": "GND"
+    },
+    "fp": "Capacitor_SMD:C_0805_2012Metric",
+    "mpn": "C0805C104K5RACTU",
+    "block": 2,
+    "why": "U2 input bypass.",
+    "price": 0.15,
+    "uuid": "dd3ff540-ac91-41c7-be94-ff8a5c594a73",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "C104",
+    "value": "100n",
+    "pins": {
+      "1": "PD_5V",
+      "2": "GND"
+    },
+    "fp": "Capacitor_SMD:C_0805_2012Metric",
+    "mpn": "C0805C104K5RACTU",
+    "block": 2,
+    "why": "U3 input bypass.",
+    "price": 0.15,
+    "uuid": "b2c084c1-f433-48c5-8714-9e8f7dd9decb",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "C105",
+    "value": "2200u 10V",
+    "pins": {
+      "1": "PI_5V",
+      "2": "GND"
+    },
+    "fp": "Capacitor_THT:CP_Radial_D10.0mm_P5.00mm",
+    "mpn": "EEU-FR1A222L",
+    "block": 2,
+    "why": "Reverse-isolated Pi/audio reservoir; +/-20%; hand-solder after reflow.",
+    "price": 1.3,
+    "uuid": "2c6249a8-8fd3-4074-ad00-8ce7579a7a77",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "C106",
+    "value": "1000u 10V",
+    "pins": {
+      "1": "SERVO_5V",
+      "2": "GND"
+    },
+    "fp": "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm",
+    "mpn": "EEU-FR1A102L",
+    "block": 2,
+    "why": "Servo reservoir; +/-20%; hand-solder after reflow.",
+    "price": 0.85,
+    "uuid": "d711a792-0347-4b44-b992-0ff64a9b4115",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "C107",
+    "value": "10u",
+    "pins": {
+      "1": "PI_5V",
+      "2": "GND"
+    },
+    "fp": "Capacitor_SMD:C_1206_3216Metric",
+    "mpn": "C1206C106K4RACTU",
+    "block": 2,
+    "why": "Local decoupling; X7R unless noted.",
+    "price": 0.15,
+    "uuid": "34cff113-7053-4d30-ad51-63954641e3cc",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "C108",
+    "value": "10u",
+    "pins": {
+      "1": "SERVO_5V",
+      "2": "GND"
+    },
+    "fp": "Capacitor_SMD:C_1206_3216Metric",
+    "mpn": "C1206C106K4RACTU",
+    "block": 2,
+    "why": "Local decoupling; X7R unless noted.",
+    "price": 0.15,
+    "uuid": "2f883542-7314-495b-baf0-1e967e609daa",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "U4",
+    "value": "TPS389001DSET",
+    "pins": {
+      "1": "UV_SENSE",
+      "2": "GND",
+      "3": "PI_3V3",
+      "4": "PI_3V3",
+      "5": "UV_DELAY",
+      "6": "SUPPLY_OK"
+    },
+    "fp": "Package_SON:WSON-6_1.5x1.5mm_P0.5mm",
+    "mpn": "TPS389001DSET",
+    "block": 2,
+    "why": "1% supervisor; nominal 4.842V trip, about 107ms good-rail recovery qualification; asynchronous latch clear.",
+    "price": 2.22,
+    "uuid": "0508dbe7-4c3f-48be-9404-775e9e152cab",
+    "types": {
+      "1": "input",
+      "2": "power_in",
+      "3": "input",
+      "4": "power_in",
+      "5": "passive",
+      "6": "open_collector"
+    },
+    "names": {
+      "1": "SENSE",
+      "2": "GND",
+      "3": "MR_N",
+      "4": "VDD",
+      "5": "CT",
+      "6": "RESET_N"
+    }
+  },
+  {
+    "ref": "R107",
+    "value": "32.1k 0.1%",
+    "pins": {
+      "1": "PI_5V",
+      "2": "UV_SENSE"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RT0805BRD0732K1L",
+    "block": 2,
+    "why": "Supervisor divider top, nominal falling threshold 1.15*(1+32.1/10)=4.8415V.",
+    "price": 0.18,
+    "uuid": "97ed226e-c1ee-4bdb-a548-3fc56d125020",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R108",
+    "value": "10k 0.1%",
+    "pins": {
+      "1": "UV_SENSE",
+      "2": "GND"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RT0805BRD0710KL",
+    "block": 2,
+    "why": "UV threshold divider bottom.",
+    "price": 0.18,
+    "uuid": "69765bba-2821-453e-b2cf-0d61ec08ab10",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R109",
+    "value": "2.2k 1%",
+    "pins": {
+      "1": "SUPPLY_OK",
+      "2": "PI_3V3"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-072K2L",
+    "block": 2,
+    "why": "Supervisor open-drain pullup; 1.5mA sink at3.3V, faster reset-release edge for AUP latch.",
+    "price": 0.05,
+    "uuid": "20ece9d0-cb41-46c2-9b89-eaffd266ff52",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "C109",
+    "value": "100n",
+    "pins": {
+      "1": "PI_3V3",
+      "2": "GND"
+    },
+    "fp": "Capacitor_SMD:C_0805_2012Metric",
+    "mpn": "C0805C104K5RACTU",
+    "block": 2,
+    "why": "Supervisor supply bypass.",
+    "price": 0.15,
+    "uuid": "79788ffc-723c-4e30-8bca-88d6ae3fd409",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "U5",
+    "value": "SN74LVC1G08DBVR",
+    "pins": {
+      "1": "SERVO_ARMED",
+      "2": "SERVO_REQUEST",
+      "3": "GND",
+      "4": "SERVO_EN",
+      "5": "PI_3V3"
+    },
+    "fp": "Package_TO_SOT_SMD:SOT-23-5",
+    "mpn": "SN74LVC1G08DBVR",
+    "block": 2,
+    "why": "AND of hardware armed latch and software request; request low always disables power.",
+    "price": 0.35,
+    "uuid": "6ab1aff7-2f2b-46a9-89eb-ced867cfe7cb",
+    "types": {
+      "4": "output",
+      "5": "power_in"
+    },
+    "names": {
+      "1": "A",
+      "2": "B",
+      "3": "GND",
+      "4": "Y",
+      "5": "VCC"
+    }
+  },
+  {
+    "ref": "R110",
+    "value": "100k 1%",
+    "pins": {
+      "1": "SERVO_EN",
+      "2": "GND"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-07100KL",
+    "block": 2,
+    "why": "Keep motor supply off with Pi absent.",
+    "price": 0.05,
+    "uuid": "2ea817ee-b086-43d3-806b-c62d794f612e",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R111",
+    "value": "100k 1%",
+    "pins": {
+      "1": "SERVO_REQUEST",
+      "2": "GND"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-07100KL",
+    "block": 2,
+    "why": "Default off during boot.",
+    "price": 0.05,
+    "uuid": "b2aa9a6a-2611-4899-909e-a93699b612c9",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R112",
+    "value": "10k 1%",
+    "pins": {
+      "1": "PI_3V3",
+      "2": "SERVO_FAULT_N"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-0710KL",
+    "block": 2,
+    "why": "Fault output pull-up.",
+    "price": 0.05,
+    "uuid": "ea097df2-4a73-4053-81b5-77fd20133701",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R113",
+    "value": "10k 1%",
+    "pins": {
+      "1": "PI_3V3",
+      "2": "PI_FAULT_N"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-0710KL",
+    "block": 2,
+    "why": "Fault output pull-up.",
+    "price": 0.05,
+    "uuid": "904394a9-f774-4903-af8c-83cfaaf31e4b",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "C110",
+    "value": "100n",
+    "pins": {
+      "1": "PI_3V3",
+      "2": "GND"
+    },
+    "fp": "Capacitor_SMD:C_0805_2012Metric",
+    "mpn": "C0805C104K5RACTU",
+    "block": 2,
+    "why": "AND gate bypass.",
+    "price": 0.15,
+    "uuid": "83c31968-bda7-4ee7-a796-0150e0b3fd70",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "C111",
+    "value": "100n",
+    "pins": {
+      "1": "UV_DELAY",
+      "2": "GND"
+    },
+    "fp": "Capacitor_SMD:C_0805_2012Metric",
+    "mpn": "C0805C104K5RACTU",
+    "block": 2,
+    "why": "Supervisor reset-release delay about107ms nominal; delay qualification only, not fault detection delay.",
+    "price": 0.15,
+    "uuid": "0f21641d-e848-40fe-a5c0-6cfac3d9215f",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "TP101",
+    "value": "PI_5V",
+    "pins": {
+      "1": "PI_5V"
+    },
+    "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+    "mpn": "PCB copper test point",
+    "block": 2,
+    "why": "Probe access; no purchased component",
+    "price": 0,
+    "uuid": "04a3e93f-177d-45da-9aa0-97468bc9b5f3",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "TP102",
+    "value": "SERVO_5V",
+    "pins": {
+      "1": "SERVO_5V"
+    },
+    "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+    "mpn": "PCB copper test point",
+    "block": 2,
+    "why": "Probe access; no purchased component",
+    "price": 0,
+    "uuid": "fff33c01-ceaf-4e95-9024-2433c485f49d",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "TP103",
+    "value": "SUPPLY_OK",
+    "pins": {
+      "1": "SUPPLY_OK"
+    },
+    "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+    "mpn": "PCB copper test point",
+    "block": 2,
+    "why": "Probe access; no purchased component",
+    "price": 0,
+    "uuid": "e16e60f9-6684-4461-a45d-743669925ab6",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "TP104",
+    "value": "SERVO_ILM",
+    "pins": {
+      "1": "SERVO_ILM"
+    },
+    "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+    "mpn": "PCB copper test point",
+    "block": 2,
+    "why": "Probe access; no purchased component",
+    "price": 0,
+    "uuid": "4c8c7c2b-b8e5-4e23-bca7-67c22a7cd325",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "TP105",
+    "value": "PI_FAULT_N",
+    "pins": {
+      "1": "PI_FAULT_N"
+    },
+    "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+    "mpn": "PCB copper test point",
+    "block": 2,
+    "why": "Probe access; no purchased component",
+    "price": 0,
+    "uuid": "422ca3bc-db68-4193-ad61-cf4bb256e380",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "TP106",
+    "value": "GND",
+    "pins": {
+      "1": "GND"
+    },
+    "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+    "mpn": "PCB copper test point",
+    "block": 2,
+    "why": "Probe access; no purchased component",
+    "price": 0,
+    "uuid": "fc4647fd-7abb-487b-87ee-fdcad15057f7",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "J2",
+    "value": "Pi Zero 2 W carrier socket",
+    "pins": {
+      "1": "PI_3V3",
+      "2": "PI_5V",
+      "4": "PI_5V",
+      "11": "AMP_ENABLE",
+      "12": "BCLK_PI",
+      "13": "SERVO_FAULT_N",
+      "15": "SERVO_REQUEST",
+      "16": "BUTTON_N",
+      "18": "LED_GPIO",
+      "22": "SUPPLY_OK",
+      "32": "JAW_PWM",
+      "35": "LRCLK_PI",
+      "38": "MIC_DATA_PI",
+      "40": "AMP_DATA_PI",
+      "6": "GND",
+      "9": "GND",
+      "14": "GND",
+      "20": "GND",
+      "25": "GND",
+      "30": "GND",
+      "34": "GND",
+      "39": "GND",
+      "3": null,
+      "5": null,
+      "7": null,
+      "8": null,
+      "10": null,
+      "17": null,
+      "19": null,
+      "21": null,
+      "23": null,
+      "24": null,
+      "26": null,
+      "27": null,
+      "28": null,
+      "29": null,
+      "31": null,
+      "33": null,
+      "36": null,
+      "37": null
+    },
+    "fp": "Connector_PinSocket_2.54mm:PinSocket_2x20_P2.54mm_Vertical",
+    "mpn": "SSW-120-01-G-D",
+    "block": 3,
+    "why": "Socket on carrier top; male header soldered on Pi underside; all grounds and both 5V pins used.",
+    "price": 4.5,
+    "uuid": "0a3b4bb0-54ee-4d10-b810-46d7ed4a0c36",
+    "types": {
+      "1": "power_out",
+      "2": "power_in",
+      "4": "power_in",
+      "11": "output",
+      "12": "output",
+      "15": "output",
+      "18": "output",
+      "32": "output",
+      "35": "output",
+      "40": "output",
+      "16": "input",
+      "38": "input",
+      "13": "input"
+    },
+    "names": {}
+  },
+  {
+    "ref": "R201",
+    "value": "33 1%",
+    "pins": {
+      "1": "BCLK_PI",
+      "2": "BCLK"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-0733RL",
+    "block": 3,
+    "why": "Source damping at Pi, shared clock.",
+    "price": 0.05,
+    "uuid": "81558d0f-3d78-4019-b180-ea812e4e3515",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R202",
+    "value": "33 1%",
+    "pins": {
+      "1": "LRCLK_PI",
+      "2": "LRCLK"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-0733RL",
+    "block": 3,
+    "why": "Source damping at Pi, shared frame clock.",
+    "price": 0.05,
+    "uuid": "6582c35d-d041-4a72-aa90-9f1f79156a00",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R203",
+    "value": "33 1%",
+    "pins": {
+      "1": "AMP_DATA_PI",
+      "2": "AMP_DATA"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-0733RL",
+    "block": 3,
+    "why": "Source damping at Pi.",
+    "price": 0.05,
+    "uuid": "7cf32dfc-441f-4803-ba07-07679a1fb37f",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "TP201",
+    "value": "PI_3V3",
+    "pins": {
+      "1": "PI_3V3"
+    },
+    "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+    "mpn": "PCB copper test point",
+    "block": 3,
+    "why": "Probe access; no purchased component",
+    "price": 0,
+    "uuid": "5357ade3-cafd-469b-ba52-fa751e751a02",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "TP202",
+    "value": "BCLK",
+    "pins": {
+      "1": "BCLK"
+    },
+    "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+    "mpn": "PCB copper test point",
+    "block": 3,
+    "why": "Probe access; no purchased component",
+    "price": 0,
+    "uuid": "7aebb463-0c38-4f25-bd3e-cc5fbd10fbbf",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "TP203",
+    "value": "LRCLK",
+    "pins": {
+      "1": "LRCLK"
+    },
+    "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+    "mpn": "PCB copper test point",
+    "block": 3,
+    "why": "Probe access; no purchased component",
+    "price": 0,
+    "uuid": "1e8babfd-1938-4374-8551-7372484ff2e7",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "TP204",
+    "value": "MIC_DATA_PI",
+    "pins": {
+      "1": "MIC_DATA_PI"
+    },
+    "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+    "mpn": "PCB copper test point",
+    "block": 3,
+    "why": "Probe access; no purchased component",
+    "price": 0,
+    "uuid": "7b4bf27e-3c16-4b46-bc3a-253a0f12316d",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "TP205",
+    "value": "GND",
+    "pins": {
+      "1": "GND"
+    },
+    "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+    "mpn": "PCB copper test point",
+    "block": 3,
+    "why": "Probe access; no purchased component",
+    "price": 0,
+    "uuid": "e04706ac-b577-4e07-97d9-3e25beb81018",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "U6",
+    "value": "ICS-43434",
+    "pins": {
+      "1": "LRCLK",
+      "2": "GND",
+      "3": "GND",
+      "4": "BCLK",
+      "5": "MIC_3V3",
+      "6": "MIC_DATA"
+    },
+    "fp": "Sensor_Audio:InvenSense_ICS-43434-6_3.5x2.65mm",
+    "mpn": "ICS-43434",
+    "block": 4,
+    "why": "Left slot selected. Bottom port through PCB; no paste/flux in port.",
+    "price": 4.2,
+    "uuid": "0a029f68-3ac2-4f31-986a-063fe6a9847d",
+    "types": {
+      "5": "power_in",
+      "6": "tri_state"
+    },
+    "names": {
+      "1": "WS",
+      "2": "LR",
+      "3": "GND",
+      "4": "SCK",
+      "5": "VDD",
+      "6": "SD"
+    }
+  },
+  {
+    "ref": "R301",
+    "value": "47 1%",
+    "pins": {
+      "1": "PI_3V3",
+      "2": "MIC_3V3"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-0747RL",
+    "block": 4,
+    "why": "Quiet local mic supply; 550uA produces only 25.9mV drop.",
+    "price": 0.05,
+    "uuid": "ea747380-684f-48a3-b39d-ff376e2dc3ec",
+    "types": {
+      "2": "power_out"
+    },
+    "names": {}
+  },
+  {
+    "ref": "C301",
+    "value": "1u",
+    "pins": {
+      "1": "MIC_3V3",
+      "2": "GND"
+    },
+    "fp": "Capacitor_SMD:C_0805_2012Metric",
+    "mpn": "C0805C105K5RACTU",
+    "block": 4,
+    "why": "Mic RC supply filter.",
+    "price": 0.15,
+    "uuid": "a7c3e6ae-6f82-4bf7-980f-0b067d9012ad",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "C302",
+    "value": "100n",
+    "pins": {
+      "1": "MIC_3V3",
+      "2": "GND"
+    },
+    "fp": "Capacitor_SMD:C_0805_2012Metric",
+    "mpn": "C0805C104K5RACTU",
+    "block": 4,
+    "why": "Mic immediate bypass.",
+    "price": 0.15,
+    "uuid": "e381a584-8bfb-4e3a-867b-839286524e05",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R302",
+    "value": "33 1%",
+    "pins": {
+      "1": "MIC_DATA",
+      "2": "MIC_DATA_PI"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-0733RL",
+    "block": 4,
+    "why": "Source termination at microphone.",
+    "price": 0.05,
+    "uuid": "15fa9af0-4f55-412e-bd69-3517424332fb",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R303",
+    "value": "100k 1%",
+    "pins": {
+      "1": "MIC_DATA_PI",
+      "2": "GND"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-07100KL",
+    "block": 4,
+    "why": "Defined data level during microphone tri-state slot.",
+    "price": 0.05,
+    "uuid": "db0078a7-43f7-4773-b5ad-d992d352b87e",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "U7",
+    "value": "MAX98357AETE+T",
+    "pins": {
+      "1": "AMP_DATA",
+      "2": "AMP_GAIN",
+      "3": "GND",
+      "4": "AMP_SD",
+      "5": null,
+      "6": null,
+      "7": "PI_5V",
+      "8": "PI_5V",
+      "9": "AMP_P",
+      "10": "AMP_N",
+      "11": "GND",
+      "12": null,
+      "13": null,
+      "14": "LRCLK",
+      "15": "GND",
+      "16": "BCLK",
+      "17": "GND"
+    },
+    "fp": "Package_DFN_QFN:TQFN-16-1EP_3x3mm_P0.5mm_EP1.23x1.23mm",
+    "mpn": "MAX98357AETE+T",
+    "block": 4,
+    "why": "Mono bridge amplifier; A=I2S; EP grounded; both speaker leads driven.",
+    "price": 4.08,
+    "uuid": "3c29acdf-e9b9-4244-adbb-70e5cec92484",
+    "types": {
+      "7": "power_in",
+      "8": "power_in",
+      "9": "output",
+      "10": "output"
+    },
+    "names": {
+      "1": "DIN",
+      "2": "GAIN_SLOT",
+      "3": "GND",
+      "4": "SD_MODE",
+      "5": "NC",
+      "6": "NC",
+      "7": "VDD",
+      "8": "VDD",
+      "9": "OUTP",
+      "10": "OUTN",
+      "11": "GND",
+      "12": "NC",
+      "13": "NC",
+      "14": "LRCLK",
+      "15": "GND",
+      "16": "BCLK",
+      "17": "EP"
+    }
+  },
+  {
+    "ref": "R304",
+    "value": "100k 1%",
+    "pins": {
+      "1": "AMP_GAIN",
+      "2": "PI_5V"
+    },
+    "fp": "Alfred:R_0805_DNP_NoPaste",
+    "mpn": "RC0805FR-07100KL",
+    "block": 4,
+    "why": "DO NOT FIT in revision D: floating GAIN_SLOT selects 9 dB. Optional 100k to VDD selects quiet 3 dB mode.",
+    "price": 0.05,
+    "uuid": "fda6cc3c-32b3-4389-a21e-73f84629fe8d",
+    "types": {},
+    "names": {},
+    "dnp": true
+  },
+  {
+    "ref": "R305",
+    "value": "1k 1%",
+    "pins": {
+      "1": "AMP_ENABLE",
+      "2": "AMP_SD"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-071KL",
+    "block": 4,
+    "why": "SD_MODE drive isolation; high selects left channel.",
+    "price": 0.05,
+    "uuid": "29fd00de-9b43-4a2a-957e-7150479c552f",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R306",
+    "value": "100k 1%",
+    "pins": {
+      "1": "AMP_SD",
+      "2": "GND"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-07100KL",
+    "block": 4,
+    "why": "Mute through boot; software enables after valid clocks.",
+    "price": 0.05,
+    "uuid": "ee1df748-ad3f-45ef-bc8f-b14b31a30fdd",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "C303",
+    "value": "100n",
+    "pins": {
+      "1": "PI_5V",
+      "2": "GND"
+    },
+    "fp": "Capacitor_SMD:C_0805_2012Metric",
+    "mpn": "C0805C104K5RACTU",
+    "block": 4,
+    "why": "At amplifier supply pins.",
+    "price": 0.15,
+    "uuid": "b1b6325d-23f2-4b8e-8ba8-b9641d5b3f0b",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "C304",
+    "value": "10u",
+    "pins": {
+      "1": "PI_5V",
+      "2": "GND"
+    },
+    "fp": "Capacitor_SMD:C_1206_3216Metric",
+    "mpn": "C1206C106K4RACTU",
+    "block": 4,
+    "why": "At amplifier supply pins.",
+    "price": 0.15,
+    "uuid": "23647c2b-386a-441c-8b49-61a728d9a018",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "C305",
+    "value": "100u 10V",
+    "pins": {
+      "1": "PI_5V",
+      "2": "GND"
+    },
+    "fp": "Capacitor_THT:CP_Radial_D5.0mm_P2.00mm",
+    "mpn": "EEU-FR1A101",
+    "block": 4,
+    "why": "Local amplifier bulk.",
+    "price": 0.35,
+    "uuid": "f7446a76-8f77-4b47-8ac5-9eaba9078d6d",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "L1",
+    "value": "10uH 3.2A",
+    "pins": {
+      "1": "AMP_P",
+      "2": "SPK_P"
+    },
+    "fp": "Alfred:SRN6045TA_100M",
+    "mpn": "SRN6045TA-100M",
+    "block": 4,
+    "why": "Symmetric output LC; 4.6A saturation, DCR 52mOhm maximum; 6x6mm body.",
+    "price": 0.75,
+    "uuid": "20e222e0-d5f1-46b6-92e2-b959ca179c09",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "L2",
+    "value": "10uH 3.2A",
+    "pins": {
+      "1": "AMP_N",
+      "2": "SPK_N"
+    },
+    "fp": "Alfred:SRN6045TA_100M",
+    "mpn": "SRN6045TA-100M",
+    "block": 4,
+    "why": "Symmetric output LC; 4.6A saturation, DCR 52mOhm maximum; 6x6mm body.",
+    "price": 0.75,
+    "uuid": "59225c4a-b261-4316-a12f-6b278bad8294",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "C306",
+    "value": "220n",
+    "pins": {
+      "1": "SPK_P",
+      "2": "SPK_N"
+    },
+    "fp": "Capacitor_SMD:C_0805_2012Metric",
+    "mpn": "C0805C224K5RACTU",
+    "block": 4,
+    "why": "Differential output filter; 20uH total gives 75.9kHz resonance.",
+    "price": 0.15,
+    "uuid": "05698e86-c694-4007-bb83-ae86219e44ec",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "C307",
+    "value": "1n",
+    "pins": {
+      "1": "SPK_P",
+      "2": "GND"
+    },
+    "fp": "Capacitor_SMD:C_0805_2012Metric",
+    "mpn": "C0805C102J5GACTU",
+    "block": 4,
+    "why": "C0G 50V, post-inductor common-mode EMI shunt.",
+    "price": 0.15,
+    "uuid": "d346f8e4-8d5f-4ccd-888b-fecaa955a8d6",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "C308",
+    "value": "1n",
+    "pins": {
+      "1": "SPK_N",
+      "2": "GND"
+    },
+    "fp": "Capacitor_SMD:C_0805_2012Metric",
+    "mpn": "C0805C102J5GACTU",
+    "block": 4,
+    "why": "Matched C0G 50V, post-inductor EMI shunt.",
+    "price": 0.15,
+    "uuid": "f9d6830b-052c-40fa-a269-656520d197c4",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "J3",
+    "value": "Speaker 4ohm 3W",
+    "pins": {
+      "1": "SPK_P",
+      "2": "SPK_N"
+    },
+    "fp": "TerminalBlock_TE-Connectivity:TerminalBlock_TE_282834-2_1x02_P2.54mm_Horizontal",
+    "mpn": "282834-2",
+    "block": 4,
+    "why": "Screw terminal for bare speaker wires; neither terminal is ground.",
+    "price": 0.8,
+    "uuid": "881ded08-9af8-411b-b73e-bdaeaa9aca15",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "TP301",
+    "value": "MIC_3V3",
+    "pins": {
+      "1": "MIC_3V3"
+    },
+    "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+    "mpn": "PCB copper test point",
+    "block": 4,
+    "why": "Probe access; no purchased component",
+    "price": 0,
+    "uuid": "12cbb35b-521b-4b6e-8aa8-e5d63db4804d",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "TP302",
+    "value": "PI_5V",
+    "pins": {
+      "1": "PI_5V"
+    },
+    "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+    "mpn": "PCB copper test point",
+    "block": 4,
+    "why": "Probe access; no purchased component",
+    "price": 0,
+    "uuid": "7743209b-64ba-49bb-8e84-31e332cf4e12",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "TP303",
+    "value": "GND",
+    "pins": {
+      "1": "GND"
+    },
+    "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+    "mpn": "PCB copper test point",
+    "block": 4,
+    "why": "Probe access; no purchased component",
+    "price": 0,
+    "uuid": "417bcf72-2690-4895-b0cf-8182d628ff30",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "U8",
+    "value": "SN74LVC1G07DBVR",
+    "pins": {
+      "1": null,
+      "2": "JAW_PWM",
+      "3": "GND",
+      "4": "JAW_OD",
+      "5": "PI_3V3"
+    },
+    "fp": "Package_TO_SOT_SMD:SOT-23-5",
+    "mpn": "SN74LVC1G07DBVR",
+    "block": 5,
+    "why": "5.5V-tolerant open drain and Ioff isolate Pi from connector +5V faults.",
+    "price": 0.35,
+    "uuid": "ac2673d9-fbeb-4cdb-bb5c-aa6ebbeca4cf",
+    "types": {
+      "4": "open_collector",
+      "5": "power_in"
+    },
+    "names": {
+      "1": "NC",
+      "2": "A",
+      "3": "GND",
+      "4": "Y",
+      "5": "VCC"
+    }
+  },
+  {
+    "ref": "R401",
+    "value": "100k 1%",
+    "pins": {
+      "1": "JAW_PWM",
+      "2": "GND"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-07100KL",
+    "block": 5,
+    "why": "Boot-low PWM.",
+    "price": 0.05,
+    "uuid": "a35beb49-3b86-42bf-bce9-14863fe1c77a",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R402",
+    "value": "4.7k 1%",
+    "pins": {
+      "1": "SERVO_5V",
+      "2": "JAW_OD"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-074K7L",
+    "block": 5,
+    "why": "5V signal pull-up before protective series resistor.",
+    "price": 0.05,
+    "uuid": "c31bf360-9818-49ac-89a3-8d70c28321eb",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R403",
+    "value": "1k 1%",
+    "pins": {
+      "1": "JAW_OD",
+      "2": "JAW_SIG"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-071KL",
+    "block": 5,
+    "why": "A short to +5V sinks at most about 5.3mA; ground short limited by pull-up.",
+    "price": 0.05,
+    "uuid": "3a358292-a7ab-4ab2-9959-641bf12ac157",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "C401",
+    "value": "100n",
+    "pins": {
+      "1": "PI_3V3",
+      "2": "GND"
+    },
+    "fp": "Capacitor_SMD:C_0805_2012Metric",
+    "mpn": "C0805C104K5RACTU",
+    "block": 5,
+    "why": "Buffer bypass.",
+    "price": 0.15,
+    "uuid": "2777100e-73f3-4ee7-ab01-48308c789331",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "J4",
+    "value": "Jaw: GND +5V SIG",
+    "pins": {
+      "1": "GND",
+      "2": "SERVO_5V",
+      "3": "JAW_SIG"
+    },
+    "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
+    "mpn": "TSW-103-07-G-S",
+    "block": 5,
+    "why": "Standard servo plug; clearly mark both sides; retention clip recommended.",
+    "price": 0.45,
+    "uuid": "bf0ab84e-89f1-4f93-8113-2de84d27fbc4",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "U9",
+    "value": "TL431AIDBZR",
+    "pins": {
+      "1": "REGEN_K",
+      "2": "REGEN_REF",
+      "3": "GND"
+    },
+    "fp": "Package_TO_SOT_SMD:SOT-23",
+    "mpn": "TL431AIDBZR",
+    "block": 5,
+    "why": "Reference controls regenerative shunt. Verify dynamic stability with actual servo.",
+    "price": 0.4,
+    "uuid": "b4e83053-59cc-4232-8323-b0ca4f11c196",
+    "types": {},
+    "names": {
+      "1": "K",
+      "2": "REF",
+      "3": "A"
+    }
+  },
+  {
+    "ref": "R404",
+    "value": "12.4k 0.1%",
+    "pins": {
+      "1": "SERVO_5V",
+      "2": "REGEN_REF"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RT0805BRD0712K4L",
+    "block": 5,
+    "why": "2.495*(1+12.4/10)=5.589V nominal dump threshold.",
+    "price": 0.18,
+    "uuid": "185a1b18-a1b7-4fd9-8180-81688af46539",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R405",
+    "value": "10k 0.1%",
+    "pins": {
+      "1": "REGEN_REF",
+      "2": "GND"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RT0805BRD0710KL",
+    "block": 5,
+    "why": "Shunt reference bottom.",
+    "price": 0.18,
+    "uuid": "28db58ef-924f-40ef-af48-238586601d37",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R406",
+    "value": "2.2k 1%",
+    "pins": {
+      "1": "SERVO_5V",
+      "2": "REGEN_K"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-072K2L",
+    "block": 5,
+    "why": "Cathode bias and gate pull-up, ~1.4mA at clamp onset.",
+    "price": 0.05,
+    "uuid": "dd70f973-01e9-4bc2-9fb6-f91d0da9124c",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R407",
+    "value": "100 1%",
+    "pins": {
+      "1": "REGEN_K",
+      "2": "REGEN_GATE"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-07100RL",
+    "block": 5,
+    "why": "Isolate capacitive FET gate.",
+    "price": 0.05,
+    "uuid": "a6fc762c-2a7a-4f87-a48c-d8da5b4a7249",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "Q3",
+    "value": "AO3401A",
+    "pins": {
+      "1": "REGEN_GATE",
+      "2": "SERVO_5V",
+      "3": "DUMP"
+    },
+    "fp": "Package_TO_SOT_SMD:SOT-23",
+    "mpn": "AO3401A",
+    "block": 5,
+    "why": "PMOS shunts excess servo rail energy into R408.",
+    "price": 0.25,
+    "uuid": "288bfe17-ae27-4c47-80e6-174d473fd20b",
+    "types": {},
+    "names": {
+      "1": "G",
+      "2": "S",
+      "3": "D"
+    }
+  },
+  {
+    "ref": "R408",
+    "value": "10ohm 5W",
+    "pins": {
+      "1": "DUMP",
+      "2": "GND"
+    },
+    "fp": "Resistor_THT:R_Axial_Power_L25.0mm_W9.0mm_P30.48mm",
+    "mpn": "SQP500JB-10R",
+    "block": 5,
+    "why": "At 5.6V absorbs up to 3.14W. Mount 5mm above PCB, away from plastic.",
+    "price": 0.6,
+    "uuid": "2dac5ca6-8f7c-419b-882d-8d30026325a3",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "SW1",
+    "value": "Momentary button",
+    "pins": {
+      "1": "BUTTON_SWITCH",
+      "2": "GND"
+    },
+    "fp": "Button_Switch_THT:SW_PUSH_6mm_H4.3mm",
+    "mpn": "B3F-1000",
+    "block": 5,
+    "why": "Normally-open, front plunger access. No identity semantics.",
+    "price": 0.3,
+    "uuid": "77df1ad4-d5c6-4a4b-ab53-9931a7860d00",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R409",
+    "value": "1k 1%",
+    "pins": {
+      "1": "BUTTON_SWITCH",
+      "2": "BUTTON_RC"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-071KL",
+    "block": 5,
+    "why": "Limits switch discharge current.",
+    "price": 0.05,
+    "uuid": "a96e1eb2-b39d-4c56-b6eb-4c413d2ce1ab",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R410",
+    "value": "100k 1%",
+    "pins": {
+      "1": "PI_3V3",
+      "2": "BUTTON_RC"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-07100KL",
+    "block": 5,
+    "why": "Release RC time constant 10ms.",
+    "price": 0.05,
+    "uuid": "e95c7c1a-3643-4d01-b4ec-b3fbc67cc2f8",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "C402",
+    "value": "100n",
+    "pins": {
+      "1": "BUTTON_RC",
+      "2": "GND"
+    },
+    "fp": "Capacitor_SMD:C_0805_2012Metric",
+    "mpn": "C0805C104K5RACTU",
+    "block": 5,
+    "why": "Press time constant ~0.1ms; software requires 30ms stable both edges.",
+    "price": 0.15,
+    "uuid": "76783d9c-4de6-4d4a-858a-839e946f82d6",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "U10",
+    "value": "SN74LVC1G17DBVR",
+    "pins": {
+      "1": null,
+      "2": "BUTTON_RC",
+      "3": "GND",
+      "4": "BUTTON_N",
+      "5": "PI_3V3"
+    },
+    "fp": "Package_TO_SOT_SMD:SOT-23-5",
+    "mpn": "SN74LVC1G17DBVR",
+    "block": 5,
+    "why": "Schmitt buffer converts slow RC edges to clean logic.",
+    "price": 0.4,
+    "uuid": "d71db717-df62-4de8-b6d3-3be841e67602",
+    "types": {
+      "4": "output",
+      "5": "power_in"
+    },
+    "names": {
+      "1": "NC",
+      "2": "A",
+      "3": "GND",
+      "4": "Y",
+      "5": "VCC"
+    }
+  },
+  {
+    "ref": "C403",
+    "value": "100n",
+    "pins": {
+      "1": "PI_3V3",
+      "2": "GND"
+    },
+    "fp": "Capacitor_SMD:C_0805_2012Metric",
+    "mpn": "C0805C104K5RACTU",
+    "block": 5,
+    "why": "Schmitt buffer bypass.",
+    "price": 0.15,
+    "uuid": "9c8280e2-402f-41d0-aadf-6d6fb0d7410f",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R411",
+    "value": "680 1%",
+    "pins": {
+      "1": "LED_GPIO",
+      "2": "LED_A"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-07680RL",
+    "block": 5,
+    "why": "About 2mA for green LED Vf~2V.",
+    "price": 0.05,
+    "uuid": "a9b45af5-b44b-447c-8f8a-8c2edec27bdc",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "D3",
+    "value": "Green status LED",
+    "pins": {
+      "1": "GND",
+      "2": "LED_A"
+    },
+    "fp": "LED_THT:LED_D3.0mm",
+    "mpn": "WP710A10SGC",
+    "block": 5,
+    "why": "Visible via printed light pipe.",
+    "price": 0.3,
+    "uuid": "1c1aecc8-13db-490d-91dd-9a9452edf9a9",
+    "types": {},
+    "names": {
+      "1": "K",
+      "2": "A"
+    }
+  },
+  {
+    "ref": "TP401",
+    "value": "JAW_SIG",
+    "pins": {
+      "1": "JAW_SIG"
+    },
+    "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+    "mpn": "PCB copper test point",
+    "block": 5,
+    "why": "Probe access; no purchased component",
+    "price": 0,
+    "uuid": "725551fe-ff48-4c63-b581-e0342890d9d3",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "TP402",
+    "value": "SERVO_EN",
+    "pins": {
+      "1": "SERVO_EN"
+    },
+    "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+    "mpn": "PCB copper test point",
+    "block": 5,
+    "why": "Probe access; no purchased component",
+    "price": 0,
+    "uuid": "1c41aab9-3a35-48ae-a994-1125655e375d",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "TP403",
+    "value": "BUTTON_N",
+    "pins": {
+      "1": "BUTTON_N"
+    },
+    "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+    "mpn": "PCB copper test point",
+    "block": 5,
+    "why": "Probe access; no purchased component",
+    "price": 0,
+    "uuid": "a866d188-6736-45b2-9bc8-6db152fb0d0c",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "TP404",
+    "value": "GND",
+    "pins": {
+      "1": "GND"
+    },
+    "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+    "mpn": "PCB copper test point",
+    "block": 5,
+    "why": "Probe access; no purchased component",
+    "price": 0,
+    "uuid": "4d163002-bcbe-4839-b84c-a89c91fc1680",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R114",
+    "value": "10k 1%",
+    "pins": {
+      "1": "PD_5V",
+      "2": "PI_EN_UVLO"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-0710KL",
+    "block": 2,
+    "why": "10k/10k EN divider; 2.55 V nominal at 5.1 V input, with D101 fault clamp.",
+    "price": 0.05,
+    "uuid": "3517d7ff-544b-48c8-8e60-dce4553367ba",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "R115",
+    "value": "10k 1%",
+    "pins": {
+      "1": "PI_EN_UVLO",
+      "2": "GND"
+    },
+    "fp": "Resistor_SMD:R_0805_2012Metric",
+    "mpn": "RC0805FR-0710KL",
+    "block": 2,
+    "why": "10k/10k EN divider; 2.55 V nominal at 5.1 V input, with D101 fault clamp.",
+    "price": 0.05,
+    "uuid": "40dee40c-898b-41ae-888e-438ee0cd60c0",
+    "types": {},
+    "names": {}
+  },
+  {
+    "ref": "D101",
+    "value": "5.1V EN clamp",
+    "pins": {
+      "1": "PI_EN_UVLO",
+      "2": "GND"
+    },
+    "fp": "Diode_SMD:D_SOD-123",
+    "mpn": "MMSZ5V1T1G",
+    "block": 2,
+    "why": "Cathode to EN, anode to ground. Limits EN fault voltage; R114 limits clamp current.",
+    "price": 0.17,
+    "uuid": "b7779bde-d4fb-4082-ba6d-5430a24cfb5e",
+    "types": {},
+    "names": {
+      "1": "K",
+      "2": "A"
+    }
+  },
+  {
+    "ref": "U11",
+    "value": "74AUP1G74DC",
+    "pins": {
+      "1": "SERVO_REQUEST",
+      "2": "PI_3V3",
+      "3": null,
+      "4": "GND",
+      "5": "SERVO_ARMED",
+      "6": "SUPPLY_OK",
+      "7": "PI_3V3",
+      "8": "PI_3V3"
+    },
+    "fp": "Package_SO:VSSOP-8_2.3x2mm_P0.5mm",
+    "mpn": "74AUP1G74DC,125",
+    "block": 2,
+    "why": "Schmitt-input arm latch; active-low supply-good clears Q asynchronously. New request rising edge required after recovery. Nexperia AUP part, 3.3V only.",
+    "price": 0.46,
+    "uuid": "c418afa5-fcf5-4475-ad33-974d0121a92e",
+    "types": {
+      "1": "input",
+      "2": "input",
+      "3": "output",
+      "4": "power_in",
+      "5": "output",
+      "6": "input",
+      "7": "input",
+      "8": "power_in"
+    },
+    "names": {
+      "1": "CLK",
+      "2": "D",
+      "3": "Q_N",
+      "4": "GND",
+      "5": "Q",
+      "6": "CLR_N",
+      "7": "PRE_N",
+      "8": "VCC"
+    }
+  },
+  {
+    "ref": "C112",
+    "value": "100n",
+    "pins": {
+      "1": "PI_3V3",
+      "2": "GND"
+    },
+    "fp": "Capacitor_SMD:C_0805_2012Metric",
+    "mpn": "C0805C104K5RACTU",
+    "block": 2,
+    "why": "Local bypass for U11 arm latch.",
+    "price": 0.15,
+    "uuid": "c9744e4f-155e-49c5-a2cf-c19186ccebf6",
+    "types": {},
+    "names": {}
+  }
+]

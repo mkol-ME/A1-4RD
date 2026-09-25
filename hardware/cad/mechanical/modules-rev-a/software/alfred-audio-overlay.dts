@@ -1,0 +1,47 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Alfred module prototype A, Pi Zero 2 W. Uses Raspberry Pi's existing voiceHAT drivers.
+// GPIO17 is amplifier enable on Alfred; the stock voiceHAT overlay uses GPIO16.
+// Source-reviewed against Raspberry Pi Linux rpi-6.12.y; target testing required.
+/dts-v1/;
+/plugin/;
+
+/ {
+    compatible = "brcm,bcm2835";
+    fragment@0 {
+        target = <&i2s_clk_producer>;
+        __overlay__ { status = "okay"; };
+    };
+    fragment@1 {
+        target = <&gpio>;
+        __overlay__ {
+            alfred_amp_pin: alfred_amp_pin {
+                brcm,pins = <17>;
+                brcm,function = <1>;
+                brcm,pull = <1>; // pull down; codec requests output initially low
+            };
+        };
+    };
+    fragment@2 {
+        target-path = "/";
+        __overlay__ {
+            // Keep this exact node name: the Raspberry Pi machine driver uses it.
+            voicehat-codec {
+                #sound-dai-cells = <0>;
+                compatible = "google,voicehat";
+                pinctrl-names = "default";
+                pinctrl-0 = <&alfred_amp_pin>;
+                sdmode-gpios = <&gpio 17 0>;
+                voicehat_sdmode_delay = <5>;
+                status = "okay";
+            };
+        };
+    };
+    fragment@3 {
+        target = <&sound>;
+        __overlay__ {
+            compatible = "googlevoicehat,googlevoicehat-soundcard";
+            i2s-controller = <&i2s_clk_producer>;
+            status = "okay";
+        };
+    };
+};

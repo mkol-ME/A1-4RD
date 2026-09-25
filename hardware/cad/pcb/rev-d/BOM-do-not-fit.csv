@@ -1,0 +1,2 @@
+Reference,MPN,Value,Reason
+R304,RC0805FR-07100KL,100k 1%,DO NOT FIT in revision D: floating GAIN_SLOT selects 9 dB. Optional 100k to VDD selects quiet 3 dB mode.
