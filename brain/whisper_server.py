@@ -37,7 +37,12 @@ import prompts
 # tokens badly. It caught 32/32 Portuguese test clips, but in real use switching
 # back and forth was unreliable, and the owner asked for an explicit command.
 MODEL = "small.en"
-MULTILINGUAL_MODEL = "small"
+# Portuguese mode only; English mode never touches it. Over 84 synthetic clips
+# (2026-09-25) medium cut Portuguese word errors from 12.2% to 7.4% clean and
+# 16.4% to 8.5% with room noise, and picked the language right on all of them,
+# for 1.1s a clip instead of 0.45s. large-v3-turbo and large-v3 were slower and
+# no better (large-v3 heard "Alfred" as "A Fed").
+MULTILINGUAL_MODEL = "medium"
 MODES = ("en", "pt")
 # The 1060 is Pascal — no tensor cores and crippled FP16, so int8_float32 is the
 # right compute type here and float16 would be slower, not faster.
@@ -92,7 +97,7 @@ PROMPTS = {"en": VOCABULARY, "pt": PEOPLE}
 class Ears:
     def __init__(self):
         self.model = WhisperModel(MODEL, device="cuda", compute_type=COMPUTE)
-        # Both stay loaded (about 0.43 GB each on the 1060's 6 GB), so a
+        # Both stay loaded (about 0.43 GB and 1 GB of the 1060's 6 GB), so a
         # Portuguese turn never waits for a model to load.
         self.multilingual = WhisperModel(MULTILINGUAL_MODEL, device="cuda", compute_type=COMPUTE)
         # Force the CUDA kernels and the encoder to load before anyone speaks.
