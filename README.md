@@ -24,10 +24,34 @@ changed things only when a number moved. I also learned to put boundaries in cod
 anything that reaches the prompt will eventually be said out loud, so access to memory has to be enforced in
 the database query itself.
 
+## The physical build
+
+The body is fully modelled in CAD; it has not been printed or assembled yet.
+
+<p align="center">
+  <img src="hardware/cad/mechanical/rev-b/Alfred-preview.png" alt="Rendered CAD model of the Alfred bust on its speaker plinth" width="360">
+  <img src="hardware/cad/mechanical/rev-b/Assembly-exploded.png" alt="Exploded view of the sixteen printed parts" width="360">
+</p>
+
+- **Printed body** ([`hardware/cad/mechanical/rev-b`](hardware/cad/mechanical/rev-b)): sixteen parts as STEP
+  solids and millimetre STL, 202 mm tall. The chin is a separate part, driven by a servo through a drive
+  link, so the jaw can move while he speaks.
+- **Electronics layout** ([`hardware/cad/mechanical/modules-rev-a`](hardware/cad/mechanical/modules-rev-a)):
+  a tray and fit models for off-the-shelf boards — Raspberry Pi, I²S microphone, amplifier, servo driver and
+  USB-C power.
+- **Custom carrier PCB** ([`hardware/cad/pcb/rev-e`](hardware/cad/pcb/rev-e)): a four-layer KiCad board for a
+  Pi Zero 2 W, an ICS-43434 microphone, a MAX98357A amplifier and the jaw servo, with a latching power-fault
+  cutoff. Gerbers, drill files, BOM and DRC/ERC reports are included; revisions C to E are kept. Not yet
+  fabricated.
+
+The STEP files open in SolidWorks, Fusion or FreeCAD. [`hardware/cad/README.md`](hardware/cad/README.md) maps
+every revision.
+
 ---
 
 ## Contents
 
+- [The physical build](#the-physical-build)
 - [How a spoken turn works](#how-a-spoken-turn-works)
 - [Hardware](#hardware)
 - [Repository layout](#repository-layout)
@@ -95,8 +119,8 @@ MI50 notes, all handled already: it needed its stock VBIOS reflashed, *Above 4G 
 driven from the card's temperature by [`ops/fan`](ops/fan). The board boots in legacy (CSM) mode — do not
 disable CSM.
 
-**Client:** any Windows laptop with a microphone. Later: a Raspberry Pi, servo jaw, neck servo and a printed
-enclosure — see [`hardware/`](hardware).
+**Client:** any Windows laptop with a microphone. Later: a Raspberry Pi in the printed body, with a servo jaw
+and a neck servo — see [The physical build](#the-physical-build).
 
 ---
 
@@ -143,7 +167,7 @@ A1-4RD/
 │   ├── services/             start SearXNG, Whisper and the voice server at boot
 │   └── remote-access/        key-only SSH and Tailscale
 ├── requirements/             pinned environments (client TTS, Whisper, RVC, Qwen-TTS)
-├── hardware/                 CAD spec and PCB notes for the body
+├── hardware/                 CAD (STEP/STL), KiCad PCB and bring-up notes for the body
 └── docs/                     SSH access
 ```
 
