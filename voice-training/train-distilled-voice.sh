@@ -4,7 +4,10 @@ set -euo pipefail
 
 project_dir="$(cd "$(dirname "$0")/.." && pwd)"
 training_dir="$project_dir/piper-training"
-dataset_dir="$project_dir/voice-distill"
+# Overridable so a second voice can be trained beside the live one without touching it.
+dataset_dir="${DATASET_DIR:-$project_dir/voice-distill}"
+output_dir="${OUTPUT_DIR:-$training_dir/output}"
+epochs="${EPOCHS:-20}"
 checkpoint="$training_dir/en_GB-alan-medium.ckpt"
 checkpoint_url="https://huggingface.co/datasets/rhasspy/piper-checkpoints/resolve/main/en/en_GB/alan/medium/epoch%3D6339-step%3D1647790.ckpt?download=true"
 
@@ -46,9 +49,9 @@ if [[ "${1:-}" == "--setup-only" ]]; then
     exit 0
 fi
 
-mkdir -p "$training_dir/cache" "$training_dir/output"
+mkdir -p "$output_dir/cache"
 export CUDA_VISIBLE_DEVICES=0
-cd "$training_dir/output"
+cd "$output_dir"
 # The 1060 has 6 GB; a small batch is slower but avoids late-run OOMs.
 "$training_dir/venv/bin/python" -m piper.train fit \
     --data.voice_name alfred \
@@ -56,11 +59,11 @@ cd "$training_dir/output"
     --data.audio_dir "$dataset_dir/wav" \
     --model.sample_rate 22050 \
     --data.espeak_voice en-gb-x-rp \
-    --data.cache_dir "$training_dir/cache" \
-    --data.config_path "$training_dir/output/en_GB-alfred-medium.onnx.json" \
+    --data.cache_dir "$output_dir/cache" \
+    --data.config_path "$output_dir/en_GB-alfred-medium.onnx.json" \
     --data.batch_size 4 \
     --data.num_workers 4 \
-    --trainer.max_epochs 20 \
+    --trainer.max_epochs "$epochs" \
     --trainer.accelerator gpu \
     --trainer.devices 1 \
     --trainer.precision 32-true \
