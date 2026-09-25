@@ -9,3 +9,5 @@ persona/** text eol=lf
 scripts/** text eol=lf
 tests/** text eol=lf
 voice-training/** text eol=lf
+# Never rewrite line endings inside a PDF; it corrupts the file.
+*.pdf binary
